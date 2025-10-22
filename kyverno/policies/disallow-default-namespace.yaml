@@ -1,0 +1,47 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-default-namespace
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+    policies.kyverno.io/title: Disallow Default Namespace (Extended)
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/category: Multi-Tenancy
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Mixed
+    policies.kyverno.io/description: >
+      Disallow usage of the 'default' namespace for workloads and cluster resources.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: validate-pod-and-controllers-namespace
+    match:
+      any:
+      - resources:
+          kinds:
+            - Pod
+            # - DaemonSet
+            - Deployment
+            - StatefulSet
+            # - Job
+            - Ingress
+    validate:
+      message: "Using 'default' namespace is not allowed for workload resources."
+      pattern:
+        metadata:
+          namespace: "!default"
+  - name: validate-base-resources-namespace
+    match:
+      any:
+      - resources:
+          kinds:
+            - ConfigMap
+            - Secret
+            - PersistentVolumeClaim
+            - Service
+    validate:
+      message: "Using 'default' namespace is not allowed for base resources."
+      pattern:
+        metadata:
+          namespace: "!default"

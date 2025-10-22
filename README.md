@@ -150,7 +150,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
 <tr>
-<td width="50%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
+<td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
 #### 📦 **Helm Charts**
 **[Helm.md](./docs/Helm.md)**  
@@ -160,7 +160,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Release lifecycle
 
 </td>
-<td width="50%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
+<td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
 #### 🔧 **Kustomize**
 **[Kustomize.md](./docs/Kustomize.md)**  
@@ -170,6 +170,15 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Multi-environment deployment
 
 </td>
+
+<td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
+
+#### 🛡️**Kyverno**
+**[Kyverno.md](./docs/Kyverno.md)**  
+*Policy management and governance*
+- Security policy enforcement
+- Resource validation rules
+- Compliance automation
 </tr>
 </table>
 
