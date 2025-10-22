@@ -146,7 +146,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 </tr>
 </table>
 
-### 📦 **Package & Configuration Management**
+### 📦 **Package, Configuration & Policy Management**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
 <tr>
