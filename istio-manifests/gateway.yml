@@ -1,17 +1,24 @@
-# The Gateway creates the entry point for external traffic into the mesh.
+# Istio Gateway - Entry point for external traffic into the service mesh
+# Gateway defines L4-L6 load balancing properties (ports, TLS settings)
+# Works with VirtualService for L7 routing rules (HTTP paths, headers)
 ---
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: gateway
   namespace: mern-devops
+  labels:
+    app: bookstore
+    component: gateway
 spec:
+  # Selector targets Istio ingress gateway pods
+  # Uses built-in ingress gateway deployed in istio-system namespace
   selector:
-    istio: ingress # use Istio's built-in ingress gateway
+    istio: ingress # References istio-ingressgateway deployment
   servers:
   - port:
-      number: 80
-      name: http
-      protocol: HTTP
+      number: 80        # HTTP port for development
+      name: http        # Named port for protocol identification
+      protocol: HTTP    # Plain HTTP - upgrade to HTTPS for production
     hosts:
-    - "*"
+    - "*"              # Wildcard accepts all hostnames

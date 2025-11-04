@@ -1,29 +1,37 @@
-# The VirtualService defines the routing rules for the services within the mesh.
+# Istio VirtualService - L7 traffic routing and management
+# Defines HTTP routing rules, traffic splitting, fault injection, and timeouts
+# Works with Gateway to provide complete ingress traffic management
 ---
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: virtualservice
   namespace: mern-devops
+  labels:
+    app: bookstore
+    component: routing
 spec:
   hosts:
-  - "*"
+  - "*"              # Match all hostnames - should match Gateway hosts
   gateways:
-  - gateway
+  - gateway          # Reference to Gateway resource for external traffic
   http:
+  # Backend API routing
   - match:
     - uri:
-        prefix: /books
+        prefix: /books  # API endpoint prefix matching
     route:
     - destination:
-        host: backend-service 
+        host: backend-service  # Kubernetes service name (FQDN: backend-service.mern-devops.svc.cluster.local)
         port:
-          number: 8000
+          number: 8000         # Service port for backend API
+  
+  # Frontend routing
   - match:
     - uri:
-        prefix: /
+        prefix: /        # Catch-all for frontend routes
     route:
     - destination:
-        host: frontend-service
+        host: frontend-service  # Frontend service endpoint
         port:
           number: 5173

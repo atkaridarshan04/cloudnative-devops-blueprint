@@ -1,3 +1,4 @@
+# MongoDB StatefulSet - Production-ready database deployment with persistence
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -5,30 +6,29 @@ metadata:
   namespace: mern-devops
   labels:
     app: mongodb
+    component: database
 spec:
-  # minAvailable: 2 
-  serviceName: "mongodb-service-headless"   # This should matches the service name
-  replicas: 1
+  # StatefulSet configuration - ensures ordered deployment and stable network identities
+  serviceName: mongodb-service-headless  # Headless service for stable DNS names
+  replicas: 1  
   selector:
     matchLabels:
       app: mongodb
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      partition: 0
   template:
     metadata:
-      name: mongodb
       labels:
         app: mongodb
+        component: database
     spec:
       containers:
         - name: mongodb
           image: mongo:4.4
-          imagePullPolicy: IfNotPresent   
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
+              name: mongodb     # Named port for service discovery
           env:
+            # MongoDB authentication
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -40,7 +40,12 @@ spec:
                   name: mongo-secret
                   key: password
             - name: MONGO_INITDB_DATABASE
-              value: "db"
+              value: "db"       # Initial database creation
+          # Volume mount - persistent storage for database files
+          volumeMounts:
+            - name: mongodb-vol
+              mountPath: /data/db     # MongoDB default data directory
+          # Health checks - essential for StatefulSet pod management
           livenessProbe:
             tcpSocket:
               port: 27017
@@ -56,41 +61,49 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
+            initialDelaySeconds: 30   # Wait for MongoDB to be ready
+            periodSeconds: 10         # Frequent readiness checks
+            timeoutSeconds: 5
+            failureThreshold: 3       # Remove from service after 3 failures
+          # Resource management
           # resources:
           #   requests:
-          #     memory: "128Mi"
-          #     cpu: "0.25"
+          #     memory: "512Mi"         # Minimum memory for MongoDB
+          #     cpu: "250m"             # Minimum CPU allocation
           #   limits:
-          #     memory: "256Mi"
-          #     cpu: "0.25"
-          volumeMounts:
-            - name: mongodb-vol
-              mountPath: /data/db
-      volumes:
-        - name: mongodb-vol
-          persistentVolumeClaim:
-            claimName: mongo-pvc
-  # volumeClaimTemplates:   # When not using persistentVolumeClaim seperately
-  #   - metadata:
-  #       name: mongodb-vol
-  #     spec:
-  #       accessModes: ["ReadWriteOnce"]
-  #       storageClassName: manual
-  #       resources:
-  #         requests:
-  #           storage: 1Gi
+          #     memory: "1Gi"           # Maximum memory before OOMKill
+          #     cpu: "500m"             # CPU throttling limit
+      # volumes:
+      #   - name: mongodb-vol
+      #     persistentVolumeClaim:
+      #       claimName: mongo-pvc
+  # Volume claim templates - automatic PVC creation for each StatefulSet pod (Used for dynamic provisioning)
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-vol
+        labels:
+          app: mongodb
+      spec:
+        accessModes: ["ReadWriteOnce"]  # Single node access - required for StatefulSet
+        storageClassName: standard        # or ebs-sc for AWS EBS provisioning after creating StorageClass for it (storageClass.yml)
+        resources:
+          requests:
+            storage: 1Gi              # Storage size - expand based on data requirements
 
 ---
+# Headless Service - enables direct pod-to-pod communication for StatefulSet
 apiVersion: v1
 kind: Service
 metadata:
   name: mongodb-service-headless
   namespace: mern-devops
+  labels:
+    app: mongodb
 spec:
+  clusterIP: None     # Headless service for StatefulSet - no load balancing, direct pod access
   selector:
     app: mongodb
-  clusterIP: None  # Headless service for StatefulSet
   ports:
     - port: 27017
       targetPort: 27017
-      protocol: TCP
+      name: mongodb

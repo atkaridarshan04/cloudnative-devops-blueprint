@@ -53,19 +53,17 @@ cd kubernetes/
 ```
 
 
-
-## 3. Deploy Persistent Storage
+<!-- ## 3. Deploy Persistent Storage
 
 Ensure MongoDB data persistence by applying the following configuration files:
 
 ```bash
 kubectl apply -f persistentVolume.yml
 kubectl apply -f persistentVolumeClaim.yml
-```
+``` -->
 
 
-
-## 4. Deploy MongoDB with Service and Secrets
+## 3. Deploy MongoDB with Service and Secrets
 
 Deploy MongoDB using a ClusterIP service, secured with Kubernetes Secrets:
 
@@ -82,31 +80,22 @@ kubectl run -it --rm --restart=Never -n default --image=busybox dns-test -- nslo
 
 
 
-## 5. Deploy the Backend (Node.js) Service
+## 4. Deploy the Backend (Node.js) Service and Frontend (React) Service
 
-Deploy the backend API and expose it using a NodePort service:
+Deploy the backend API and React application and expose it using a NodePort service:
 
 ```bash
-kubectl apply -f backend-config.yml
+# Apply config
+kubectl apply -f config.yml
+
 kubectl apply -f backend.yml
-```
-
-Ensure the backend connects to MongoDB by setting appropriate environment variables in `backend-config.yml`.
-
-
-
-## 6. Deploy the Frontend (React) Service
-
-Deploy the React application and expose it via a NodePort service:
-
-```bash
-kubectl apply -f frontend-config.yml
 kubectl apply -f frontend.yml
 ```
 
+>**Note:** Configure the [config](../kubernetes/frontend-config.yml) file accordingly.
+
 ### Test the Application
->**Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
- 
+
 ```bash
 kubectl get all -n mern-devops
 ```  
@@ -128,7 +117,7 @@ kubectl get all -n mern-devops
 
 
 
-## 7. Configure Ingress
+## 5. Configure Ingress
 
 ### Step 1: Install Nginx Ingress Controller
 
@@ -175,7 +164,7 @@ In browser navigate to `http://<node-ip>`
 
 
 
-## 8. Configure DNS with DuckDNS
+## 6. Configure DNS with DuckDNS
 
 Integrate DuckDNS for domain-based access:
 
@@ -188,7 +177,7 @@ Integrate DuckDNS for domain-based access:
 
 
 
-## 9. Access the Application
+## 7. Access the Application
 >**Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
 
 ### Application Endpoints
@@ -209,7 +198,7 @@ Integrate DuckDNS for domain-based access:
 
 
 
-## 10. Deploying Kubernetes Dashboard (Optional)
+## 8. Deploying Kubernetes Dashboard (Optional)
 
 ### Step 1. Add kubernetes-dashboard repository
 
@@ -254,7 +243,7 @@ kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy
 ![k8s-dash-2](./assets/k8s-dash-2.png)
 ![k8s-dash-3](./assets/k8s-dash-3.png)
 
-## 11. Cleanup
+## Cleanup
 
 To remove all deployed resources and delete the cluster:
 

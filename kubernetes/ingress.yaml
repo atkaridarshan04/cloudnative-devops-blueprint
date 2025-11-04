@@ -4,21 +4,24 @@ metadata:
   name: nginx-ingress
   namespace: mern-devops
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx               # Specifies the ingress class to be used
+  # Define routing rules for incoming HTTP traffic
   rules:
     - http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /                       # Route for root path ("/")
+            pathType: Prefix              # Prefix means any path starting with "/" will match
             backend:
+              # Traffic will be forwarded to the frontend service
               service:
-                name: frontend-service
-                port:
+                name: frontend-service    # Name of the Kubernetes Service for frontend
+                port:                     # Port number exposed by the frontend service
                   number: 5173
-          - path: /books
-            pathType: Prefix
+          - path: /books                   # Route for backend API requests ("/books")
+            pathType: Prefix               # Prefix means any path starting with "/books" will match
             backend:
+              # Traffic will be forwarded to the backend service
               service:
-                name: backend-service
-                port:
+                name: backend-service      # Name of the Kubernetes Service for backend
+                port:                      # Port number exposed by the backend service
                   number: 8000

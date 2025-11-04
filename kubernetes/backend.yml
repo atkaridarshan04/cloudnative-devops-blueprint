@@ -5,8 +5,9 @@ metadata:
   namespace: mern-devops
   labels:
     app: backend
+    version: v2  # Version label for Istio traffic management
 spec:
-  replicas: 1
+  replicas: 1  # Single replica for dev/testing - scale based on load testing results
   selector:
     matchLabels:
       app: backend
@@ -15,18 +16,23 @@ spec:
       name: backend
       labels:
         app: backend
+        version: v2  # Required for Istio service mesh routing
     spec:
-      securityContext:  # Pod-level security context
-        runAsUser: 1000  # A non-root UID
-        runAsGroup: 3000  # Group ID for volume access if needed
-        fsGroup: 2000  # Group ID for volume access if needed
+      # Pod-level security context - enforces non-root execution for entire pod
+      securityContext:  
+        runAsUser: 1000   # Non-root UID - prevents container breakout attacks
+        runAsGroup: 3000  # Dedicated group for file system permissions
+        fsGroup: 2000     # Ensures volume mounts have correct group ownership
+        runAsNonRoot: true # Kubernetes validation - blocks root containers
       containers:
         - name: backend
-          image: atkaridarshan04/bookstore-backend:v2
-          imagePullPolicy: IfNotPresent
+          image: atkaridarshan04/bookstore-backend:v2  # Pinned version - avoid 'latest' in production
+          imagePullPolicy: IfNotPresent  # Reduces registry calls, faster pod startup
           ports:
             - containerPort: 8000
+              name: http  # Named port for service discovery and monitoring
           env:
+            # ConfigMap injection - enables config changes without image rebuilds
             - name: PORT
               valueFrom:
                 configMapKeyRef:
@@ -36,38 +42,46 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: backend-config
-                  key: mongoDBURL  
+                  key: mongoDBURL
+          # Health checks - critical for load balancer traffic routing
           livenessProbe:
             httpGet:
-              path: /books
+              path: /books      # Application-specific health endpoint
               port: 8000
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: 30  # Allow app startup time - adjust based on cold start metrics
+            periodSeconds: 15        # Balance between responsiveness and resource usage
+            timeoutSeconds: 5        # Prevent hanging requests
+            failureThreshold: 3      # Restart after 3 consecutive failures (45s total)
           readinessProbe:
             httpGet:
-              path: /books
+              path: /books      # Same endpoint - consider dedicated /health endpoint
               port: 8000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 30  # Must be ready before receiving traffic
             periodSeconds: 15
-          # resources:
+            timeoutSeconds: 5
+            failureThreshold: 3      # Remove from service after 3 failures
+          # resources:             # Resource requests/limits for predictable scheduling
           #   requests:
-          #     memory: "128Mi"
-          #     cpu: "0.25"
+          #     memory: "128Mi"    # Guaranteed memory - prevents OOMKilled
+          #     cpu: "0.25"        # 250m CPU - adjust based on profiling
           #   limits:
-          #     memory: "256Mi"
-          #     cpu: "0.25"
-          securityContext:  # Container-level security context
-            runAsUser: 1000  # A non-root UID
+          #     memory: "256Mi"    # Hard limit - triggers OOMKilled if exceeded
+          #     cpu: "0.25"        # CPU throttling limit
+          # Container-level security - defense in depth approach
+          securityContext:  
+            runAsUser: 1000                    # Must match pod-level setting
             runAsGroup: 3000
-            allowPrivilegeEscalation: false  # Prevent privilege escalation
+            allowPrivilegeEscalation: false    # Prevents sudo/setuid attacks
+            readOnlyRootFilesystem: true       # Immutable container filesystem
             capabilities:
               drop:
-                - ALL  # Drop all capabilities for security
+                - ALL                          # Remove all Linux capabilities
+  # Rolling update strategy - zero-downtime deployments
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 1         # Create 1 extra pod during update (100% over-provisioning)
+      maxUnavailable: 0   # Never reduce available pods - ensures continuous service
 
 ---
 apiVersion: v1
@@ -75,12 +89,16 @@ kind: Service
 metadata:
   name: backend-service
   namespace: mern-devops
+  labels:
+    app: backend
 spec:
-  # type: NodePort
+  # ClusterIP (default) - internal service discovery within cluster
+  # type: NodePort  # Uncomment for direct external access during development
   selector:
     app: backend
   ports:
-    - port: 8000
-      targetPort: 8000
+    - port: 8000          # Service port - what other services connect to
+      targetPort: 8000    # Container port - must match containerPort above
       protocol: TCP
-      # nodePort: 31100
+      name: http          # Named port for Istio traffic policies
+      # nodePort: 31100   # Fixed external port for NodePort type

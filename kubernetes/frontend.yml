@@ -5,8 +5,8 @@ metadata:
   namespace: mern-devops
   labels:
     app: frontend
+    version: v2 
 spec:
-  # maxUnavailable: 1
   replicas: 1
   selector:
     matchLabels:
@@ -16,6 +16,7 @@ spec:
       name: frontend
       labels:
         app: frontend
+        version: v2 
     spec:
       containers:
         - name: frontend

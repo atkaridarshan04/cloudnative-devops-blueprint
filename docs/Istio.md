@@ -43,6 +43,7 @@ kubectl get svc -n istio-system
 
 ### **Step 1: Download Add-on Manifests**
 ```bash
+cd ./istio-manifests
 mkdir -p istio-addons
 
 curl -L https://raw.githubusercontent.com/istio/istio/release-1.25/samples/addons/prometheus.yaml -o istio-addons/prometheus.yaml
@@ -89,9 +90,14 @@ kubectl get namespace mern-devops --show-labels
 Deploy the application manifests in the following order:
 
 ```bash
-kubectl apply -f app-manifest/mongodb.yml
-kubectl apply -f app-manifest/backend-v1.yml
-kubectl apply -f app-manifest/frontend-v1.yml
+kubectl apply -f ../kubernetes/secrets.yml
+kubectl apply -f ../kubernetes/config.yml
+```
+
+```bash
+kubectl apply -f ../kubernetes/mongodb.yml
+kubectl apply -f ../kubernetes/backend.yml
+kubectl apply -f ../kubernetes/frontend.yml
 ```
 
 ### **Step 2: Deploy Istio Configuration**

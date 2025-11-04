@@ -1,0 +1,31 @@
+---
+# PersistentVolume for MongoDB StatefulSet
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+spec:
+  capacity:
+    storage: 3Gi      # Storage size
+  accessModes:
+    - ReadWriteOnce   # Single node access
+  persistentVolumeReclaimPolicy: Retain   # Retain data after PVC deletion
+  storageClassName: manual      # Named 'manual' to imply as created manually
+  hostPath:
+    path: "/mnt/data"           # Local path on the node for storage
+
+---
+# PersistentVolumeClaim for MongoDB StatefulSet
+# Binds to PersistentVolume for data persistence
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: mern-devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi            # Storage size - must match or be less than PV size
+  storageClassName: manual    # Must match PersistentVolume's storageClassName

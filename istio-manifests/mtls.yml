@@ -1,10 +1,30 @@
-# mTLS Strict mode ensures that all communications within the mesh are encrypted and authenticated.
+# Istio mTLS Configuration - Mutual TLS for service-to-service communication
+# Enforces encrypted and authenticated communication within the service mesh
+# Provides zero-trust networking with automatic certificate management
 ---
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   name: default
   namespace: mern-devops
+  labels:
+    security-policy: strict-mtls
 spec:
+  # mTLS mode configuration
   mtls:
-    mode: STRICT
+    mode: STRICT  # All traffic must use mTLS - highest security level
+    # Alternative modes:
+    # PERMISSIVE: Allows both mTLS and plaintext (migration mode)
+    # DISABLE: No mTLS enforcement (not recommended for production)
+
+# Benefits of STRICT mode:
+# 1. All service-to-service traffic is encrypted
+# 2. Service identity verification prevents spoofing
+# 3. Automatic certificate rotation (every 24 hours by default)
+# 4. Zero-trust network security model
+# 5. Compliance with security standards (PCI DSS, SOC 2)
+
+# Performance considerations:
+# - mTLS adds ~1-2ms latency per request
+# - CPU overhead for encryption/decryption
+# - Monitor proxy CPU usage and scale accordingly

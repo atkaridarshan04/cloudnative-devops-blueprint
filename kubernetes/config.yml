@@ -1,0 +1,26 @@
+---
+# Backend ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: backend-config
+  namespace: mern-devops
+data:
+  PORT: "8000"
+  # mongoDBURL: "mongodb://admin:password123@mongodb-service:27017/db?authSource=admin"      # using service name
+
+  mongoDBURL: "mongodb://admin:password123@mongodb-deployment-0.mongodb-service-headless.mern-devops.svc.cluster.local:27017/db?authSource=admin"       # using headless service name
+  
+# The format for the DNS name of a service in Kubernetes is: <pod-name>.<service-name>.<namespace>.svc.cluster.local
+
+---
+# Frontend ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: mern-devops
+data:
+  # VITE_API_BACKEND_URL: http://192.168.88.133:31100 # using nodeport service
+  VITE_API_BACKEND_URL: ""  # after configuring ingress or istio
+  # VITE_API_BACKEND_URL: http://deployzone.duckdns.org # [ or "" ] after configuring donain for ingress-ip 
