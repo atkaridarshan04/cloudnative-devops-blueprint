@@ -1,29 +1,55 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: Application # ArgoCD Application resource definition
 metadata:
   name: book-store
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1" # 
-    # Enable notifications for specific triggers and specify recipient email addresses
+    # Sync wave controls deployment order - lower numbers deploy first
+    argocd.argoproj.io/sync-wave: "1" # Deploy after infrastructure (wave 0)
+    
+    # Notification subscriptions - critical for production monitoring
+    # Health degraded: immediate alerts for service disruption
     notifications.argoproj.io/subscribe.on-health-degraded.email: "atkaridarshan04@gmail.com"
+    # Deployment success: confirmation for release tracking
     notifications.argoproj.io/subscribe.on-deployed.email: "atkaridarshan04@gmail.com, darshan.atkari23@vit.edu"
 spec:
-  project: book-store
+  project: book-store  # ArgoCD project for RBAC and resource isolation
+  
+  # Source configuration - Git repository as single source of truth
   source:
     repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-    targetRevision: main
-    path: helm-chart
+    targetRevision: main    # Branch/tag/commit - use tags for production releases
+    path: helm-chart        # Helm chart path - enables templating and values override
     helm:
       valueFiles:
-        - values.yaml
+        - values.yaml       # Default values - environment-specific overrides possible
+      # releaseName: book-store # Custom Helm release name (defaults to app name)
 
+  # Destination cluster and namespace configuration
   destination:
-    server: https://kubernetes.default.svc
-    namespace: mern-devops
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+    server: https://kubernetes.default.svc  # In-cluster deployment (same cluster as ArgoCD)
+    namespace: mern-devops                   # Target namespace
+    
+  # Sync policy - defines automated vs manual deployment behavior
+  syncPolicy:                 
+    automated: 
+      prune: true             # Remove resources deleted from Git - maintains desired state
+      selfHeal: true          # Auto-correct manual changes - enforces GitOps principles
+      # allowEmpty: false     # Prevent deletion of all resources
     syncOptions:
-      - CreateNamespace=true
+      - CreateNamespace=true  # Auto-create namespace - reduces manual setup
+      - PrunePropagationPolicy=foreground  # Wait for dependent resources during deletion
+      - PruneLast=true        # Delete application resources last during pruning
+      # - RespectIgnoreDifferences=true    # Honor resource ignore annotations
+      # - ApplyOutOfSyncOnly=true          # Only sync out-of-sync resources
+    
+    # Retry configuration for failed syncs
+    retry:
+      limit: 5              # Maximum retry attempts
+      backoff:
+        duration: 5s        # Initial retry delay
+        factor: 2           # Exponential backoff multiplier
+        maxDuration: 3m     # Maximum retry delay
+  
+  # Resource tracking and management
+  revisionHistoryLimit: 10    # Keep last 10 Git revisions for rollback capability

@@ -1,24 +1,39 @@
+# Stable Ingress for Argo Rollouts Traffic Management
+# This ingress serves as the foundation for canary deployments
+# Argo Rollouts will automatically create a companion canary ingress during rollouts
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rollout-nginx-stable
   namespace: mern-devops
+  labels:
+    app: bookstore
+    ingress-type: stable  # Identifies this as the stable traffic ingress
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx  # Uses NGINX Ingress Controller for canary support
   rules:
     - http:
         paths:
+          # Frontend route
           - path: /
-            pathType: Prefix
+            pathType: Prefix  # Matches all paths starting with /
             backend:
               service:
-                name: frontend-service-stable
+                name: frontend-service-stable  # Routes to stable frontend pods
                 port:
                   number: 80
+          # Backend API route
           - path: /books
-            pathType: Prefix
+            pathType: Prefix  # Matches /books and /books/*
             backend:
               service:
-                name: backend-service-stable
+                name: backend-service-stable   # Routes to stable backend pods
                 port:
                   number: 8000
+
+# During canary rollouts, Argo Rollouts creates a companion ingress:
+# Name: rollout-nginx-stable-canary
+# Annotations:
+#   nginx.ingress.kubernetes.io/canary: "true"
+#   nginx.ingress.kubernetes.io/canary-weight: "<percentage>"
+# This enables progressive traffic shifting without modifying the stable ingress

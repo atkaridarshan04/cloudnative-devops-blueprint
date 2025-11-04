@@ -5,47 +5,101 @@ metadata:
   namespace: mern-devops
   labels:
     app: frontend
+  annotations:
+    # Rollout metadata for operational tracking
+    rollout.argoproj.io/revision: "1"
+    notifications.argoproj.io/subscribe.on-rollout-step-completed.slack: "deployments"
 spec:
-  replicas: 2
+  replicas: 2  # Minimum 2 replicas required for canary traffic splitting
+  
+  # Canary deployment strategy with progressive traffic shifting
   strategy:
     canary:
-      canaryService: frontend-service-canary
-      stableService: frontend-service-stable
+      # Service configuration - dual service approach for traffic management
+      canaryService: frontend-service-canary   # Routes new version traffic
+      stableService: frontend-service-stable   # Routes current version traffic
+      
+      # Traffic routing integration with NGINX Ingress Controller
       trafficRouting:
         nginx:
-          stableIngress: rollout-nginx-stable
+          stableIngress: rollout-nginx-stable   # Primary ingress for traffic splitting
+          # NGINX creates dynamic canary ingress with annotations:
+          # nginx.ingress.kubernetes.io/canary: "true"
+          # nginx.ingress.kubernetes.io/canary-weight: "<percentage>"
+      
+      # Progressive rollout steps with validation gates
       steps:
-      - setWeight: 20
-      - pause: {} # Manual intervention step
-      - setWeight: 60
-      - pause: { duration: 10s } # 10 seconds pause before scaling up to 60%
-      - setWeight: 100
-      - pause: { duration: 10s } # 10 seconds pause before scaling up to 100%
-  revisionHistoryLimit: 2 # Keep the last 2 revisions
+      - setWeight: 20                           # Phase 1: 20% traffic to canary
+      - pause: {}                               # Manual approval gate - requires human validation
+        
+      - setWeight: 60                           # Phase 2: Increase to 60% canary traffic
+      - pause: { duration: 10s }                # Automated pause for metric collection
+        # Short pause allows monitoring systems to collect sufficient data
+        # for automated analysis and decision making
+        
+      - setWeight: 100                          # Phase 3: Full traffic to canary
+      - pause: { duration: 10s }                # Final validation before promotion
+        # Last chance for automated rollback before stable promotion
+      
+      # Advanced canary configuration options
+      maxSurge: "25%"                          # Maximum additional pods during rollout
+      maxUnavailable: "25%"                    # Maximum unavailable pods during rollout
+      scaleDownDelaySeconds: 30                # Delay before scaling down old version
+
+  revisionHistoryLimit: 2          # Retain 2 previous versions for quick rollback
+  
+  # Pod selector configuration
   selector:
     matchLabels:
       app: frontend
-  # Rest of the spec is similar to the Deployment spec
+      
+  # Pod template specification - similar to Deployment but with rollout enhancements
   template:
     metadata:
       labels:
         app: frontend
+        # Argo Rollouts automatically adds revision-specific labels:
+        # rollouts-pod-template-hash: <hash>
+        # rollouts.argoproj.io/revision: <revision-number>
     spec:
       containers:
         - name: frontend
-          image: atkaridarshan04/bookstore-frontend:prod.v1
-          imagePullPolicy: IfNotPresent
+          image: atkaridarshan04/bookstore-frontend:prod.v1  # Semantic versioning for releases
+          imagePullPolicy: IfNotPresent  # Avoid registry calls for existing images
           ports:
             - containerPort: 80
+              name: http
           livenessProbe:
             httpGet:
-              path: /
+              path: /                    # Root path health check
               port: 80
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: 30      # Allow container startup time
+            periodSeconds: 15            # Regular health check interval
+            timeoutSeconds: 5            # Request timeout
+            failureThreshold: 3          # Failures before restart
           readinessProbe:
             httpGet:
-              path: /
+              path: /                    # Application readiness endpoint
               port: 80
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: 30      # Time before first readiness check
+            periodSeconds: 15            # Readiness check frequency
+            timeoutSeconds: 5            # Request timeout
+            failureThreshold: 3          # Failures before removing from service
+          
+          # Resource management for predictable canary behavior
+          # resources:
+          #   requests:
+          #     cpu: "100m"                # Guaranteed CPU allocation
+          #     memory: "128Mi"            # Guaranteed memory allocation
+          #   limits:
+          #     cpu: "500m"                # CPU throttling limit
+          #     memory: "256Mi"            # Memory limit before OOMKill
+
+# Canary Deployment Flow:
+# 1. New image triggers rollout creation
+# 2. Canary pods created with new revision
+# 3. NGINX creates canary ingress with weight-based routing
+# 4. Traffic gradually shifts: 0% → 20% → 60% → 100%
+# 5. Manual/automated validation at each step
+# 6. Successful promotion updates stable service
+# 7. Old revision pods terminated after scaleDownDelay

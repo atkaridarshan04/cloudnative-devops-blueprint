@@ -4,6 +4,9 @@ kind: Service
 metadata:
   name: frontend-service-stable
   namespace: mern-devops
+  labels:
+    app: backend
+    service-type: stable  # Identifies stable traffic service
 spec:
   type: ClusterIP
   selector:
@@ -19,6 +22,12 @@ kind: Service
 metadata:
   name: frontend-service-canary
   namespace: mern-devops
+  labels:
+    app: backend
+    service-type: canary  # Identifies canary traffic service
+  annotations:
+    # Additional canary-specific annotations
+    rollout.argoproj.io/canary-service: "true"
 spec:
   type: ClusterIP
   selector:

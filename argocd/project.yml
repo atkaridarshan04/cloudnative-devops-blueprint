@@ -6,13 +6,16 @@ metadata:
 spec:
   description: Book Store Application
   
+# Allowed source repositories for applications in this project
   sourceRepos:
     - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
   
+# Allowed destination clusters and namespaces for applications in this project
   destinations:
     - namespace: mern-devops
       server: https://kubernetes.default.svc
   
+# Included resource kinds that can be created cluster-wide
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
@@ -25,6 +28,7 @@ spec:
     - group: 'cert-manager.io'
       kind: ClusterIssuer
 
+# Included resource kinds that can be deployed within the target namespace
   namespaceResourceWhitelist:
     - group: ''
       kind: ConfigMap

@@ -1,29 +1,53 @@
+# Dual Service Architecture for Canary Deployments
+# Argo Rollouts requires separate services for stable and canary traffic routing
+# NGINX Ingress Controller dynamically manages traffic splitting between these services
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service-stable
   namespace: mern-devops
+  labels:
+    app: backend
+    service-type: stable  # Identifies stable traffic service
 spec:
-  type: ClusterIP
+  type: ClusterIP  # Internal service - traffic routed through ingress
   selector:
     app: backend
+    # Argo Rollouts automatically manages pod selection based on rollout phase
+    # Stable service routes to pods with stable revision hash
   ports:
-    - port: 8000
-      targetPort: 8000
+    - port: 8000          # Service port for internal communication
+      targetPort: 8000    # Container port - must match rollout template
       protocol: TCP
-      
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service-canary
   namespace: mern-devops
+  labels:
+    app: backend
+    service-type: canary  # Identifies canary traffic service
+  annotations:
+    # Additional canary-specific annotations
+    rollout.argoproj.io/canary-service: "true"
 spec:
-  type: ClusterIP
+  type: ClusterIP  # Internal service - NGINX ingress handles external access
   selector:
     app: backend
+    # Argo Rollouts dynamically updates selector to route canary traffic
+    # Canary service routes to pods with new revision hash during rollout
   ports:
-    - port: 8000
-      targetPort: 8000
+    - port: 8000          # Must match stable service port for consistent routing
+      targetPort: 8000    # Container port from rollout template
       protocol: TCP
+
+# Traffic Routing Mechanism:
+# 1. Initial state: Both services route to stable pods
+# 2. Rollout starts: Canary service selector updated to new revision
+# 3. NGINX ingress splits traffic based on rollout weight configuration
+# 4. Promotion: Stable service selector updated to new revision
+# 5. Cleanup: Old revision pods terminated after successful promotion

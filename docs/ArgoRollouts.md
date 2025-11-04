@@ -11,12 +11,6 @@ Canary deployments allow you to:
 - **Manual control** over deployment progression
 - **Real-time monitoring** of deployment health
 
-## Prerequisites
-
-- Kubernetes cluster (Kind, Minikube, or any K8s cluster)
-- kubectl configured to access your cluster
-- NGINX Ingress Controller (for traffic routing)
-
 ## 1. Installation
 
 ### Step 1: Install Argo Rollouts Controller
@@ -139,7 +133,7 @@ Verify ingress:
 ```bash
 kubectl get ingress -n mern-devops
 ```
-
+> **🔄 How Canary Ingress Works**: When a rollout begins, Argo Rollouts automatically creates a **canary ingress** alongside your stable ingress. The canary ingress uses NGINX annotations like `nginx.ingress.kubernetes.io/canary: "true"` and `nginx.ingress.kubernetes.io/canary-weight: "20"` to split traffic. For example, at 20% canary weight, 80% of traffic goes to the stable service while 20% goes to the canary service with the new version.
 ## 4. Deploy Canary Rollouts
 
 ### Step 1: Deploy Backend Canary Rollout

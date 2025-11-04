@@ -7,21 +7,22 @@ metadata:
     app: backend
 spec:
   replicas: 2
-  strategy:
-    canary:
-      canaryService: backend-service-canary
-      stableService: backend-service-stable
-      trafficRouting:
+  strategy:   # Define the deployment strategy as Canary  
+    canary: 
+      canaryService: backend-service-canary   # Service for canary traffic
+      stableService: backend-service-stable   # Service for stable traffic
+      trafficRouting:                         # Use NGINX for traffic routing
         nginx:
-          stableIngress: rollout-nginx-stable
+          stableIngress: rollout-nginx-stable # Ingress for stable service
+      # Define the steps for the canary deployment
       steps:
-      - setWeight: 20
-      - pause: {} # Manual intervention step
-      - setWeight: 60
-      - pause: { duration: 10s } # 10 seconds pause before scaling up to 60%
-      - setWeight: 100
-      - pause: { duration: 10s } # 10 seconds pause before scaling up to 100%
-  revisionHistoryLimit: 2 # Keep the last 2 revisions
+      - setWeight: 20                         # Start by sending 20% traffic to canary
+      - pause: {}                             # Manual intervention step
+      - setWeight: 60                         # Increase to 60% traffic to canary
+      - pause: { duration: 10s }              # 10 seconds pause before scaling up to 60%
+      - setWeight: 100                        # Finally, send 100% traffic to canary  
+      - pause: { duration: 10s }              # 10 seconds pause before scaling up to 100%
+  revisionHistoryLimit: 2          # Keep the last 2 revisions
   selector:
     matchLabels:
       app: backend
