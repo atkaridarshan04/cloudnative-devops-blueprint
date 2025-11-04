@@ -82,6 +82,14 @@ grafana:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/loki
+      - name: 'argocd'
+        orgId: 1
+        folder: 'ArgoCD Monitoring'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/argocd
 
   # Auto-import dashboards
   dashboards:
@@ -100,3 +108,14 @@ grafana:
         gnetId: 16966
         revision: 1
         datasource: Loki
+
+    argocd:
+      argocd:
+        gnetId: 14584
+        revision: 1
+      argocd-application-overview:
+        gnetId: 19974
+        revision: 1
+      # argocd-notifications:
+      #   gnetId: 19975
+      #   revision: 4

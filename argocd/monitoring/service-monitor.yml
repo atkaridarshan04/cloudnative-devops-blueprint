@@ -1,0 +1,46 @@
+# argocd-service-monitors.yaml
+# This file defines ServiceMonitor resources for monitoring ArgoCD components with Prometheus Operator.
+
+apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
+kind: ServiceMonitor                 # Resource type
+metadata:
+  name: argocd-metrics               # Name of the ServiceMonitor
+  namespace: argocd                  # Namespace where ServiceMonitor is deployed
+  labels:
+    release: monitoring  # Label to associate with Prometheus release
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics # Selects services with this label, must match with ArgoCD metrics service, check with: kubectl get svc -n argocd
+  endpoints:
+  - port: metrics                    # Monitors the 'metrics' port
+
+---
+apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
+kind: ServiceMonitor                 # Resource type
+metadata:
+  name: argocd-server-metrics        # Name of the ServiceMonitor
+  namespace: argocd                  # Namespace where ServiceMonitor is deployed
+  labels:
+    release: monitoring   # Label to associate with Prometheus release
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server-metrics # Selects services with this label, must match with ArgoCD server metrics service, check with: kubectl get svc -n argocd
+  endpoints:
+  - port: metrics                    # Monitors the 'metrics' port
+
+---
+apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
+kind: ServiceMonitor                 # Resource type
+metadata:
+  name: argocd-repo-server-metrics   # Name of the ServiceMonitor
+  namespace: argocd                  # Namespace where ServiceMonitor is deployed
+  labels:
+    release: monitoring   # Label to associate with Prometheus release
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server # Selects services with this label, must match with ArgoCD repo server metrics service, check with: kubectl get svc -n argocd
+  endpoints:
+  - port: metrics                    # Monitors the 'metrics' port

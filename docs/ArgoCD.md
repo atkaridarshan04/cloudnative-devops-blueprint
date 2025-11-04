@@ -41,11 +41,11 @@ kubectl create namespace argocd
 ### Install ArgoCD
 
 ```bash
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
-
-helm install argocd argo/argo-cd -n argocd
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
+
+> Note: Installing using manifest because the metrics services of ArgoCD will be created by only official manifests, not with helm. Which is requried in monitoring ArgoCD Stuff...
 
 ### Verify Installation
 
@@ -197,5 +197,17 @@ Access Application at `http://localhost/`
 
 ![argocd-4](./assets/terraform_argocd.png)
 ![argocd-5](./assets/argocd-5.png)
+
+
+## 4. Monitor Application
+
+1. Ensure Prometheus and Grafana are set up in the cluster. Steps: [Observability.md](./Observability.md)
+2. Apply the ArgoCD service monitor configuration:
+    ```bash
+    kubectl apply -f argocd/monitoring/service-monitor.yml
+    ```
+    > Note: Ensure the `release` label matches your Prometheus installation. In this case, it's set to `monitoring`.
+
+![Argocd Dashboard](../docs/assets/argocd-dashboard.png)
 
 ---

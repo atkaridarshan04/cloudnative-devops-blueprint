@@ -127,6 +127,8 @@ Collects logs from containers, system logs, and Kubernetes events.
 
 ![graphana31](./assets/graphana-3.png)
 
+![ArgoCD-Dashboard](./assets/argocd-dashboard.png)
+
 ### Logging
 
 ![logs-1](./assets/logs-1.png)
