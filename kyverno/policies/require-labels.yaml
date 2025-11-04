@@ -14,8 +14,12 @@ metadata:
       all tools can understand. The recommended labels describe applications in a way that can be
       queried. This policy validates that the label `app.kubernetes.io/name` is specified with some value.
 spec:
+  # Enforcement mode - blocks resources without required labels
   validationFailureAction: Enforce
+  
+  # Background scanning - validates existing resources when policy changes
   background: true
+  
   rules:
   - name: check-for-labels
     match:
@@ -29,4 +33,4 @@ spec:
         metadata:
           name: "?*"
           labels:
-            app: "?*"
+            app: "?*"           # Requires 'app' label with any non-empty value

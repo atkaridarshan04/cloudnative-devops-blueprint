@@ -20,32 +20,43 @@ spec:
   validationFailureAction: Audit
   background: true
   rules:
+  # Rule: Validate health check probes - ensures proper container lifecycle management
   - name: validate-probes
     match:
       any:
       - resources:
           kinds:
-          - Pod
+          - Pod  # Applies to all pods (including those created by controllers)
+    # Preconditions - only validate during resource creation and updates
     preconditions:
       all:
       - key: "{{request.operation || 'BACKGROUND'}}"
         operator: AnyIn
         value:
-        - CREATE
-        - UPDATE
+        - CREATE  # New pod creation
+        - UPDATE  # Pod specification updates
     validate:
       message: "Liveness, readiness, or startup probes are required for all containers."
+      # Iterate through all containers in the pod specification
       foreach:
       - list: request.object.spec.containers[]
+        # Deny condition - fails if container lacks required probes
         deny:
           conditions:
             all:
+            # Check if livenessProbe is missing from container specification
             - key: livenessProbe
               operator: AllNotIn
-              value: "{{ element.keys(@)[] }}"
+              value: "{{ element.keys(@)[] }}"  # Container's configuration keys
+            # Startup probe validation
             # - key: startupProbe
             #   operator: AllNotIn
             #   value: "{{ element.keys(@)[] }}"
+            # Check if readinessProbe is missing from container specification
             - key: readinessProbe
               operator: AllNotIn
               value: "{{ element.keys(@)[] }}"
+
+            # Logic: Container fails validation if BOTH liveness AND readiness probes are missing
+            # Having either probe satisfies the policy requirement
+            # Ensures containers have health check mechanisms for proper lifecycle management

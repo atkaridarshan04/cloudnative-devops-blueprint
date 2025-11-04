@@ -1,80 +1,91 @@
-# Persistence for Prometheus
+# Kube-Prometheus-Stack Configuration
+# Comprehensive monitoring stack with Prometheus, Grafana, and exporters
+# Provides metrics collection, storage, visualization, and alerting capabilities
+
+# Prometheus Configuration - Time-series metrics database
 prometheus:
   prometheusSpec:
-    storageSpec:
+    storageSpec:                          # Persistent storage for metrics data
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          accessModes: ["ReadWriteOnce"]  # Single node access for StatefulSet
           resources:
             requests:
-              storage: 5Gi
-          storageClassName: standard
-  # Service for Prometheus (usually ClusterIP, but LoadBalancer for dev)
+              storage: 5Gi                # Adjust based on retention period and metric volume
+          storageClassName: standard      # Use SSD storage class for better performance
   service:
     type: LoadBalancer
 
-# Disable Alertmanager (enable if you want alerts)
+# Alertmanager - Alert routing and notification management
 alertmanager:
   enabled: false
 
-# Node Exporter for system metrics
+# Node Exporter - System-level metrics from Kubernetes nodes
+# Provides CPU, memory, disk, network metrics for infrastructure monitoring
 nodeExporter:
-  enabled: true
+  enabled: true       # Essential for cluster health monitoring
 
-# Kubernetes state metrics
+# Kube-State-Metrics - Kubernetes object state metrics
+# Exposes deployment status, pod phases, resource quotas, etc.
 kubeStateMetrics:
-  enabled: true
+  enabled: true       # Critical for Kubernetes-specific monitoring
 
-# Additional scrape configurations
+# Custom scrape configurations - Additional metric sources
+# Extends default Prometheus discovery with static targets
 additionalScrapeConfigs:
-  - job_name: node-exporter
+  - job_name: node-exporter       # System metrics collection
     static_configs:
       - targets:
-          - node-exporter:9100
-  - job_name: kube-state-metrics
+          - node-exporter:9100    # Node exporter default port
+  - job_name: kube-state-metrics  # Kubernetes state metrics
     static_configs:
       - targets:
-          - kube-state-metrics:8080
+          - kube-state-metrics:8080  # Kube-state-metrics default port
 
-# Resources
+# Prometheus Operator - Manages Prometheus instances via CRDs
+# Enables declarative monitoring configuration through ServiceMonitor/PrometheusRule
 prometheusOperator:
-  enabled: true
+  enabled: true  # Required for CRD-based monitoring configuration
+
 
 # ---------------------------------------------------------------------------------
-# Grafana configuration (bundled inside kube-prometheus-stack)
+# Grafana Configuration - Metrics visualization and dashboarding
 grafana:
-  enabled: true
+  enabled: true            # Bundled with kube-prometheus-stack for integrated experience
+  # Default credentials
   adminUser: admin
-  adminPassword: password
+  adminPassword: password  # Use Secret or external auth in production
   service:
     type: LoadBalancer
+  
+  # Persistent storage for dashboards, users, and configuration
   persistence:
-    enabled: true
+    enabled: true   # Prevents dashboard loss on pod restart
     type: pvc
-    size: 5Gi
+    size: 5Gi       # Sufficient for dashboard storage and SQLite database
     storageClassName: standard
 
-  # Extra datasources (Prometheus is auto-configured by default)
+  # Data source configuration - connects Grafana to metric/log sources
   additionalDataSources:
-    - name: Loki
+    - name: Loki      # Log aggregation system integration
       type: loki
-      access: proxy
-      url: http://loki-gateway.observability.svc.cluster.local:80
+      access: proxy   # Grafana proxies requests to Loki
+      url: http://loki-gateway.observability.svc.cluster.local:80  # Loki service endpoint
 
-# Dashboard provisioning
+# Dashboard provisioning - Automated dashboard import and organization
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
       providers:
-      - name: 'default'
+      - name: 'default'  # General Kubernetes and infrastructure dashboards
         orgId: 1
         folder: ''
         type: file
         disableDeletion: false
-        editable: true
+        editable: true    # Allow dashboard customization
         options:
           path: /var/lib/grafana/dashboards/default
-      - name: 'loki'
+      - name: 'loki'      # Log analysis and visualization dashboards
         orgId: 1
         folder: 'Loki Logs'
         type: file
@@ -82,7 +93,7 @@ grafana:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/loki
-      - name: 'argocd'
+      - name: 'argocd'    # GitOps deployment monitoring dashboards
         orgId: 1
         folder: 'ArgoCD Monitoring'
         type: file
@@ -91,31 +102,31 @@ grafana:
         options:
           path: /var/lib/grafana/dashboards/argocd
 
-  # Auto-import dashboards
+  # Pre-configured dashboards from Grafana.com community
   dashboards:
     default:
-      kubernetes-cluster:
-        gnetId: 7249
+      kubernetes-cluster:   # Comprehensive cluster overview dashboard
+        gnetId: 7249        # Community dashboard ID
         revision: 1
         datasource: Prometheus
     
     loki:
-      loki-logs:
+      loki-logs:            # Log volume and ingestion rate monitoring
         gnetId: 13639
         revision: 2
         datasource: Loki
-      container-logs:
+      container-logs:       # Container-specific log analysis
         gnetId: 16966
         revision: 1
         datasource: Loki
 
     argocd:
-      argocd:
+      argocd:                       # ArgoCD application and sync status monitoring
         gnetId: 14584
         revision: 1
-      argocd-application-overview:
+      argocd-application-overview:  # Detailed application deployment tracking
         gnetId: 19974
         revision: 1
-      # argocd-notifications:
+      # argocd-notifications:       # Notification system monitoring (optional)
       #   gnetId: 19975
       #   revision: 4

@@ -1,78 +1,105 @@
+# Loki Configuration - Scalable log aggregation system
+# Loki stores and indexes logs efficiently, designed for cloud-native environments
+# Uses object storage for log data and only indexes metadata for cost-effective scaling
+
 ---
 loki:
+  # Authentication disabled
   auth_enabled: false
+  
+  # Common configuration shared across all Loki components
   commonConfig:
-    replication_factor: 1
+    replication_factor: 1  # Single replica for development - use 3+ for production HA
+  
+  # Schema configuration - defines how logs are stored and indexed
   schemaConfig:
     configs:
-      - from: 2024-04-01
-        store: tsdb
-        object_store: s3
-        schema: v13
+      - from: 2024-04-01        # Schema version start date - use current date for new deployments
+        store: tsdb             # Time Series Database for index storage - more efficient than BoltDB
+        object_store: s3        # S3-compatible storage for log chunks (MinIO in this setup)
+        schema: v13             # Latest schema version - provides better query performance
         index:
-          prefix: loki_index_
-          period: 24h
+          prefix: loki_index_   # Index prefix for multi-tenant separation
+          period: 24h           # Index rotation period - daily rotation balances performance/storage
+  
+  # Ingester configuration - component that receives and processes log streams
   ingester:
-    chunk_encoding: snappy
+    chunk_encoding: snappy  # Compression algorithm - good balance of speed/compression ratio
+  
+  # Distributed tracing integration - helps debug Loki performance issues
   tracing:
-    enabled: true
+    enabled: true  # Enable for production troubleshooting
+  
+  # Pattern ingester - extracts patterns from logs for better analysis
   pattern_ingester:
-      enabled: true
+      enabled: true  # Enables log pattern detection and analysis
+  
+  # Rate limiting and resource constraints
   limits_config:
-    allow_structured_metadata: true
-    volume_enabled: true
+    allow_structured_metadata: true  # Enables rich metadata extraction from logs
+    volume_enabled: true  # Enables log volume tracking for cost monitoring
+  
+  # Ruler configuration - enables alerting rules based on log data
   ruler:
-    enable_api: true
+    enable_api: true  # Allows rule management via API
+  
+  # Querier configuration - component that executes log queries
   querier:
-    # Default is 4, if you have enough memory and CPU you can increase, reduce if OOMing
-    max_concurrent: 4
+    # Concurrent query limit - balance between performance and resource usage
+    max_concurrent: 4  # Increase for high query load, decrease if OOMing
 
+# MinIO configuration - S3-compatible object storage for log chunks
+# Provides local object storage for development environments
 minio:
-  enabled: true
+  enabled: true  # Use external S3/GCS/Azure Blob in production
       
+# Deployment mode - SingleBinary for development simplicity
+# Production should use microservices mode for better scalability
 deploymentMode: SingleBinary
 singleBinary:
-  replicas: 1
+  replicas: 1  # Single instance for development
   # resources:
   #   limits:
-  #     cpu: 4
-  #     memory: 4Gi
+  #     cpu: 4  # CPU limit based on log ingestion rate
+  #     memory: 4Gi  # Memory for query processing and caching
   #   requests:
-  #     cpu: 2
-  #     memory: 2Gi
+  #     cpu: 2  # Guaranteed CPU allocation
+  #     memory: 2Gi  # Guaranteed memory allocation
   extraEnv:
-    # Keep a little bit lower than memory limits
+    # Go memory limit - prevents OOM by limiting Go heap size
     - name: GOMEMLIMIT
-      value: 3750MiB
+      value: 3750MiB  # Keep below memory limit to allow for non-heap memory
 
+# Chunk cache configuration - improves query performance
 chunksCache:
-  # default is 500MB, with limited memory keep this smaller
-  writebackSizeLimit: 10MB
+  # Write-back cache size - smaller for resource-constrained environments
+  writebackSizeLimit: 10MB  # Default 500MB - reduced for development
 
-
-# Zero out replica counts of other deployment modes
+# Microservices mode components - disabled for SingleBinary deployment
+# In production, enable specific components based on scaling requirements
 backend:
-  replicas: 0
+  replicas: 0  # Handles writes and compaction in microservices mode
 read:
-  replicas: 0
+  replicas: 0  # Handles read queries in microservices mode
 write:
-  replicas: 0
+  replicas: 0  # Handles log ingestion in microservices mode
 
+# Individual component scaling - all disabled for SingleBinary mode
 ingester:
-  replicas: 0
+  replicas: 0  # Log stream processing component
 querier:
-  replicas: 0
+  replicas: 0  # Query execution component
 queryFrontend:
-  replicas: 0
+  replicas: 0  # Query optimization and caching layer
 queryScheduler:
-  replicas: 0
+  replicas: 0  # Query scheduling and load balancing
 distributor:
-  replicas: 0
+  replicas: 0  # Log ingestion load balancing
 compactor:
-  replicas: 0
+  replicas: 0  # Background compaction and retention
 indexGateway:
-  replicas: 0
+  replicas: 0  # Index query optimization
 bloomCompactor:
-  replicas: 0
+  replicas: 0  # Bloom filter generation for query optimization
 bloomGateway:
-  replicas: 0
+  replicas: 0  # Bloom filter serving for faster queries

@@ -14,27 +14,42 @@ metadata:
       a specific version of an application Pod. This policy validates that the image
       specifies a tag and that it is not called `latest`.
 spec:
+  # Enforcement mode - blocks pods with latest tags from being created
+  # Use 'Audit' mode initially to identify violations without blocking deployments
   validationFailureAction: Enforce
+  
+  # Background scanning - evaluates existing pods when policy is updated
+  # Helps identify legacy workloads that need tag updates
   background: true
+  
   rules:
+  # Rule 1: Ensure all container images have explicit tags
+  # Prevents implicit ':latest' tag usage when no tag is specified
   - name: require-image-tag
     match:
       any:
       - resources:
           kinds:
-          - Pod
+          - Pod  # Applies to pods created by Deployments, StatefulSets, DaemonSets
     validate:
       message: "An image tag is required."
       foreach:
+        # Main application containers - primary workload containers
         - list: "request.object.spec.containers"
           pattern:
-            image: "*:*"
+            # Pattern matching - image must contain colon followed by tag
+            image: "*:*"  # Must contain colon followed by tag (e.g., nginx:1.21)
+        # Init containers - setup/migration containers that run before main containers
         - list: "request.object.spec.initContainers"
           pattern:
-            image: "*:*"
+            image: "*:*"  # Init containers also need explicit tags for reproducibility (# Critical for database migrations, setup scripts, etc.)
+        # Ephemeral containers - debug containers injected at runtime
         - list: "request.object.spec.ephemeralContainers"
           pattern:
-            image: "*:*"
+            image: "*:*"  # Debug containers should use specific tool versions
+  
+  # Rule 2: Explicitly prohibit 'latest' tag usage
+  # Prevents mutable tags that can cause deployment inconsistencies
   - name: validate-image-tag
     match:
       any:
@@ -44,12 +59,12 @@ spec:
     validate:
       message: "Using a mutable image tag e.g. 'latest' is not allowed."
       foreach:
-        - list: "request.object.spec.containers"
+        - list: "request.object.spec.containers"          # Application containers
           pattern:
             image: "!*:latest"
-        - list: "request.object.spec.initContainers"
+        - list: "request.object.spec.initContainers"      # Init containers
           pattern:
-            image: "!*:latest"
-        - list: "request.object.spec.ephemeralContainers"
+            image: "!*:latest" 
+        - list: "request.object.spec.ephemeralContainers" # Ephemeral containers
           pattern:
             image: "!*:latest"

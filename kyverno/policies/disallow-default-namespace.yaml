@@ -15,31 +15,37 @@ spec:
   validationFailureAction: Enforce
   background: true
   rules:
+  # Rule 1: Validate workload resources - prevents application deployments in default namespace
   - name: validate-pod-and-controllers-namespace
     match:
       any:
       - resources:
           kinds:
-            - Pod
-            # - DaemonSet
-            - Deployment
-            - StatefulSet
-            # - Job
-            - Ingress
+            - Pod              # Direct pod creation (rare but possible)
+            # - DaemonSet      # System-level workloads (commented - may need default namespace)
+            - Deployment       # Most common workload type - must use dedicated namespaces
+            - StatefulSet      # Stateful applications - require namespace isolation
+            # - Job            # Batch workloads (commented - may be acceptable in default)
+            - Ingress          # Traffic routing - should be namespace-specific
     validate:
       message: "Using 'default' namespace is not allowed for workload resources."
       pattern:
         metadata:
+          # Negative pattern - reject 'default' namespace
+          # Forces developers to create dedicated namespaces for applications
+          # Improves resource organization and RBAC boundaries
           namespace: "!default"
+  
+  # Rule 2: Validate supporting resources - prevents configuration sprawl in default namespace
   - name: validate-base-resources-namespace
     match:
       any:
       - resources:
           kinds:
-            - ConfigMap
-            - Secret
-            - PersistentVolumeClaim
-            - Service
+            - ConfigMap               # Application configuration - should be co-located with workloads
+            - Secret                  # Sensitive data - namespace isolation improves security
+            - PersistentVolumeClaim   # Storage claims - should be grouped with applications
+            - Service                 # Service discovery - namespace-specific networking
     validate:
       message: "Using 'default' namespace is not allowed for base resources."
       pattern:

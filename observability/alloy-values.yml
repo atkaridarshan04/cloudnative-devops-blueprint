@@ -1,58 +1,90 @@
+# Grafana Alloy Configuration - Unified observability data collection
+# Provides efficient log collection, processing, and forwarding to Loki
+
 ---
+# Cluster identification - helps organize data from multiple clusters
 cluster:
-  name: cloudnative-monitoring-tutorial
+  name: cloudnative-monitoring-tutorial  # Cluster identifier for multi-cluster setups
 
+# Destination configuration - where collected data is sent
 destinations:
-  - name: loki
-    type: loki
-    url: http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push
+  - name: loki  # Primary log destination
+    type: loki  # Loki log aggregation system
+    url: http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push  # Loki push endpoint
 
-
+# Kubernetes cluster events collection - captures cluster-level events
+# Essential for troubleshooting deployment issues, resource constraints, etc.
 clusterEvents:
-  enabled: true
-  collector: alloy-logs
-  namespaces:
-    - mern-devops
-    - observability
-    - kube-system
-    - ingress-nginx
-    - default
+  enabled: true           # Collect events like pod failures, scheduling issues, etc.
+  collector: alloy-logs   # Use log collector for event processing
+  namespaces:             # Target namespaces for event collection
+    - mern-devops         # Application namespace
+    - observability       # Monitoring stack namespace
+    - kube-system         # Kubernetes system components
+    - ingress-nginx       # Ingress controller namespace
+    - default             # Default namespace
 
+# Node-level log collection - system logs from Kubernetes nodes
+# Disabled to reduce resource usage and focus on application logs
 nodeLogs:
-  enabled: false
+  enabled: false  # Enable for system-level debugging (syslog, kernel logs)
 
+# Pod log collection - application and container logs
+# Primary source of application observability data
 podLogs:
-  enabled: true
-  gatherMethod: kubernetesApi
-  collector: alloy-logs
-  labelsToKeep: ["app_kubernetes_io_name","container","instance","job","level","namespace","service_name","service_namespace","deployment_environment","deployment_environment_name"]
+  enabled: true                 # Essential for application monitoring and debugging
+  gatherMethod: kubernetesApi   # Use Kubernetes API for log discovery (vs file system)
+  collector: alloy-logs         # Dedicated log collector instance
+  
+  # Label preservation - controls which Kubernetes labels are forwarded to Loki
+  # Selective labeling reduces cardinality and storage costs
+  labelsToKeep: [
+    "app_kubernetes_io_name",       # Application name for service identification
+    "container",                    # Container name within pod
+    "instance",                     # Pod instance identifier
+    "job",                          # Kubernetes job name
+    "level",                        # Log level (info, warn, error) if present
+    "namespace",                    # Kubernetes namespace
+    "service_name",                 # Service name for distributed tracing correlation
+    "service_namespace",            # Service namespace
+    "deployment_environment",       # Environment identifier (dev/staging/prod)
+    "deployment_environment_name"   # Detailed environment name
+  ]
+  
+  # Structured metadata - high-cardinality data stored separately from labels
+  # Reduces index size while preserving queryability
   structuredMetadata:
-    pod: pod  # Set structured metadata "pod" from label "pod"
+    pod: pod  # Store pod name as structured metadata instead of label
+  
+  # Namespace targeting - specific namespaces for log collection
   namespaces:
-    - mern-devops
-    - observability
-    - kube-system
-    - ingress-nginx
-    - default
+    - mern-devops     # Primary application namespace
+    - observability   # Monitoring infrastructure logs
+    - kube-system     # Kubernetes system component logs
+    - ingress-nginx   # Ingress controller logs for traffic analysis
+    - default         # Default namespace applications
 
-# Collectors
+# Alloy collector configurations - different collectors for different data types
+# Modular approach allows independent scaling and resource allocation
+
 alloy-singleton:
-  enabled: false
+  enabled: false  # Single-instance collector - not used in this setup
 
 alloy-metrics:
-  enabled: false
+  enabled: false  # Metrics collection - handled by Prometheus in this setup
 
+# Primary log collector - handles pod logs and cluster events
 alloy-logs:
-  enabled: true
+  enabled: true   # Main log collection component
   alloy:
     mounts:
-      varlog: false
-      dockercontainers: false
+      varlog: false  # Disable /var/log mounting - using Kubernetes API instead
+      dockercontainers: false  # Disable direct container log access
     clustering:
-      enabled: true
+      enabled: true  # Enable clustering for high availability and load distribution
 
 alloy-profiles:
-  enabled: false
+  enabled: false  # Continuous profiling - optional performance monitoring
 
 alloy-receiver:
-  enabled: false
+  enabled: false  # OTLP receiver for traces/metrics - not used in this setup
