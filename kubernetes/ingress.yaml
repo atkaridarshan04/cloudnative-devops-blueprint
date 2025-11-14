@@ -16,7 +16,7 @@ spec:
               service:
                 name: frontend-service    # Name of the Kubernetes Service for frontend
                 port:                     # Port number exposed by the frontend service
-                  number: 5173
+                  number: 80
           - path: /books                   # Route for backend API requests ("/books")
             pathType: Prefix               # Prefix means any path starting with "/books" will match
             backend:

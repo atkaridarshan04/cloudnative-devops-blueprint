@@ -26,7 +26,7 @@ spec:
         runAsNonRoot: true # Kubernetes validation - blocks root containers
       containers:
         - name: backend
-          image: atkaridarshan04/bookstore-backend:v2  # Pinned version - avoid 'latest' in production
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 # Pinned version - avoid 'latest' in production
           imagePullPolicy: IfNotPresent  # Reduces registry calls, faster pod startup
           ports:
             - containerPort: 8000

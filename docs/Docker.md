@@ -31,8 +31,7 @@ This starts a MongoDB container and binds the database storage to `~/opt/data` o
 #### Build the Frontend Docker Image
 
 ```sh
-cd ./frontend
-docker build -t bookstore-frontend .
+docker build -t ./src/frontend/bookstore-frontend ./src/frontend
 ```
 
 #### Run the Frontend Container
@@ -50,14 +49,39 @@ Visit `http://localhost:5173` in your browser to check if the frontend is runnin
 #### Build the Backend Docker Image
 
 ```sh
-cd ./backend
-docker build -t bookstore-backend .
+docker build -t ./src/backend/bookstore-backend ./src/backend
 ```
 
 #### Run the Backend Container
 
 ```sh
 docker run --name=backend --network=docker-network -d -p 8000:8000 bookstore-backend
+```
+
+## Production Containers (dockerfile.prod)
+
+For optimized production containers with smaller image sizes:
+
+### 1. Building Production Images
+
+```sh
+# Frontend production build
+docker build -f ./src/frontend/dockerfile.prod -t bookstore-frontend-prod ./src/frontend
+
+# Backend production build
+docker build -f ./src/backend/dockerfile.prod -t bookstore-backend-prod ./src/backend
+```
+
+> **📝 Note:** For Kubernetes deployments, check `.env.docker` files in each service directory. These contain different environment configurations for docker development and the one used for the kubernetes manifests.
+
+### 2. Running Production Containers
+
+```sh
+# Run production frontend
+docker run --name=frontend-prod --network=docker-network -d -p 80:80 bookstore-frontend-prod
+
+# Run production backend
+docker run --name=backend-prod --network=docker-network -d -p 8000:8000 bookstore-backend-prod
 ```
 
 ## Using Docker Compose
@@ -80,8 +104,6 @@ To build images wecan also use the `docker buildx bake` command with a `docker-b
 docker buildx bake -f docker-bake.yml
 ```
 
-![docker-bake](./assets/docker-bake.png)
-
 ## Pushing Docker Images to Docker Hub
 
 To push the built images to Docker Hub, follow these steps:
@@ -95,22 +117,55 @@ To push the built images to Docker Hub, follow these steps:
 2. Tag the images:
 
    ```sh
-   docker tag bookstore-frontend <dockerhub-username>/bookstore-frontend:v3
-   docker tag bookstore-backend <dockerhub-username>/bookstore-backend:v3
+   docker tag bookstore-frontend <dockerhub-username>/bookstore-frontend:<tag>
+   docker tag bookstore-backend <dockerhub-username>/bookstore-backend:<tag>
    ```
 
 3. Push the images:
 
    ```sh
-   docker push <dockerhub-username>/bookstore-frontend:v3
-   docker push <dockerhub-username>/bookstore-backend:v3
+   docker push <dockerhub-username>/bookstore-frontend:<tag>
+   docker push <dockerhub-username>/bookstore-backend:<tag>
    ```
 
-   ![docker-push](./assets/docker-push.png)
+Go and have a look to your Docker Hub repository to see the pushed images!
 
-Go and have a look to your Docker Hub
+## Production Images: GitHub Container Registry (GHCR)
 
-![docker-hub](./assets/docker-hub.png)
+For production-ready images with semantic versioning, we use GHCR with optimized Dockerfiles:
+
+### Building Production Images
+
+```bash
+# Build production images using dockerfile.prod
+docker build -f src/frontend/dockerfile.prod -t ghcr.io/username/repo/bookstore-frontend:1.0.0 src/frontend/
+docker build -f src/backend/dockerfile.prod -t ghcr.io/username/repo/bookstore-backend:1.0.0 src/backend/
+```
+
+### Push to GHCR
+
+```bash
+# Login to GHCR
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Push production images
+docker push ghcr.io/username/repo/bookstore-frontend:1.0.0
+docker push ghcr.io/username/repo/bookstore-backend:1.0.0
+```
+
+### Pull Production Images
+
+```bash
+# Pull from GHCR for Kubernetes deployments
+docker pull ghcr.io/username/repo/bookstore-frontend:1.0.0
+docker pull ghcr.io/username/repo/bookstore-backend:1.0.0
+```
+
+### Image Strategy
+
+- **Docker Hub**: Development images and CI/CD pipeline
+- **GHCR**: Production-optimized images with semantic versioning
+- **Kubernetes manifests**: Use GHCR production images
 
 
 ## 🐳 Docker Best Practices Applied

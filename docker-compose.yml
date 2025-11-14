@@ -4,7 +4,6 @@ services:
     build: 
       context: ./src/frontend
       dockerfile: dockerfile.prod
-    # image: atkaridarshan04/bookstore-frontend:prod.v1
     ports:
       - "80:80"
     env_file:
@@ -28,7 +27,6 @@ services:
     build: 
       context: ./src/backend
       dockerfile: dockerfile.prod
-    # image: atkaridarshan04/bookstore-backend:prod.v1
     ports:
       - "8000:8000"
     env_file:

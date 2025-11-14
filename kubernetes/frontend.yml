@@ -20,23 +20,23 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: atkaridarshan04/bookstore-frontend:v2
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:2.0.0
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5173
-          envFrom:
-            - configMapRef:
-                name: frontend-config
+            - containerPort: 80
+          # envFrom:
+          #   - configMapRef:
+          #       name: frontend-config
           livenessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: 80
             initialDelaySeconds: 30
             periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: 80
             initialDelaySeconds: 30
             periodSeconds: 15  
           # resources:
@@ -63,7 +63,7 @@ spec:
   selector:
     app: frontend
   ports:
-    - port: 5173
-      targetPort: 5173
+    - port: 80
+      targetPort: 80
       protocol: TCP
       # nodePort: 31000

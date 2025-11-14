@@ -2,8 +2,8 @@ namespace: mern-devops
 
 frontend:
   replicas: 1
-  image: atkaridarshan04/bookstore-frontend:v2
-  containerPort: 5173
+  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:2.0.0
+  containerPort: 80
 
   livenessProbe:
     initialDelaySeconds: 30
@@ -21,7 +21,7 @@ frontend:
 
   service:
     type: ClusterIP # Change to NodePort if needed
-    port: 5173
+    port: 80
     # nodePort: 31000
 
   config:
@@ -31,7 +31,7 @@ frontend:
 
 backend: 
   replicas: 1
-  image: atkaridarshan04/bookstore-backend:v2
+  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0
   containerPort: 8000
 
   livenessProbe:

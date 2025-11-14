@@ -64,7 +64,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: atkaridarshan04/bookstore-frontend:prod.v1  # Semantic versioning for releases
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:1.0.0  # Semantic versioning for releases
           imagePullPolicy: IfNotPresent  # Avoid registry calls for existing images
           ports:
             - containerPort: 80
