@@ -50,7 +50,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 • Terraform<br>
 • AWS EKS<br>
 • Docker<br>
-• NGINX Ingress
+• Ingress/Gateway API
 </td>
 <td>
 • Jenkins<br>
@@ -109,7 +109,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Demonset and Statefulset Deployments
 - Health checks
 - Secrets and Configuration Management
-- Ingress Deployment
+- Ingress/Gateway API Deployment
 
 </td>
 <td width="60%" style="border: 2px solid #284cdfff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">

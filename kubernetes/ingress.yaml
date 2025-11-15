@@ -1,27 +1,56 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nginx-ingress
-  namespace: mern-devops
-spec:
-  ingressClassName: nginx               # Specifies the ingress class to be used
-  # Define routing rules for incoming HTTP traffic
-  rules:
-    - http:
-        paths:
-          - path: /                       # Route for root path ("/")
-            pathType: Prefix              # Prefix means any path starting with "/" will match
-            backend:
-              # Traffic will be forwarded to the frontend service
-              service:
-                name: frontend-service    # Name of the Kubernetes Service for frontend
-                port:                     # Port number exposed by the frontend service
-                  number: 80
-          - path: /books                   # Route for backend API requests ("/books")
-            pathType: Prefix               # Prefix means any path starting with "/books" will match
-            backend:
-              # Traffic will be forwarded to the backend service
-              service:
-                name: backend-service      # Name of the Kubernetes Service for backend
-                port:                      # Port number exposed by the backend service
-                  number: 8000
+# -----------------------------------------------------------------------------------------
+# NOTE: This Ingress resource is deprecated in this project.
+#
+# As announced in the official Kubernetes blog
+# “Ingress-NGINX: Project Retirement”
+# the Kubernetes community has formally retired the Ingress-NGINX Controller.
+#
+# Reference:
+# https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/
+#
+# Because of this retirement, new features, security updates, and long-term
+# maintenance for Ingress-NGINX are no longer guaranteed. The Kubernetes
+# networking SIG recommends migrating to the Gateway API — the modern,
+# extensible, and actively developed replacement for Ingress.
+#
+# In this project, the Ingress example is still kept in the repo
+# for reference, learning, and historical comparison. However, the active
+# configuration has moved to the Gateway API, following current best practices:
+#
+#   - GatewayClass (Envoy Gateway)
+#   - Gateway
+#   - HTTPRoute
+#
+# These Gateway API resources now handle all L7 routing for the application
+# and replace the functionality previously provided by Ingress-NGINX.
+# -----------------------------------------------------------------------------------------
+
+
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: nginx-ingress
+#   namespace: mern-devops
+# spec:
+#   ingressClassName: nginx               # Specifies the ingress class to be used
+#   # Define routing rules for incoming HTTP traffic
+#   rules:
+#     - http:
+#         paths:
+#           - path: /                       # Route for root path ("/")
+#             pathType: Prefix              # Prefix means any path starting with "/" will match
+#             backend:
+#               # Traffic will be forwarded to the frontend service
+#               service:
+#                 name: frontend-service    # Name of the Kubernetes Service for frontend
+#                 port:                     # Port number exposed by the frontend service
+#                   number: 80
+#           - path: /books                   # Route for backend API requests ("/books")
+#             pathType: Prefix               # Prefix means any path starting with "/books" will match
+#             backend:
+#               # Traffic will be forwarded to the backend service
+#               service:
+#                 name: backend-service      # Name of the Kubernetes Service for backend
+#                 port:                      # Port number exposed by the backend service
+#                   number: 8000
