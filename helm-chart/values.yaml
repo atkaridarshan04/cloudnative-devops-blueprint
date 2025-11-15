@@ -2,7 +2,8 @@ namespace: mern-devops
 
 frontend:
   replicas: 1
-  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:2.0.0
+  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+  tag: 2.0.0
   containerPort: 80
 
   livenessProbe:
@@ -31,7 +32,8 @@ frontend:
 
 backend: 
   replicas: 1
-  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0
+  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+  tag: 2.0.0 
   containerPort: 8000
 
   livenessProbe:

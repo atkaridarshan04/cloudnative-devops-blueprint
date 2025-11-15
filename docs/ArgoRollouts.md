@@ -223,10 +223,10 @@ Update the image to start a canary deployment:
 
 ```bash
 # Update frontend image
-kubectl argo rollouts set image frontend-rollout frontend=atkaridarshan04/bookstore-frontend:prod.v2 -n mern-devops
+kubectl argo rollouts set image frontend-rollout frontend=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:2.0.0 -n mern-devops
 
 # Update backend image
-kubectl argo rollouts set image backend-rollout backend=atkaridarshan04/bookstore-backend:prod.v2 -n mern-devops
+kubectl argo rollouts set image backend-rollout ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 -n mern-devops
 ```
 
 ### Monitor Canary Progress
