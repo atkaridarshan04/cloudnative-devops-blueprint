@@ -1,24 +1,38 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ .Release.Name }}-ingress
-  namespace: {{ .Values.namespace }}
-spec:
-  ingressClassName: nginx
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ .Release.Name }}-frontend-service
-                port:
-                  number: {{ .Values.frontend.containerPort }}
-          - path: /books
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ .Release.Name }}-backend-service
-                port:
-                  number: {{ .Values.backend.containerPort }}
+# ==============================================================================
+# DEPRECATION NOTICE: Ingress Resource
+# ==============================================================================
+# This Ingress setup is deprecated and maintained for legacy compatibility.
+# 
+# PROJECT STATUS:
+#   To implement the project using the Ingress-NGINX configuration, 
+#   please use the release tag: v1.0.0
+#
+# SOURCE CODE & DOCUMENTATION:
+#   🔗 Release: Final Ingress-NGINX (Pre-Gateway API Migration)
+#   🔗 URL:     https://github.com/atkaridarshan04/cloudnative-devops-blueprint/tree/v1.0.0-ingress-nginx
+# ==============================================================================
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: {{ .Release.Name }}-ingress
+#   namespace: {{ .Values.namespace }}
+# spec:
+#   ingressClassName: nginx
+#   rules:
+#     - http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: {{ .Release.Name }}-frontend-service
+#                 port:
+#                   number: {{ .Values.frontend.containerPort }}
+#           - path: /books
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: {{ .Release.Name }}-backend-service
+#                 port:
+#                   number: {{ .Values.backend.containerPort }}

@@ -1,0 +1,47 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Release.Name }}-envoy-gatewayclass
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Release.Name }}-envoy-gateway
+  namespace: {{ .Values.namespace }}
+spec:
+  gatewayClassName: {{ .Release.Name }}-envoy-gatewayclass
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      # optional: hostnames: ["example.com"]
+      # allowedRoutes: omitted => default allows same-namespace routes
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-mern-route
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Release.Name }}-envoy-gateway   # name of Gateway created above
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"             # matches root and all subpaths
+      backendRefs:
+        - name: {{ .Release.Name }}-frontend-service
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/books"        # matches /books and subpaths
+      backendRefs:
+        - name: {{ .Release.Name }}-backend-service
+          port: 8000

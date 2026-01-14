@@ -258,51 +258,43 @@ Integrate DuckDNS for domain-based access:
 
 ## 8️⃣ Deploying Kubernetes Dashboard (Optional)
 
-### 📊 Step 1: Add kubernetes-dashboard repository
+### 📊 Step 1: Add and Install HeadLamp kubernetes-dashboard repository
 
 ```bash
-# Add kubernetes-dashboard repository
-helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-# Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
-helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
+helm install my-headlamp headlamp/headlamp --namespace kube-system
 ```
 
 ### ⏳ Step 2: Wait for the pods to be running
 ```bash
-kubectl get pods -n kubernetes-dashboard
+kubectl get pods -n kube-system
 ```
-
-![k8s-dash-1](./assets/k8s-dash-1.png)
 
 ### 🌐 Step 3: Access the Dashboard
 ```bash
 # Port Forwarding the port
-kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443
+kubectl port-forward svc/my-headlamp 8000:80 -n kube-system
 ```
 
-> Navigate to [https://localhost:8443](https://localhost:8443)
+> Navigate to [https://localhost:8000](https://localhost:8000)
 
 ### 🔑 Step 4: Generate the Bearer Token required to login
 
 - **Create ServiceAccount and give permissions:**
 
   ```bash
-  kubectl create serviceaccount dashboard-sa -n mern-devops
+  kubectl -n kube-system create serviceaccount headlamp-admin
 
-  kubectl create clusterrolebinding dashboard-sa-binding \
-    --clusterrole=cluster-admin \
-    --serviceaccount=mern-devops:dashboard-sa
+  kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:headlamp-admin --clusterrole=cluster-admin
   ```
 
 - **Generate the token:**
   ```bash
-  kubectl -n mern-devops create token dashboard-sa
+  kubectl create token headlamp-admin -n kube-system
   ```
 
+![k8s-dash-1](./assets/k8s-dash-1.png)
 ![k8s-dash-2](./assets/k8s-dash-2.png)
-![k8s-dash-3](./assets/k8s-dash-3.png)
-
-
 
 ## 🧹 Cleanup
 

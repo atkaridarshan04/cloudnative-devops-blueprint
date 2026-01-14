@@ -136,18 +136,14 @@ kubectl apply -f notifications/configmap.yml
 
 ## 3. Deploy the Application
 
-### Configure Ingress
+### Configure Gateway API
 
-Deploy the Ingress controller:
+Gateway API installation and configuration steps are already documented in **[`docs/Helm.md`](./Helm.md)**.
 
-```bash
-kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
-```
+Since **Argo CD deploys the same Helm chart**, this guide does not repeat those steps again.
+Please refer to **[`docs/Helm.md`](./Helm.md)** to set up the Gateway API and expose the application externally.
 
-Verify the Ingress controller is running:
-```bash
-kubectl get pods --namespace ingress-nginx
-```
+---
 
 ### Method 1: Using Manifests
 
@@ -159,10 +155,16 @@ kubectl apply -f application.yml
 ![argo-ui-latest](../docs/assets/argo-ui-latest.png)
 ![argo-sucess-mail](../docs/assets/argo-sucess-mail.png)
 
-Access Application at `http://localhost/`
+### Access the Application
+
+✅ Make sure you have completed the application exposure steps from [docs/Helm.md](./Helm.md)
+
+
+Then access Application at `http://localhost/30080`
 ![argocd-app-ui](./assets/argocd-app-ui.png)
 
-### Method 2: Using ArgoCD UI
+<details>
+<summary><strong>Method 2: Using ArgoCD UI</strong></summary>
 
 #### Connect to Repository
 
@@ -197,6 +199,8 @@ Access Application at `http://localhost/`
 
 ![argocd-4](./assets/terraform_argocd.png)
 ![argocd-5](./assets/argocd-5.png)
+
+</details>
 
 
 ## 4. Monitor Application

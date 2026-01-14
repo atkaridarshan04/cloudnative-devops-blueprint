@@ -32,7 +32,7 @@ frontend:
 
 backend: 
   replicas: 1
-  image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
   tag: 2.0.0 
   containerPort: 8000
 
