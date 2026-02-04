@@ -160,16 +160,6 @@ kubectl get ingress --all-namespaces
 | Production | http://prod.local | http://prod.local/books |
 
 
-#### Environment Screenshots
-![kustomize-dev](./assets/kustomize-dev.png)
-*Development Environment*
-
-![kustomize-stage](./assets/kustomize-stage.png)
-*Staging Environment*
-
-![kustomize-prod](./assets/kustomize-prod.png)
-*Production Environment*
-
 ### Accessing Applications Without /etc/hosts
 If you prefer not to modify `/etc/hosts`, you can access applications using port-forwarding:
 

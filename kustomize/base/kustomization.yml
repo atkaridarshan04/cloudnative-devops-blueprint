@@ -10,13 +10,6 @@ resources:
   - frontend.yml
   # - volume.yml
 
-
-configMapGenerator:
-  - name: frontend-config
-    literals:
-      # - VITE_API_BACKEND_URL=http://192.168.88.133:31100 # using nodeport service
-      - VITE_API_BACKEND_URL="" # after configuring ingress or domain for ingress-ip 
-
 secretGenerator:
   - name: mongo-secret
     literals:

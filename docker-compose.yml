@@ -6,8 +6,6 @@ services:
       dockerfile: dockerfile.prod
     ports:
       - "80:80"
-    env_file:
-      - ./src/frontend/.env.docker
     networks:
       - docker-network
     healthcheck:

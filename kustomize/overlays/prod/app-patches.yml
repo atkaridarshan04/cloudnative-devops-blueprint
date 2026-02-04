@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: atkaridarshan04/bookstore-backend  # Tag managed by Kustomize images
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend # Tag managed by Kustomize images
 
 ---
 apiVersion: apps/v1
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: atkaridarshan04/bookstore-frontend  # Tag managed by Kustomize images
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend  # Tag managed by Kustomize images
           ports:
             - containerPort: 80
           livenessProbe:
@@ -38,15 +38,15 @@ spec:
             periodSeconds: 15 
 
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-service
-spec:
-  selector:
-    app: frontend
-  ports:
-    - name: http-patched
-      port: 80
-      targetPort: 80
-      protocol: TCP
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: frontend-service
+# spec:
+#   selector:
+#     app: frontend
+#   ports:
+#     - name: http-patched
+#       port: 80
+#       targetPort: 80
+#       protocol: TCP

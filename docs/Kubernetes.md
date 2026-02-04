@@ -14,12 +14,6 @@ nodes:
       - containerPort: 30080   # for gateway api
         hostPort: 30080
         protocol: TCP
-      - containerPort: 31000 # for frontend container
-        hostPort: 31000
-        protocol: TCP
-      - containerPort: 31100 # for backend container
-        hostPort: 31100
-        protocol: TCP
 ```
 
 
@@ -84,8 +78,6 @@ kubectl apply -f config.yml
 kubectl apply -f backend.yml
 kubectl apply -f frontend.yml
 ```
-
-> **📝 Note:** Configure the [config](../kubernetes/config.yml) file accordingly.
 
 ### 🧪 Test the Application
 

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: atkaridarshan04/bookstore-backend:latest
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

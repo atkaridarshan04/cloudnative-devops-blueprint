@@ -12,12 +12,6 @@ nodes:
       - containerPort: 80   # for nginx ingress
         hostPort: 80
         protocol: TCP
-      - containerPort: 31000 # for frontend container
-        hostPort: 31000
-        protocol: TCP
-      - containerPort: 31100 # for backend container
-        hostPort: 31100
-        protocol: TCP
 ```
 
 - Run the following command to create a Kubernetes cluster using the provided `kind-config.yaml`:

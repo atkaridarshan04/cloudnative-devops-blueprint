@@ -21,14 +21,8 @@ frontend:
       maxUnavailable: 0
 
   service:
-    type: ClusterIP # Change to NodePort if needed
+    type: ClusterIP
     port: 80
-    # nodePort: 31000
-
-  config:
-    # backendUrl: http://192.168.88.133:31100 # Using nodeport service
-    backendUrl: ""  # after configuring ingress 
-
 
 backend: 
   replicas: 1
@@ -51,9 +45,8 @@ backend:
       maxUnavailable: 0
 
   service:
-    type: ClusterIP # Change to NodePort if needed
+    type: ClusterIP
     port: 8000
-    # nodePort: 31100
 
 
 persistentVolume:

@@ -22,7 +22,6 @@ spec:
     - port: {{ .Values.backend.service.port }}
       targetPort: {{ .Values.backend.containerPort }}
       protocol: TCP
-      # nodePort: {{ .Values.backend.service.nodePort }}
 
 ---
 apiVersion: apps/v1

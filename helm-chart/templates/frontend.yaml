@@ -1,11 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-frontend-config
-  namespace: {{ .Values.namespace }}
-data:
-  VITE_API_BACKEND_URL: {{ .Values.frontend.config.backendUrl | quote }}
-
 ---
 apiVersion: v1
 kind: Service
@@ -20,8 +12,6 @@ spec:
     - port: {{ .Values.frontend.service.port }}
       targetPort: {{ .Values.frontend.containerPort }}
       protocol: TCP
-      # nodePort: {{ .Values.frontend.service.nodePort }}
-
 
 ---
 apiVersion: apps/v1
@@ -47,9 +37,6 @@ spec:
           image: {{ .Values.frontend.imageRepo }}:{{ .Values.frontend.tag }}
           ports:
             - containerPort: {{ .Values.frontend.containerPort }}
-          envFrom:
-            - configMapRef:
-                name: {{ .Release.Name }}-frontend-config
           livenessProbe:
             httpGet:
               path: /

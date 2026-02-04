@@ -93,7 +93,6 @@ metadata:
     app: backend
 spec:
   # ClusterIP (default) - internal service discovery within cluster
-  # type: NodePort  # Uncomment for direct external access during development
   selector:
     app: backend
   ports:
@@ -101,4 +100,3 @@ spec:
       targetPort: 8000    # Container port - must match containerPort above
       protocol: TCP
       name: http          # Named port for Istio traffic policies
-      # nodePort: 31100   # Fixed external port for NodePort type
