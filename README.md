@@ -182,6 +182,29 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 </tr>
 </table>
 
+### 🔐 **Secrets Management**
+
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #6f42c1;">
+<tr>
+<td width="30%" style="border: 2px solid #6f42c1; padding: 20px ; vertical-align: top;">
+
+**[ExternalSecrets.md](./docs/ExternalSecrets.md)**  
+*Secure secrets management with HashiCorp Vault integration*
+- External Secrets Operator
+- Vault secret synchronization
+- Kubernetes secret automation
+- Secret rotation policies
+- Multi-environment secret management
+
+</td>
+<td width="60%" style="border: 2px solid #6f42c1; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
+
+<img src="./docs/assets/vault-ui.png" alt="HashiCorp Vault UI Dashboard" width="100%">
+
+</td>
+</tr>
+</table>
+
 ### 📈 **Observability**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #bc2323ff;">

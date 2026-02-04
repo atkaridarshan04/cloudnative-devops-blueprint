@@ -1,0 +1,59 @@
+# MongoDB StatefulSet - Production-ready database deployment with persistence
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb-deployment
+  namespace: mern-devops
+  labels:
+    app: mongodb
+    component: database
+spec:
+  serviceName: mongodb-service-headless
+  replicas: 1  
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        component: database
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:4.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+              name: mongodb
+          env:
+            # Injecting credentials from Kubernetes Secret created by ExternalSecret with Vault
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials-external
+                  key: MONGODB_USER
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials-external
+                  key: MONGODB_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              value: "db"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service-headless
+  namespace: mern-devops
+  labels:
+    app: mongodb
+spec:
+  clusterIP: None
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+      name: mongodb

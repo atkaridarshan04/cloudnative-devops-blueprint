@@ -85,7 +85,7 @@ kubectl apply -f backend.yml
 kubectl apply -f frontend.yml
 ```
 
-> **📝 Note:** Configure the [config](../kubernetes/frontend-config.yml) file accordingly.
+> **📝 Note:** Configure the [config](../kubernetes/config.yml) file accordingly.
 
 ### 🧪 Test the Application
 
@@ -235,8 +235,6 @@ Integrate DuckDNS for domain-based access:
 
 
 ## 7️⃣ Access the Application
-
-> **📝 Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
 
 ### 🌐 Application Endpoints
 
