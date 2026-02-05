@@ -77,11 +77,11 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 
 ## 📚 Documentation Hub
 
-### 🐳 **Containerization**
-
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #2e6ccaff;">
 <tr>
-<td width="30%" style="border: 2px solid #2e6ccaff; padding: 20px ; vertical-align: top;">
+<td width="50%" style="border: 2px solid #2e6ccaff; padding: 20px; vertical-align: top;">
+
+### 🐳 **Containerization**
 
 **[Docker.md](./docs/Docker.md)**  
 *Build and run containers with Docker Compose for multi-service applications*
@@ -91,19 +91,9 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Volume management
 
 </td>
-<td width="60%" style="border: 2px solid #2e6ccaff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
-
-<img src="./docs/assets/docker-compose.png" alt="Docker Compose Image" width="100%">
-
-</td>
-</tr>
-</table>
+<td width="50%" style="border: 2px solid #284cdfff; padding: 20px; vertical-align: top;">
 
 ### ☸️ **Kubernetes**
-
-<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #284cdfff;">
-<tr>
-<td width="30%" style="border: 2px solid #284cdfff; padding: 20px ; vertical-align: top;">
 
 **[Kubernetes.md](./docs/Kubernetes.md)**  
 *Deploy on kind cluster with ingress*
@@ -112,11 +102,6 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Health checks
 - Secrets and Configuration Management
 - Ingress/Gateway API Deployment
-
-</td>
-<td width="60%" style="border: 2px solid #284cdfff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
-
-<img src="./docs/assets/k8s-dash-2.png" alt="Kubernetes Dashboard Image" width="100%">
 
 </td>
 </tr>
