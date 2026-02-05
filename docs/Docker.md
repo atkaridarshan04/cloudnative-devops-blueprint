@@ -1,182 +1,203 @@
-# 🐳 Containerizing MERN Stack with Docker
+# 🐳 Containerizing a MERN Stack with Docker
 
-This guide explains how to containerize and run a MERN (MongoDB, Express, React, Node.js) stack application using **Docker** and **Docker Compose**. Additionally, it covers using **Docker Bake** for images builds and pushing images to **Docker Hub**.
+This guide explains how to containerize and run a **MERN stack (MongoDB, Express, React, Node.js)** application using **Docker**, **Docker Compose**, and **Docker Buildx Bake**.
+It also covers building images and pushing them to **Docker Hub** and **GitHub Container Registry (GHCR)**.
 
-## Prerequisites
 
-Ensure you have the following installed:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+## 🌐 Docker Network Setup
 
-## Setting Up Docker Network
+Create a Docker network to enable container-to-container communication:
 
-Create a Docker network to allow seamless communication between containers:
-
-```sh
+```bash
 docker network create docker-network
 ```
 
-## Building and Running Containers Individually
 
-### 1. Running the MongoDB Container
 
-```sh
-docker run --network=docker-network --name mongodb -d -p 27017:27017 -v ~/opt/data:/data/mydb mongo:latest
+## 🚀 Running Containers Individually
+
+### 1️⃣ MongoDB
+
+```bash
+docker run \
+  --name mongodb \
+  --network=docker-network \
+  -d \
+  -p 27017:27017 \
+  -v ~/opt/data:/data/mydb \
+  mongo:latest
 ```
 
-This starts a MongoDB container and binds the database storage to `~/opt/data` on the host machine.
+* Uses a Docker volume for persistent storage
+* Accessible to other containers via `mongodb`
 
-### 2. Building and Running the Frontend (React)
+---
 
-#### Build the Frontend Docker Image
+### 2️⃣ Frontend (React)
 
-```sh
-docker build -t ./src/frontend/bookstore-frontend ./src/frontend
+#### Build Image
+
+```bash
+docker build -t bookstore-frontend ./src/frontend
 ```
 
-#### Run the Frontend Container
 
-```sh
-docker run --name=frontend --network=docker-network -d -p 5173:5173 bookstore-frontend
+> **📝 Note:** For Kubernetes deployments, check [./frontend/.env.docker](../src/frontend/.env.docker) files. These contain different environment configurations for docker development and the one used for the kubernetes manifests.
+
+![docker_env_frontend](./assets/docker_env_frontend.png)
+
+#### Run Container
+
+```bash
+docker run \
+  --name frontend \
+  --network=docker-network \
+  -d \
+  -p 80:80 \
+  bookstore-frontend
 ```
 
-#### Verify Frontend
+---
 
-Visit `http://localhost:5173` in your browser to check if the frontend is running.
+### 3️⃣ Backend (Node.js + Express)
 
-### 3. Building and Running the Backend (Express & Node.js)
+#### Build Image
 
-#### Build the Backend Docker Image
-
-```sh
-docker build -t ./src/backend/bookstore-backend ./src/backend
+```bash
+docker build -t bookstore-backend ./src/backend
 ```
 
-#### Run the Backend Container
+#### Run Container
 
-```sh
-docker run --name=backend --network=docker-network -d -p 8000:8000 bookstore-backend
+```bash
+docker run \
+  --name backend \
+  --network=docker-network \
+  -d \
+  -p 8000:8000 \
+  bookstore-backend
 ```
 
-## Production Containers (dockerfile.prod)
 
-For optimized production containers with smaller image sizes:
 
-### 1. Building Production Images
+## 🔗 Access the Application
 
-```sh
-# Frontend production build
-docker build -f ./src/frontend/dockerfile.prod -t bookstore-frontend-prod ./src/frontend
+* Frontend: [http://localhost](http://localhost)
+* Backend API: [http://localhost:8000](http://localhost:8000)
 
-# Backend production build
-docker build -f ./src/backend/dockerfile.prod -t bookstore-backend-prod ./src/backend
-```
 
-> **📝 Note:** For Kubernetes deployments, check `.env.docker` files in each service directory. These contain different environment configurations for docker development and the one used for the kubernetes manifests.
 
-### 2. Running Production Containers
+## 🧩 Running with Docker Compose
 
-```sh
-# Run production frontend
-docker run --name=frontend-prod --network=docker-network -d -p 80:80 bookstore-frontend-prod
+Docker Compose allows running all services together using a single command:
 
-# Run production backend
-docker run --name=backend-prod --network=docker-network -d -p 8000:8000 bookstore-backend-prod
-```
-
-## Using Docker Compose
-
-To simplify container management, use Docker Compose to build and run all services at once.
-
-```sh
+```bash
 docker-compose up -d
 ```
 
-This command will build and start the frontend, backend, and MongoDB containers as defined in `docker-compose.yml`.
+This will:
 
-![docker-compose](./assets/docker-compose.png)
+* Build images
+* Start MongoDB, backend, and frontend
+* Attach all services to a shared network
 
-## Using `docker buildx bake` for Multi-Platform Builds
+To stop and remove containers:
 
-To build images wecan also use the `docker buildx bake` command with a `docker-bake.hcl` or `docker-bake.yml` file.
+```bash
+docker-compose down
+```
 
-```sh
+
+
+## 🏗️ Multi-Platform Builds with Docker Buildx Bake
+
+For advanced and CI-friendly builds, use **Docker Buildx Bake**:
+
+```bash
 docker buildx bake -f docker-bake.yml
 ```
 
-## Pushing Docker Images to Docker Hub
+Benefits:
 
-To push the built images to Docker Hub, follow these steps:
+* Centralized build definitions
+* Parallel image builds
+* Multi-architecture support
 
-1. Log in to Docker Hub:
 
-   ```sh
-   docker login
-   ```
 
-2. Tag the images:
+## 📤 Publishing Images (Docker Hub & GHCR)
 
-   ```sh
-   docker tag bookstore-frontend <dockerhub-username>/bookstore-frontend:<tag>
-   docker tag bookstore-backend <dockerhub-username>/bookstore-backend:<tag>
-   ```
+Images can be published to **Docker Hub** or **GitHub Container Registry (GHCR)** using the same workflow.
 
-3. Push the images:
-
-   ```sh
-   docker push <dockerhub-username>/bookstore-frontend:<tag>
-   docker push <dockerhub-username>/bookstore-backend:<tag>
-   ```
-
-Go and have a look to your Docker Hub repository to see the pushed images!
-
-## Production Images: GitHub Container Registry (GHCR)
-
-For production-ready images with semantic versioning, we use GHCR with optimized Dockerfiles:
-
-### Building Production Images
+### Authenticate
 
 ```bash
-# Build production images using dockerfile.prod
-docker build -f src/frontend/dockerfile.prod -t ghcr.io/username/repo/bookstore-frontend:1.0.0 src/frontend/
-docker build -f src/backend/dockerfile.prod -t ghcr.io/username/repo/bookstore-backend:1.0.0 src/backend/
+# Docker Hub
+docker login
+
+# GHCR
+echo $GITHUB_TOKEN | docker login ghcr.io -u <username> --password-stdin
 ```
 
-### Push to GHCR
+---
+
+### Tag Images
 
 ```bash
-# Login to GHCR
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+# Docker Hub
+docker tag bookstore-frontend <username>/bookstore-frontend:<tag>
+docker tag bookstore-backend <username>/bookstore-backend:<tag>
 
-# Push production images
-docker push ghcr.io/username/repo/bookstore-frontend:1.0.0
-docker push ghcr.io/username/repo/bookstore-backend:1.0.0
+# GHCR
+docker tag bookstore-frontend ghcr.io/<username>/<repo>/bookstore-frontend:<tag>
+docker tag bookstore-backend ghcr.io/<username>/<repo>/bookstore-backend:<tag>
 ```
 
-### Pull Production Images
+---
+
+### Push Images
 
 ```bash
-# Pull from GHCR for Kubernetes deployments
-docker pull ghcr.io/username/repo/bookstore-frontend:1.0.0
-docker pull ghcr.io/username/repo/bookstore-backend:1.0.0
+# Docker Hub
+docker push <username>/bookstore-frontend:<tag>
+docker push <username>/bookstore-backend:<tag>
+
+# GHCR
+docker push ghcr.io/<username>/<repo>/bookstore-frontend:<tag>
+docker push ghcr.io/<username>/<repo>/bookstore-backend:<tag>
 ```
 
-### Image Strategy
+---
 
-- **Docker Hub**: Development images and CI/CD pipeline
-- **GHCR**: Production-optimized images with semantic versioning
-- **Kubernetes manifests**: Use GHCR production images
+### Pull Images
+
+```bash
+# Docker Hub
+docker pull <username>/bookstore-frontend:<tag>
+docker pull <username>/bookstore-backend:<tag>
+
+# GHCR
+docker pull ghcr.io/<username>/<repo>/bookstore-frontend:<tag>
+docker pull ghcr.io/<username>/<repo>/bookstore-backend:<tag>
+```
 
 
-## 🐳 Docker Best Practices Applied
-Added with Docker best practices for production-grade containers:
+## 🔐 Docker Best Practices Applied
 
-- **Non-root user**: Containers run as non-root users for improved security.
-- **Multistage builds**: Separate build and runtime stages to reduce image size.
-- Optimized builds for **smaller image sizes**, fewer vulnerabilities
-![docker-prod-image-size](./assets/docker-prod-image-size.png)
-- **Production-ready Dockerfiles**:
-   - Dockerfile.prod added in both frontend/ and backend/ folders
+* ✅ Containers run as **non-root users**
+* ✅ **Multi-stage builds** for smaller images
+* ✅ Reduced attack surface and vulnerabilities
+* ✅ Optimized Dockerfiles for runtime efficiency
+* ✅ Clean separation between build and runtime layers
 
-### Happy Dockerizing! 🚀
 
+## 🎉 Conclusion
+
+This setup provides a **clean, scalable, and registry-agnostic Docker workflow** for a MERN stack, supporting:
+
+* Local development
+* CI/CD pipelines
+* Multi-platform builds
+* Kubernetes-ready images
+
+**Happy Dockerizing! 🚀**

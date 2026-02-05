@@ -13,6 +13,8 @@
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)](https://grafana.com/)
 [![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/rollouts/)  
 [![Istio](https://img.shields.io/badge/Istio-466BB0?logo=istio&logoColor=white)](https://istio.io/)
+[![HashiCorp Vault](https://img.shields.io/badge/HashiCorp%20Vault-FFEC13?logo=vault&logoColor=black)](https://www.vaultproject.io/)
+[![External Secrets Operator](https://img.shields.io/badge/External%20Secrets%20Operator-326CE5?logo=kubernetes&logoColor=white)](https://external-secrets.io/)
 [![AWS EKS](https://img.shields.io/badge/AWS%20EKS-FF9900?logo=amazon-eks&logoColor=white)](https://aws.amazon.com/eks/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -193,8 +195,6 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - External Secrets Operator
 - Vault secret synchronization
 - Kubernetes secret automation
-- Secret rotation policies
-- Multi-environment secret management
 
 </td>
 <td width="60%" style="border: 2px solid #6f42c1; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
