@@ -4,7 +4,6 @@ metadata:
   name: frontend-config
   namespace: mern-devops
 data:
-  # VITE_API_BACKEND_URL: http://192.168.88.133:31100 # using nodeport service
-  #  VITE_API_BACKEND_URL: http://192.168.88.133  # after configuring ingress 
-  VITE_API_BACKEND_URL: http://deployzone.duckdns.org # after configuring donain for ingress-ip 
+  VITE_API_BACKEND_URL: http://192.168.88.133:31100 # using nodeport service
+  # VITE_API_BACKEND_URL: "" # after configuring ingress or  donain for ingress-ip 
 

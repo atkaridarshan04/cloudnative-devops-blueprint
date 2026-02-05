@@ -57,3 +57,11 @@ To understand the various components of this project, refer to the following doc
 
 ---
 
+## 💡 Important: Note on Frontend Environment Variables
+
+Depending on the branch you are using, the handling of environment variables (specifically the Backend URL) differs:
+
+- **Beginner Branch (Dev Mode)**: Uses a `Dockerfile` with `npm run dev`. This allows the application to read Kubernetes **ConfigMaps at runtime**. The live Vite server injects variables directly from the Pod's shell into the browser.
+- **Main Branch (Production Mode)**: Uses a `Dockerfile` with a multi-stage **Nginx build**. Since Nginx serves static files, environment variables are **hard-coded into the JS at build-time**. 
+- **Best Practice**: In production, we use `VITE_API_BACKEND_URL=""`. This enables **relative path routing**, allowing the **Ingress Controller** or **Gateway API** to route traffic to the backend without requiring manual IP/Port injection into the static assets.
+---

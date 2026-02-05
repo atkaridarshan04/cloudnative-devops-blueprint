@@ -95,6 +95,8 @@ Ensure the backend connects to MongoDB by setting appropriate environment variab
 ## 6. Deploy the Frontend (React) Service
 
 Deploy the React application and expose it via a NodePort service:
+>**Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly with your node IP.
+ 
 
 ```bash
 kubectl apply -f frontend-config.yml
@@ -102,8 +104,7 @@ kubectl apply -f frontend.yml
 ```
 
 ### Test the Application
->**Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
- 
+
 ```bash
 kubectl get all -n mern-devops
 ```  
@@ -126,6 +127,15 @@ kubectl get all -n mern-devops
 ---
 
 ## 7. Configure Ingress
+
+Now we dont need to access services via NodePort. Instead, we will set up an Ingress controller to manage external access to the services in the cluster.
+
+So form the [forntend.yml](../kubernetes/frontend.yml) and [backend.yml](../kubernetes/backend.yml) remove the `NodePort` service type and change it to `ClusterIP`.
+
+Also configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
+
+![frontend-config.png](./assets/frontend-config.png)
+
 
 ### Step 1: Install Nginx Ingress Controller
 
@@ -181,7 +191,6 @@ Integrate DuckDNS for domain-based access:
 ---
 
 ## 9. Access the Application
->**Note:** Configure the [fronted-config](../kubernetes/frontend-config.yml) file accordingly.
 
 ### Application Endpoints
 
