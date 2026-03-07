@@ -48,7 +48,14 @@ sudo mv ./kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
 kubectl argo rollouts version
 ```
 
-### Step 4: Verify Installation
+### Step4. Install the Dashboard Service
+By default, the dashboard isn't installed with the controller.
+
+```bash
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/dashboard-install.yaml
+```
+
+### Step 5: Verify Installation
 
 Check if Argo Rollouts controller is running:
 
@@ -176,7 +183,7 @@ Head to [localhost](http://localhost) in browser to view application.
 
 ### Open Argo Rollouts dashboard
 ```bash
-kubectl argo rollouts dashboard
+kubectl port-forward svc/argo-rollouts-dashboard 3100:3100 -n argo-rollouts --address 0.0.0.0
 ```
 Head with the link provided.
 
@@ -226,7 +233,7 @@ Update the image to start a canary deployment:
 kubectl argo rollouts set image frontend-rollout frontend=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:2.0.0 -n mern-devops
 
 # Update backend image
-kubectl argo rollouts set image backend-rollout ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 -n mern-devops
+kubectl argo rollouts set image backend-rollout backend=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 -n mern-devops
 ```
 
 ### Monitor Canary Progress
