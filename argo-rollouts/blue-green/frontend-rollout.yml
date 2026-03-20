@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend-rollout-bg
+  namespace: mern-devops
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2  # Keep last 2 revisions for quick rollback
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    blueGreen:
+      activeService: frontend-service-active      # Production traffic (blue environment)
+      previewService: frontend-service-preview    # New version traffic (green environment)
+
+      # autoPromotionEnabled: false means Argo Rollouts will spin up the green
+      # pods and pause — waiting for a manual `kubectl argo rollouts promote`.
+      # This gives you time to test via the preview service before going live.
+      autoPromotionEnabled: false
+
+      # After promotion, old (blue) pods are kept running for this duration
+      # before being terminated — allows in-flight requests to drain cleanly.
+      scaleDownDelaySeconds: 30
+
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30   # Green pods must pass readiness before
+            periodSeconds: 15         # Argo Rollouts considers them healthy
+            timeoutSeconds: 5         # and pauses for manual promotion
+            failureThreshold: 3
+
+# Blue-Green Flow:
+# 1. Image update triggers rollout — green pods created with new revision
+# 2. Green pods must pass readiness checks before rollout pauses
+# 3. Preview service selector updated to point at green pods
+# 4. Test green via: kubectl port-forward svc/frontend-service-preview 8080:80 -n mern-devops
+# 5. Promote: kubectl argo rollouts promote frontend-rollout-bg -n mern-devops
+# 6. Active service selector flipped to green pods — instant traffic switch
+# 7. Blue pods kept running for scaleDownDelaySeconds, then terminated
+# 8. Abort at any point: kubectl argo rollouts abort frontend-rollout-bg -n mern-devops

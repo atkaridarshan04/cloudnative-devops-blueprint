@@ -247,9 +247,9 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 <td width="30%" style="border: 2px solid #c9772bff; padding: 20px ; vertical-align: top;">
 
 **[ArgoRollouts.md](./docs/ArgoRollouts.md)**  
-*Canary deployments with automated rollbacks*
-- Traffic splitting
-- Analysis templates
+*Canary and blue-green deployments with automated rollbacks*
+- Canary traffic splitting
+- Blue-green instant promotion
 - Rollback strategies  
 
 </td>

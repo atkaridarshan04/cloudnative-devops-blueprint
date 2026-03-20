@@ -1,0 +1,34 @@
+# Ingress for Blue-Green Deployments
+# Unlike canary, this ingress always points to the active service only.
+# No companion ingress is created — traffic switching happens at the service
+# selector level when Argo Rollouts promotes green to active.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rollout-bluegreen-ingress
+  namespace: mern-devops
+  labels:
+    app: bookstore
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Frontend route — always points to active (blue) service
+          # On promotion, Argo Rollouts updates the active service selector
+          # to green pods; this ingress itself never changes
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service-active  # Production traffic only
+                port:
+                  number: 80
+          # Backend API route
+          - path: /books
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service-active   # Production traffic only
+                port:
+                  number: 8000

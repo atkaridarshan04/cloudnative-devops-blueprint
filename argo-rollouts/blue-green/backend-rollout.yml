@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout-bg
+  namespace: mern-devops
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    blueGreen:
+      activeService: backend-service-active       # Routes production traffic (blue)
+      previewService: backend-service-preview     # Routes preview traffic (green)
+      autoPromotionEnabled: false                 # Require manual promotion
+      scaleDownDelaySeconds: 30                   # Wait before terminating old (blue) pods
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+            - name: mongoDBURL
+              value: "mongodb://admin:password123@mongodb-deployment-0.mongodb-service-headless.mern-devops.svc.cluster.local:27017/db?authSource=admin"
+          livenessProbe:
+            httpGet:
+              path: /books
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /books
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
