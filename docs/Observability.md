@@ -85,52 +85,82 @@ kubectl port-forward daemonset/alloy-alloy-logs 12345:12345 -n observability
 - **Loki:** [http://localhost:30004/ready](http://localhost:30004/ready)
 - **Alloy:** [http://localhost:12345](http://localhost:12345)
 
+---
+
 ## 📈 Prometheus
 
 Query metrics using PromQL, view targets, and configure alerts.
 
-![prometheus-targets](./assets/prometheus-targets.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/prometheus-targets.png" width="100%"/></td>
+<td width="50%"><img src="./assets/prometheus-query.png" width="100%"/></td>
+</tr>
+</table>
 
-![prometheus-query](./assets/prometheus-query.png)
+---
 
 ## 📊 Grafana
 
 Pre-configured dashboards for cluster overview, node metrics, pod performance etc.
 
-![grafana-home](./assets/grafana-home.png)
-![grafana-datasource](./assets/grafana-data-source.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/grafana-home.png" width="100%"/></td>
+<td width="50%"><img src="./assets/grafana-data-source.png" width="100%"/></td>
+</tr>
+</table>
 
 ### Drilldown
 
-![metrics-drill](./assets/metrics-drill.png)
-![logs-drill](./assets/logs-drill.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/metrics-drill.png" width="100%"/></td>
+<td width="50%"><img src="./assets/logs-drill.png" width="100%"/></td>
+</tr>
+</table>
 
-## Loki
+---
+
+## 🪵 Loki
 
 ![loki-metrics](./assets/loki-mertics.png)
+
+---
 
 ## 🔄 Alloy
 
 Collects logs from containers, system logs, and Kubernetes events.
 
-![alloy-1](./assets/alloy-1.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/alloy-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/alloy-2.png" width="100%"/></td>
+</tr>
+</table>
 
-![alloy-2](./assets/alloy-2.png)
+---
 
 ## 🎨 Dashboards
 
 ### Monitoring
 
-![graphana-1](./assets/graphana-1.png)
-
-![graphana21](./assets/graphana-2.png)
-
-![graphana31](./assets/graphana-3.png)
-
-![ArgoCD-Dashboard](./assets/argocd-dashboard.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/graphana-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/graphana-2.png" width="100%"/></td>
+</tr>
+<tr>
+<td width="50%"><img src="./assets/graphana-3.png" width="100%"/></td>
+<td width="50%"><img src="./assets/argocd-dashboard.png" width="100%"/></td>
+</tr>
+</table>
 
 ### Logging
 
-![logs-1](./assets/logs-1.png)
-
-![logs-2](./assets/logs-2.png)
+<table>
+<tr>
+<td width="50%"><img src="./assets/logs-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/logs-2.png" width="100%"/></td>
+</tr>
+</table>

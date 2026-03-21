@@ -60,13 +60,13 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3      # Remove from service after 3 failures
-          # resources:             # Resource requests/limits for predictable scheduling
-          #   requests:
-          #     memory: "128Mi"    # Guaranteed memory - prevents OOMKilled
-          #     cpu: "0.25"        # 250m CPU - adjust based on profiling
-          #   limits:
-          #     memory: "256Mi"    # Hard limit - triggers OOMKilled if exceeded
-          #     cpu: "0.25"        # CPU throttling limit
+          resources:             # Required for HPA to calculate utilization percentages
+            requests:
+              memory: "128Mi"    # Guaranteed memory - prevents OOMKilled
+              cpu: "250m"        # 250m CPU baseline - HPA uses this as the 100% reference
+            limits:
+              memory: "256Mi"    # Hard limit - triggers OOMKilled if exceeded
+              cpu: "500m"        # Allow burst up to 500m before throttling
           # Container-level security - defense in depth approach
           securityContext:  
             runAsUser: 1000                    # Must match pod-level setting

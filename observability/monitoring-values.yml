@@ -1,91 +1,72 @@
 # Kube-Prometheus-Stack Configuration
-# Comprehensive monitoring stack with Prometheus, Grafana, and exporters
-# Provides metrics collection, storage, visualization, and alerting capabilities
-
-# Prometheus Configuration - Time-series metrics database
 prometheus:
   prometheusSpec:
-    storageSpec:                          # Persistent storage for metrics data
+    storageSpec:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]  # Single node access for StatefulSet
+          accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 5Gi                # Adjust based on retention period and metric volume
-          storageClassName: standard      # Use SSD storage class for better performance
+              storage: 5Gi
+          storageClassName: standard
+    # Allow Prometheus to pick up PrometheusRules from all namespaces
+    ruleNamespaceSelector: {}
+    ruleSelector:
+      matchLabels:
+        release: monitoring
   service:
-    type: LoadBalancer
+    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
 
-# Alertmanager - Alert routing and notification management
 alertmanager:
-  enabled: false
+  enabled: true
+  service:
+    type: ClusterIP
 
-# Node Exporter - System-level metrics from Kubernetes nodes
-# Provides CPU, memory, disk, network metrics for infrastructure monitoring
 nodeExporter:
-  enabled: true       # Essential for cluster health monitoring
+  enabled: true
 
-# Kube-State-Metrics - Kubernetes object state metrics
-# Exposes deployment status, pod phases, resource quotas, etc.
 kubeStateMetrics:
-  enabled: true       # Critical for Kubernetes-specific monitoring
+  enabled: true
 
-# Custom scrape configurations - Additional metric sources
-# Extends default Prometheus discovery with static targets
-additionalScrapeConfigs:
-  - job_name: node-exporter       # System metrics collection
-    static_configs:
-      - targets:
-          - node-exporter:9100    # Node exporter default port
-  - job_name: kube-state-metrics  # Kubernetes state metrics
-    static_configs:
-      - targets:
-          - kube-state-metrics:8080  # Kube-state-metrics default port
+# kube-prometheus-stack auto-discovers node-exporter and kube-state-metrics
+# via ServiceMonitors - no need for manual static scrape configs
 
-# Prometheus Operator - Manages Prometheus instances via CRDs
-# Enables declarative monitoring configuration through ServiceMonitor/PrometheusRule
 prometheusOperator:
-  enabled: true  # Required for CRD-based monitoring configuration
-
+  enabled: true
 
 # ---------------------------------------------------------------------------------
-# Grafana Configuration - Metrics visualization and dashboarding
 grafana:
-  enabled: true            # Bundled with kube-prometheus-stack for integrated experience
-  # Default credentials
+  enabled: true
   adminUser: admin
-  adminPassword: password  # Use Secret or external auth in production
+  adminPassword: password
   service:
-    type: LoadBalancer
-  
-  # Persistent storage for dashboards, users, and configuration
+    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+
   persistence:
-    enabled: true   # Prevents dashboard loss on pod restart
+    enabled: true
     type: pvc
-    size: 5Gi       # Sufficient for dashboard storage and SQLite database
+    size: 5Gi
     storageClassName: standard
 
-  # Data source configuration - connects Grafana to metric/log sources
   additionalDataSources:
-    - name: Loki      # Log aggregation system integration
+    - name: Loki
       type: loki
-      access: proxy   # Grafana proxies requests to Loki
-      url: http://loki-gateway.observability.svc.cluster.local:80  # Loki service endpoint
+      access: proxy
+      url: http://loki-gateway.observability.svc.cluster.local:80
 
-# Dashboard provisioning - Automated dashboard import and organization
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
       providers:
-      - name: 'default'  # General Kubernetes and infrastructure dashboards
+      - name: 'default'
         orgId: 1
         folder: ''
         type: file
         disableDeletion: false
-        editable: true    # Allow dashboard customization
+        editable: true
         options:
           path: /var/lib/grafana/dashboards/default
-      - name: 'loki'      # Log analysis and visualization dashboards
+      - name: 'loki'
         orgId: 1
         folder: 'Loki Logs'
         type: file
@@ -93,7 +74,7 @@ grafana:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/loki
-      - name: 'argocd'    # GitOps deployment monitoring dashboards
+      - name: 'argocd'
         orgId: 1
         folder: 'ArgoCD Monitoring'
         type: file
@@ -102,31 +83,27 @@ grafana:
         options:
           path: /var/lib/grafana/dashboards/argocd
 
-  # Pre-configured dashboards from Grafana.com community
   dashboards:
     default:
-      kubernetes-cluster:   # Comprehensive cluster overview dashboard
-        gnetId: 7249        # Community dashboard ID
+      kubernetes-cluster:
+        gnetId: 7249
         revision: 1
         datasource: Prometheus
-    
+
     loki:
-      loki-logs:            # Log volume and ingestion rate monitoring
+      loki-logs:
         gnetId: 13639
         revision: 2
         datasource: Loki
-      container-logs:       # Container-specific log analysis
+      container-logs:
         gnetId: 16966
         revision: 1
         datasource: Loki
 
     argocd:
-      argocd:                       # ArgoCD application and sync status monitoring
+      argocd:
         gnetId: 14584
         revision: 1
-      argocd-application-overview:  # Detailed application deployment tracking
+      argocd-application-overview:
         gnetId: 19974
         revision: 1
-      # argocd-notifications:       # Notification system monitoring (optional)
-      #   gnetId: 19975
-      #   revision: 4

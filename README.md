@@ -308,8 +308,26 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 </table>
 
 
+### 🔥 **Stress Testing & HPA Autoscaling**
 
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #e05c00;">
+<tr>
+<td width="30%" style="border: 2px solid #e05c00; padding: 20px; vertical-align: top;">
 
+**[StressTest.md](./docs/StressTest.md)**  
+*Load test the backend with Locust to trigger HPA autoscaling and observe it in Grafana*
+- Locust stress client (local & Kubernetes Job)
+- HPA autoscaling demonstration
+- Grafana metrics observation during load
+
+</td>
+<td width="70%" style="border: 2px solid #e05c00; padding: 15px; vertical-align: middle; text-align: center;">
+
+<img src="./docs/assets/hpa-results.png" alt="HPA Results" width="100%">
+
+</td>
+</tr>
+</table>
 
 <!-- ## 🤝 Contributing
 

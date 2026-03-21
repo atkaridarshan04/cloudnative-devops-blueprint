@@ -36,13 +36,13 @@ spec:
               port: 80
             initialDelaySeconds: 30
             periodSeconds: 15  
-          # resources:
-          #   requests:
-          #     memory: "128Mi"
-          #     cpu: "0.25"
-          #   limits:
-          #     memory: "256Mi"
-          #     cpu: "0.25"    
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
   strategy:
     type: RollingUpdate
     rollingUpdate:

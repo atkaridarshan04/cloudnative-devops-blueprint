@@ -1,0 +1,42 @@
+# Kubernetes Job - runs Locust in headless mode inside the cluster
+# Targets backend-service directly (no ingress needed)
+# Adjust USERS and SPAWN_RATE to control load intensity
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stress-test
+  namespace: mern-devops
+spec:
+  ttlSecondsAfterFinished: 300   # Auto-cleanup job after 5 min
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: locust
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/stress-test:1.0.0
+          imagePullPolicy: IfNotPresent
+          # Use shell so env var substitution works in the command
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              locust \
+                --host=http://backend-service:8000 \
+                --headless \
+                --users=${USERS} \
+                --spawn-rate=${SPAWN_RATE} \
+                --run-time=${RUN_TIME} \
+                --only-summary
+          env:
+            - name: USERS        # Total concurrent virtual users
+              value: "100"
+            - name: SPAWN_RATE   # Users added per second until USERS is reached
+              value: "10"
+            - name: RUN_TIME     # How long to run (e.g. 3m, 5m, 10m)
+              value: "3m"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"

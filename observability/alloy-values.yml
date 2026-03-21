@@ -15,14 +15,13 @@ destinations:
 # Kubernetes cluster events collection - captures cluster-level events
 # Essential for troubleshooting deployment issues, resource constraints, etc.
 clusterEvents:
-  enabled: true           # Collect events like pod failures, scheduling issues, etc.
-  collector: alloy-logs   # Use log collector for event processing
-  namespaces:             # Target namespaces for event collection
-    - mern-devops         # Application namespace
-    - observability       # Monitoring stack namespace
-    - kube-system         # Kubernetes system components
-    - ingress-nginx       # Ingress controller namespace
-    - default             # Default namespace
+  enabled: true
+  collector: alloy-logs
+  namespaces:
+    - mern-devops
+    - observability
+    - kube-system
+    - default
 
 # Node-level log collection - system logs from Kubernetes nodes
 # Disabled to reduce resource usage and focus on application logs
@@ -58,11 +57,10 @@ podLogs:
   
   # Namespace targeting - specific namespaces for log collection
   namespaces:
-    - mern-devops     # Primary application namespace
-    - observability   # Monitoring infrastructure logs
-    - kube-system     # Kubernetes system component logs
-    - ingress-nginx   # Ingress controller logs for traffic analysis
-    - default         # Default namespace applications
+    - mern-devops
+    - observability
+    - kube-system
+    - default
 
 # Alloy collector configurations - different collectors for different data types
 # Modular approach allows independent scaling and resource allocation

@@ -66,9 +66,8 @@ singleBinary:
   #     cpu: 2  # Guaranteed CPU allocation
   #     memory: 2Gi  # Guaranteed memory allocation
   extraEnv:
-    # Go memory limit - prevents OOM by limiting Go heap size
     - name: GOMEMLIMIT
-      value: 3750MiB  # Keep below memory limit to allow for non-heap memory
+      value: 512MiB
 
 # Chunk cache configuration - improves query performance
 chunksCache:
