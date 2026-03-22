@@ -7,12 +7,14 @@ import { MdOutlineAddBox } from "react-icons/md";
 import BooksTable from "../components/home/BooksTable";
 import BooksCard from "../components/home/BooksCard";
 import { useSnackbar } from "notistack";
+import { useTheme } from "../context/ThemeContext";
 
 const Home = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showType, setShowType] = useState("table");
   const { enqueueSnackbar } = useSnackbar();
+  const { dark, setDark } = useTheme();
 
   useEffect(() => {
     setLoading(true);
@@ -29,26 +31,36 @@ const Home = () => {
         setLoading(false);
       });
   }, []);
+
   return (
     <div className="p-4">
+      <div className="bg-purple-700 text-white text-center py-2 rounded-lg mb-4 font-bold tracking-widest text-sm flex justify-between items-center px-4">
+        <span>📚 BookStore — v3.0.0</span>
+        <button
+          onClick={() => setDark(!dark)}
+          className="text-xs bg-white text-purple-700 px-3 py-1 rounded-full font-semibold"
+        >
+          {dark ? "☀️ Light" : "🌙 Dark"}
+        </button>
+      </div>
       <div className="flex justify-center items-center gap-x-4">
         <button
-          className="bg-red-900 hover:bg-red-600 text-white px-4 py-1 rounded-lg"
+          className="bg-purple-700 hover:bg-purple-500 text-white px-4 py-1 rounded-lg"
           onClick={() => setShowType("table")}
         >
           Table
         </button>
         <button
-          className="bg-red-900 hover:bg-red-600 text-white px-4 py-1 rounded-lg"
+          className="bg-purple-700 hover:bg-purple-500 text-white px-4 py-1 rounded-lg"
           onClick={() => setShowType("card")}
         >
           Card
         </button>
       </div>
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl my-8">Availabe Books List</h1>
+        <h1 className="text-3xl my-8">Books List</h1>
         <Link to="/books/create">
-          <MdOutlineAddBox className="text-sky-800 text-4xl" />
+          <MdOutlineAddBox className="text-purple-700 text-4xl" />
         </Link>
       </div>
       {loading ? (

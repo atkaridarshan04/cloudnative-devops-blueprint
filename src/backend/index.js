@@ -22,7 +22,7 @@ app.use(cors());
 
 app.get("/", (request, response) => {
   console.log(request);
-  return response.status(200).send("Welcome to MERN Stack Book Shop - prod.v2");
+  return response.status(200).send("Welcome to MERN Stack Book Shop - v3.0.0");
 });
 
 app.use("/books", booksRoute);

@@ -4,11 +4,14 @@ import App from "./App.jsx";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { SnackbarProvider } from "notistack";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <SnackbarProvider>
-      <App />
-    </SnackbarProvider>
+    <ThemeProvider>
+      <SnackbarProvider>
+        <App />
+      </SnackbarProvider>
+    </ThemeProvider>
   </BrowserRouter>
 );

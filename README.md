@@ -27,6 +27,18 @@
 
 This project demonstrates a **production-ready DevOps pipeline** for deploying a MERN (MongoDB, Express, React, Node.js) application using modern cloud-native technologies and best practices. From local development to cloud deployment, this blueprint covers the entire application lifecycle.
 
+## 📦 Application Versions
+
+Three versions of the application are available, each with distinct visual and functional differences:
+
+| Version | Frontend | Backend |
+|---------|----------|---------|
+| [`1.0.0`](./src/README.md) | 🔵 Blue theme | `v1.0.0` |
+| [`2.0.0`](./src/README.md) | 🔴 Red theme | `v2.0.0` |
+| [`3.0.0`](./src/README.md) | 🟣 Purple theme | `v3.0.0` |
+
+> See **[src/README.md](./src/README.md)** for screenshots and build instructions.
+
 ## 🌟 Project Deployment Flow
 
 <div align="center">
@@ -40,38 +52,20 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 
 ## 🛠️ Technology Stack
 
-<table>
+<table width="100%">
 <tr>
 <td align="center"><strong>🏗️ Infrastructure</strong></td>
 <td align="center"><strong>🔄 CI/CD</strong></td>
-<td align="center"><strong>☸️ Orchestration</strong></td>
+<td align="center"><strong>☸️ Orchestration & Config</strong></td>
+<td align="center"><strong>🔐 Security & Secrets</strong></td>
 <td align="center"><strong>📊 Observability</strong></td>
 </tr>
 <tr>
-<td>
-• Terraform<br>
-• AWS EKS<br>
-• Docker<br>
-• Ingress/Gateway API
-</td>
-<td>
-• Jenkins<br>
-• ArgoCD<br>
-• Argo Rollouts<br>
-• SonarQube
-</td>
-<td>
-• Kubernetes<br>
-• Helm<br>
-• Kustomize<br>
-• Istio
-</td>
-<td>
-• Prometheus<br>
-• Grafana<br>
-• Loki<br>
-• Alloy
-</td>
+<td valign="top">• Terraform<br>• AWS EKS<br>• Docker<br>• Docker Bake<br>• Ingress / Gateway API</td>
+<td valign="top">• Jenkins<br>• ArgoCD<br>• Argo Rollouts<br>• SonarQube<br>• Trivy</td>
+<td valign="top">• Kubernetes<br>• Helm<br>• Kustomize<br>• Istio<br>• Kyverno<br>• HPA / Locust</td>
+<td valign="top">• HashiCorp Vault<br>• External Secrets Operator</td>
+<td valign="top">• Prometheus<br>• Grafana<br>• Loki<br>• Alloy</td>
 </tr>
 </table>
 
@@ -79,7 +73,7 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #2e6ccaff;">
 <tr>
-<td width="50%" style="border: 2px solid #2e6ccaff; padding: 20px; vertical-align: top;">
+<td width="33%" style="border: 2px solid #2e6ccaff; padding: 20px; vertical-align: top;">
 
 ### 🐳 **Containerization**
 
@@ -91,17 +85,27 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 - Volume management
 
 </td>
-<td width="50%" style="border: 2px solid #284cdfff; padding: 20px; vertical-align: top;">
+<td width="33%" style="border: 2px solid #284cdfff; padding: 20px; vertical-align: top;">
 
 ### ☸️ **Kubernetes**
 
 **[Kubernetes.md](./docs/Kubernetes.md)**  
 *Deploy on kind cluster with ingress*
 - Persistent storage setup
-- Demonset and Statefulset Deployments
-- Health checks
+- Deployments and Statefulsets
 - Secrets and Configuration Management
 - Ingress/Gateway API Deployment
+
+</td>
+<td width="33%" style="border: 2px solid #e05c00; padding: 20px; vertical-align: top;">
+
+### 🔥 **Stress Testing & HPA**
+
+**[StressTest.md](./docs/StressTest.md)**  
+*Load test the backend with Locust to trigger HPA autoscaling*
+- Locust stress client (local & Kubernetes Job)
+- HPA autoscaling demonstration
+- Grafana metrics observation during load
 
 </td>
 </tr>
@@ -302,28 +306,6 @@ This project demonstrates a **production-ready DevOps pipeline** for deploying a
 <td width="60%" style="border: 2px solid #7B42BC; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
 <img src="./docs/assets/terraform_architecture.png" alt="Terraform AWS EKS Diagram" width="100%">
-
-</td>
-</tr>
-</table>
-
-
-### 🔥 **Stress Testing & HPA Autoscaling**
-
-<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #e05c00;">
-<tr>
-<td width="30%" style="border: 2px solid #e05c00; padding: 20px; vertical-align: top;">
-
-**[StressTest.md](./docs/StressTest.md)**  
-*Load test the backend with Locust to trigger HPA autoscaling and observe it in Grafana*
-- Locust stress client (local & Kubernetes Job)
-- HPA autoscaling demonstration
-- Grafana metrics observation during load
-
-</td>
-<td width="70%" style="border: 2px solid #e05c00; padding: 15px; vertical-align: middle; text-align: center;">
-
-<img src="./docs/assets/hpa-results.png" alt="HPA Results" width="100%">
 
 </td>
 </tr>
