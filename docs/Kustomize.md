@@ -12,11 +12,17 @@ We have configured the following environments with separate namespaces and ingre
 
 ### Environment Matrix
 
-| Environment | Namespace | Host | Replicas | Prefix |
-|-------------|-----------|------|----------|--------|
-| **Development** | `dev` | `dev.local` | 1 | `dev-` |
-| **Staging** | `staging` | `staging.local` | 1 | `staging-` |
-| **Production** | `prod` | `prod.local` | 2 | `prod-` |
+| Environment | Namespace | Host | Replicas | Image Tag | Theme |
+|-------------|-----------|------|----------|-----------|-------|
+| **Development** | `dev` | `dev.local` | 1 | `1.0.0` | 🔵 Blue |
+| **Staging** | `staging` | `staging.local` | 1 | `2.0.0` | 🔴 Red |
+| **Production** | `prod` | `prod.local` | 2 | `3.0.0` | 🟣 Purple |
+
+Before deploying, ensure the image tags are set correctly in each overlay file:
+
+- [`kustomize/overlays/dev/kustomization.yml`](../kustomize/overlays/dev/kustomization.yml) → `newTag: 1.0.0`
+- [`kustomize/overlays/staging/kustomization.yml`](../kustomize/overlays/staging/kustomization.yml) → `newTag: 2.0.0`
+- [`kustomize/overlays/prod/kustomization.yml`](../kustomize/overlays/prod/kustomization.yml) → `newTag: 3.0.0`
 
 
 ## Configuration Management
@@ -24,7 +30,24 @@ We use `configMapGenerator` and `secretGenerator` in Kustomize to manage ConfigM
 
 ## Prerequisites
 
-### 1. Install Nginx Ingress Controller
+### 1. Create kind Cluster with Port 80 Exposed
+
+Ingress requires port 80 to be mapped from the host. Create the cluster with this config:
+
+```bash
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+EOF
+```
+
+### 2. Install Nginx Ingress Controller
 Before deploying any environment, ensure the Nginx Ingress Controller is installed:
 
 ```bash
@@ -40,7 +63,7 @@ kubectl wait --namespace ingress-nginx \
   --timeout=90s
 ```
 
-### 2. Configure /etc/hosts
+### 3. Configure /etc/hosts
 To access the applications via their respective hostnames, add the following entries to your `/etc/hosts` file:
 
 ```bash
@@ -55,7 +78,7 @@ sudo tee -a /etc/hosts << EOF
 EOF
 ```
 
-**Note:** For kind clusters, the ingress typically uses `127.0.0.1`. For other cluster types, replace with the actual ingress IP.
+**Note:** The kind cluster setup and port mapping above is only required for local development. If you are using a cloud cluster (EKS, GKE, AKS), skip the kind step — the ingress controller gets a real public IP/hostname automatically
 
 ## Step-by-Step Deployment Guide
 
@@ -136,6 +159,22 @@ kubectl wait --for=condition=ready pod --all -n prod --timeout=300s
 **Access Production Application:**
 Open your browser and navigate to: `http://prod.local`
 
+
+## Application Testing
+| Environment | Frontend URL | API Endpoint | Expected Version |
+|-------------|--------------|--------------|-----------------|
+| Development | http://dev.local | http://dev.local/books | 🔵 Blue banner — v1.0.0 |
+| Staging | http://staging.local | http://staging.local/books | 🔴 Red banner — v2.0.0 |
+| Production | http://prod.local | http://prod.local/books | 🟣 Purple banner — v3.0.0 |
+
+> Verify the backend version: `curl http://<host>/books` should return `Welcome to MERN Stack Book Shop - v<X.0.0>`
+
+
+![kustomize-dev](./assets/kustomize/kustomize-dev.png)
+![kustomize-staging](./assets/kustomize/kustomize-stage.png)
+![kustomize-prod](./assets/kustomize/kustomize-prod.png)
+
+
 ## Post-Deployment Verification
 
 ### Check All Environments
@@ -149,27 +188,7 @@ kubectl get pods --all-namespaces | grep -E "(dev|staging|prod)"
 # Check ingress configurations
 kubectl get ingress --all-namespaces
 ```
-![kustomize-overview](./assets/kustomize-overview.png)
-
-
-## Application Testing
-| Environment | Frontend URL | API Endpoint |
-|-------------|--------------|--------------|
-| Development | http://dev.local | http://dev.local/books |
-| Staging | http://staging.local | http://staging.local/books |
-| Production | http://prod.local | http://prod.local/books |
-
-
-### Accessing Applications Without /etc/hosts
-If you prefer not to modify `/etc/hosts`, you can access applications using port-forwarding:
-
-```bash
-# Port-forward development ingress
-kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80
-
-# Then access via:
-# http://localhost:8080 (with Host: dev.local header)
-```
+![kustomize-overview](./assets/kustomize/kustomize-overview.png)
 
 ## Cleanup
 
