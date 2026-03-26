@@ -63,14 +63,14 @@ helm install helm-chart ./helm-chart
 ```bash
 helm ls
 ```
-![helm-install](./assets/helm-ls.png)
+![helm-install](./assets/helm/helm-ls.png)
 
 Check the status of all resources in the Kubernetes cluster:
 
 ```bash
 kubectl get all -n mern-devops
 ```
-![helm-get-all](./assets/helm-get-all.png)
+![helm-get-all](./assets/helm/helm-get-all.png)
 
 
 ### Step 2: Verify Gateway API Resources
@@ -80,7 +80,7 @@ kubectl get gatewayclass
 kubectl get gateway -n mern-devops
 kubectl get httproute -n mern-devops
 ```
-![gateway-api-resources](./assets/gateway-api-resources.png)
+![gateway-api-resources](./assets/kubernetes/gateway-api-resources.png)
 
 > **⚠️ Important:** If doing locally then the programmed will be false since there is no LoadBalancer support in kind. For that in further steps we will patch the service to NodePort.
 
@@ -101,7 +101,7 @@ Patch the envoy-mern-devops-gateway service to use NodePort for external access:
 kubectl patch svc <service-name> -n envoy-gateway-system \
   -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":10080,"protocol":"TCP","nodePort":30080}]}}'
 ```
-![envoy-mern-devops-gateway-patch](./assets/envoy-mern-devops-gateway-patch.png)
+![envoy-mern-devops-gateway-patch](./assets/kubernetes/envoy-mern-devops-gateway-patch.png)
 
 ```bash
 kubectl port-forward <service-name> 30080:80 -n envoy-gateway-system
@@ -111,7 +111,7 @@ Access the application at:
 ```
 http://localhost:30080
 ```
-![gateway-api-webapp](./assets/gateway-api-webapp.png)
+![gateway-api-webapp](./assets/kubernetes/gateway-api-webapp.png)
 
 ## Step 6: Cleanup
 

@@ -63,7 +63,7 @@ kubectl apply -f mongodb.yml
 ```bash
 kubectl run -it --rm --restart=Never -n default --image=busybox dns-test -- nslookup mongodb-deployment-0.mongodb-service-headless.mern-devops.svc.cluster.local
 ```
-![mongo-svc-dns-test.png](./assets/mongo-svc-dns-test.png)
+![mongo-svc-dns-test.png](./assets/kubernetes/mongo-svc-dns-test.png)
 
 
 
@@ -92,7 +92,7 @@ kubectl get all -n mern-devops
   ```
   http://<node-ip>:31000
   ```
-  ![K8s-3.png](./assets/K8s-3.png)
+  ![K8s-3.png](./assets/kubernetes/K8s-3.png)
 
 - **Backend API Test:**
 
@@ -148,7 +148,7 @@ kubectl get ingress -n mern-devops
 
 #### Step 4: Access the Application
 In browser navigate to `http://<node-ip>`
-![ingress-implemented](./assets/ingress-implemented.png)
+![ingress-implemented](./assets/kubernetes/ingress-implemented.png)
 
 </details>
 
@@ -180,7 +180,7 @@ kubectl get gatewayclass
 kubectl get gateway -n mern-devops
 kubectl get httproute -n mern-devops
 ```
-![gateway-api-resources](./assets/gateway-api-resources.png)
+![gateway-api-resources](./assets/kubernetes/gateway-api-resources.png)
 
 > **⚠️ Important:** If doing locally then the programmed will be false since there is no LoadBalancer support in kind. For that in further steps we will patch the service to NodePort.
 
@@ -201,13 +201,13 @@ Patch the envoy-mern-devops-gateway service to use NodePort for external access:
 kubectl patch svc <service-name> -n envoy-gateway-system \
   -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":10080,"protocol":"TCP","nodePort":30080}]}}'
 ```
-![envoy-mern-devops-gateway-patch](./assets/envoy-mern-devops-gateway-patch.png)
+![envoy-mern-devops-gateway-patch](./assets/kubernetes/envoy-mern-devops-gateway-patch.png)
 
 Access the application at:
 ```
 http://localhost:30080
 ```
-![gateway-api-webapp](./assets/gateway-api-webapp.png)
+![gateway-api-webapp](./assets/kubernetes/gateway-api-webapp.png)
 
 </details>
 
@@ -222,7 +222,7 @@ Integrate DuckDNS for domain-based access:
 3. **🔗 Update configuration:** Associate your DuckDNS domain with the IP address of your Kubernetes node.
 4. **✅ Verify DNS:** Ensure the application is accessible through your domain.
 
-![duckdns.png](./assets/duckdns.png)
+![duckdns.png](./assets/kubernetes/duckdns.png)
 
 
 
@@ -235,14 +235,14 @@ Integrate DuckDNS for domain-based access:
   ```
   http://yourdomain.duckdns.org
   ```
-  ![k8s-1.png](./assets/k8s-1.png)
+  ![k8s-1.png](./assets/kubernetes/k8s-1.png)
 
 - **Backend API Test:** Access the backend:
 
   ```
   http://yourdomain.duckdns.org/books
   ```
-  ![k8s-2.png](./assets/k8s-2.png)
+  ![k8s-2.png](./assets/kubernetes/k8s-2.png)
 
 
 
@@ -283,8 +283,8 @@ kubectl port-forward svc/my-headlamp 8000:80 -n kube-system
   kubectl create token headlamp-admin -n kube-system
   ```
 
-![k8s-dash-1](./assets/k8s-dash-1.png)
-![k8s-dash-2](./assets/k8s-dash-2.png)
+![k8s-dash-1](./assets/kubernetes/k8s-dash-1.png)
+![k8s-dash-2](./assets/kubernetes/k8s-dash-2.png)
 
 ## 🧹 Cleanup
 

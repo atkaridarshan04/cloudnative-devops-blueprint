@@ -44,7 +44,7 @@ docker build -t bookstore-frontend ./src/frontend
 
 > **📝 Note:** For Kubernetes deployments, check [./frontend/.env.docker](../src/frontend/.env.docker) files. These contain different environment configurations for docker development and the one used for the kubernetes manifests.
 
-![docker_env_frontend](./assets/docker_env_frontend.png)
+![docker_env_frontend](./assets/jenkins/docker_env_frontend.png)
 
 #### Run Container
 

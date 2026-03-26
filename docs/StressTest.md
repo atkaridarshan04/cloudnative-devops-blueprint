@@ -103,7 +103,7 @@ kubectl get hpa -n mern-devops
 
 `TARGETS` must show actual percentages, not `<unknown>`:
 
-![HPA targets showing CPU and memory utilization](./assets/get-hpa.png)
+![HPA targets showing CPU and memory utilization](./assets/stress-test/get-hpa.png)
 
 > If `TARGETS` shows `<unknown>`, wait another minute and re-check. It means the Metrics Server hasn't scraped yet.
 
@@ -144,7 +144,7 @@ watch kubectl get pods -n mern-devops
 
 *HPA scaling up backend replicas under load:*
 
-![HPA scaling up — replicas increasing as CPU crosses threshold](./assets/hpa-results.png)
+![HPA scaling up — replicas increasing as CPU crosses threshold](./assets/stress-test/hpa-results.png)
 
 Clean up:
 
@@ -193,8 +193,8 @@ During the test you should see:
 <td width="50%" align="center"><em>After stress test — pods scaled out, CPU distributed</em></td>
 </tr>
 <tr>
-<td width="50%"><img src="./assets/before-stress-test-dash.png" width="100%"/></td>
-<td width="50%"><img src="./assets/after-stress-test-dash.png" width="100%"/></td>
+<td width="50%"><img src="./assets/stress-test/before-stress-test-dash.png" width="100%"/></td>
+<td width="50%"><img src="./assets/stress-test/after-stress-test-dash.png" width="100%"/></td>
 </tr>
 </table>
 

@@ -132,7 +132,7 @@ kubectl apply -f notifications/configmap.yml
 ### Step 4. Update ArgoCD Application Manifest
 > Note: Add the annotations in your application manifest file for which you want to get notifications.
 
-![argo-notify-annota](../docs/assets/argo-notify-annota.png)
+![argo-notify-annota](./assets/argocd/argo-notify-annota.png)
 
 ## 3. Deploy the Application
 
@@ -151,9 +151,8 @@ Please refer to **[`docs/Helm.md`](./Helm.md)** to set up the Gateway API and ex
 kubectl apply -f project.yml
 kubectl apply -f application.yml
 ```
-
-![argo-ui-latest](../docs/assets/argo-ui-latest.png)
-![argo-sucess-mail](../docs/assets/argo-sucess-mail.png)
+![argo-ui-latest](./assets/argocd/argo-ui-latest.png))
+![argo-sucess-mail](./assets/argocd/argo-sucess-mail.png)
 
 ### Access the Application
 
@@ -161,7 +160,7 @@ kubectl apply -f application.yml
 
 
 Then access Application at `http://localhost/30080`
-![argocd-app-ui](./assets/argocd-app-ui.png)
+![argocd-app-ui](./assets/argocd/argocd-app-ui.png)
 
 <details>
 <summary><strong>Method 2: Using ArgoCD UI</strong></summary>
@@ -175,7 +174,7 @@ Then access Application at `http://localhost/30080`
    - **Sync Policy:** `Manual` or `Automatic`
    - Select `Auto-Create Namespace`
 
-![argocd-1](./assets/argocd-1.png)
+![argocd-1](./assets/argocd/argocd-1.png)
 
 #### Configure Repository
 
@@ -183,22 +182,22 @@ Then access Application at `http://localhost/30080`
 - **Revision:** `main`
 - **Path:** `kubernetes`
 
-![argocd-2](./assets/argocd-2.png)
+![argocd-2](./assets/argocd/argocd-2.png)
 
 #### Set Destination
 
 - **Cluster:** Default cluster
 - **Namespace:** `mern-devops`
 
-![argocd-3](./assets/argocd-3.png)
+![argocd-3](./assets/argocd/argocd-3.png)
 
 #### Deploy Application
 
 1. Click **Create**
 2. Sync the application in ArgoCD dashboard
 
-![argocd-4](./assets/terraform_argocd.png)
-![argocd-5](./assets/argocd-5.png)
+![argocd-4](./assets/terraform/terraform_argocd.png)
+![argocd-5](./assets/argocd/argocd-5.png)
 
 </details>
 
@@ -212,6 +211,6 @@ Then access Application at `http://localhost/30080`
     ```
     > Note: Ensure the `release` label matches your Prometheus installation. In this case, it's set to `monitoring`.
 
-![Argocd Dashboard](../docs/assets/argocd-dashboard.png)
+![Argocd Dashboard](./assets/argocd/argocd-dashboard.png)
 
 ---

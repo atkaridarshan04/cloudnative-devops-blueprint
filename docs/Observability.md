@@ -93,8 +93,8 @@ Query metrics using PromQL, view targets, and configure alerts.
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/prometheus-targets.png" width="100%"/></td>
-<td width="50%"><img src="./assets/prometheus-query.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/prometheus-targets.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/prometheus-query.png" width="100%"/></td>
 </tr>
 </table>
 
@@ -106,8 +106,8 @@ Pre-configured dashboards for cluster overview, node metrics, pod performance et
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/grafana-home.png" width="100%"/></td>
-<td width="50%"><img src="./assets/grafana-data-source.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/grafana-home.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/grafana-data-source.png" width="100%"/></td>
 </tr>
 </table>
 
@@ -115,8 +115,8 @@ Pre-configured dashboards for cluster overview, node metrics, pod performance et
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/metrics-drill.png" width="100%"/></td>
-<td width="50%"><img src="./assets/logs-drill.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/metrics-drill.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/logs-drill.png" width="100%"/></td>
 </tr>
 </table>
 
@@ -124,7 +124,7 @@ Pre-configured dashboards for cluster overview, node metrics, pod performance et
 
 ## 🪵 Loki
 
-![loki-metrics](./assets/loki-mertics.png)
+![loki-metrics](./assets/observability/loki-mertics.png)
 
 ---
 
@@ -134,8 +134,8 @@ Collects logs from containers, system logs, and Kubernetes events.
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/alloy-1.png" width="100%"/></td>
-<td width="50%"><img src="./assets/alloy-2.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/alloy-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/alloy-2.png" width="100%"/></td>
 </tr>
 </table>
 
@@ -147,12 +147,12 @@ Collects logs from containers, system logs, and Kubernetes events.
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/graphana-1.png" width="100%"/></td>
-<td width="50%"><img src="./assets/graphana-2.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/graphana-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/graphana-2.png" width="100%"/></td>
 </tr>
 <tr>
-<td width="50%"><img src="./assets/graphana-3.png" width="100%"/></td>
-<td width="50%"><img src="./assets/argocd-dashboard.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/graphana-3.png" width="100%"/></td>
+<td width="50%"><img src="./assets/argocd/argocd-dashboard.png" width="100%"/></td>
 </tr>
 </table>
 
@@ -160,7 +160,7 @@ Collects logs from containers, system logs, and Kubernetes events.
 
 <table>
 <tr>
-<td width="50%"><img src="./assets/logs-1.png" width="100%"/></td>
-<td width="50%"><img src="./assets/logs-2.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/logs-1.png" width="100%"/></td>
+<td width="50%"><img src="./assets/observability/logs-2.png" width="100%"/></td>
 </tr>
 </table>

@@ -162,23 +162,23 @@ Access Jaeger at: `http://localhost:16686`
 ## **6. Service Mesh Observability**
 
 ### **Kiali Service Mesh Dashboard**
-![kiali-home](./assets/kiali-home.png)
+![kiali-home](./assets/istio/kiali-home.png)
 *Kiali overview dashboard showing service mesh topology*
 
-![kiali-app-graph](./assets/kiali-app-graph.png)
+![kiali-app-graph](./assets/istio/kiali-app-graph.png)
 *Application graph view with traffic flow visualization*
 
-![kiali-workloads](./assets/kiali-workloads.png)
+![kiali-workloads](./assets/istio/kiali-workloads.png)
 *Workloads view showing deployment status and health*
 
-![kiali-mesh](./assets/kiali-mesh.png)
+![kiali-mesh](./assets/istio/kiali-mesh.png)
 *Service mesh configuration and policies*
 
 ### **Grafana Metrics Dashboard**
-![kiali-grafana-home](./assets/kiali-grafana-home.png)
+![kiali-grafana-home](./assets/istio/kiali-grafana-home.png)
 *Grafana dashboard for Istio service mesh metrics*
 
-![kiali-grafana-workloads](./assets/kiali-grafana-workloads.png)
+![kiali-grafana-workloads](./assets/istio/kiali-grafana-workloads.png)
 *Workload-specific performance metrics and monitoring*
 
 

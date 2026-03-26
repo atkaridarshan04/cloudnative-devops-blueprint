@@ -133,14 +133,14 @@ kubectl argo rollouts get rollout backend-rollout -n mern-devops
 kubectl argo rollouts get rollout frontend-rollout -n mern-devops
 ```
 
-![argo-rollouts-list](./assets/argo-rollouts-list.png)
-![argo-rollouts-get-frontend](./assets/argo-rollouts-get-frontend.png)
-![argo-rollouts-get-backend](./assets/argo-rollouts-get-backend.png)
+![argo-rollouts-list](./assets/argo-rollouts/argo-rollouts-list.png)
+![argo-rollouts-get-frontend](./assets/argo-rollouts/argo-rollouts-get-frontend.png)
+![argo-rollouts-get-backend](./assets/argo-rollouts/argo-rollouts-get-backend.png)
 
 #### Move To Argo Rollouts Dashboard
 
-![argo-rollouts-dash-1.png](./assets/argo-rollouts-dash-1.png)
-![argo-rollouts-dash-2.png](./assets/argo-rollouts-dash-2.png)
+![argo-rollouts-dash-1.png](./assets/argo-rollouts/argo-rollouts-dash-1.png)
+![argo-rollouts-dash-2.png](./assets/argo-rollouts/argo-rollouts-dash-2.png)
 
 ### Access Application
 
@@ -152,7 +152,7 @@ kubectl port-forward svc/ingress-nginx-controller 8080:80 -n ingress-nginx --add
 
 Head to [localhost:8080](http://localhost:8080) in your browser.
 
-![argo-rollouts-app-v1](./assets/argo-rollouts-app-v1.png)
+![argo-rollouts-app-v1](./assets/argo-rollouts/argo-rollouts-app-v1.png)
 
 ## 4. Understanding Canary Configuration
 
@@ -196,11 +196,11 @@ kubectl argo rollouts set image backend-rollout backend=ghcr.io/atkaridarshan04/
 kubectl argo rollouts get rollout frontend-rollout -n mern-devops --watch
 ```
 
-![argo-rollouts-frontend-update](./assets/argo-rollouts-frontend-update.png)
-![argo-rollouts-dash-3.png](./assets/argo-rollouts-dash-3.png)
-![argo-rollouts-dash-4.png](./assets/argo-rollouts-dash-4.png)
-![argo-rollouts-dash-5.png](./assets/argo-rollouts-dash-5.png)
-![argo-rollouts-app-v2](./assets/argo-rollouts-app-v2.png)
+![argo-rollouts-frontend-update](./assets/argo-rollouts/argo-rollouts-frontend-update.png)
+![argo-rollouts-dash-3.png](./assets/argo-rollouts/argo-rollouts-dash-3.png)
+![argo-rollouts-dash-4.png](./assets/argo-rollouts/argo-rollouts-dash-4.png)
+![argo-rollouts-dash-5.png](./assets/argo-rollouts/argo-rollouts-dash-5.png)
+![argo-rollouts-app-v2](./assets/argo-rollouts/argo-rollouts-app-v2.png)
 
 ### Control the Rollout
 
@@ -218,7 +218,7 @@ kubectl argo rollouts retry frontend-rollout -n mern-devops
 kubectl argo rollouts restart frontend-rollout -n mern-devops
 ```
 
-![argo-rollouts-ings](./assets/argo-rollouts-ings.png)
+![argo-rollouts-ings](./assets/argo-rollouts/argo-rollouts-ings.png)
 
 ---
 
@@ -259,8 +259,8 @@ kubectl argo rollouts get rollout backend-rollout-bg -n mern-devops
 kubectl argo rollouts get rollout frontend-rollout-bg -n mern-devops
 ```
 
-![argo-blue-green-1](./assets/argo-blue-green-1.png)
-![argo-blue-green-2](./assets/argo-blue-green-2.png)
+![argo-blue-green-1](./assets/argo-rollouts/argo-blue-green-1.png)
+![argo-blue-green-2](./assets/argo-rollouts/argo-blue-green-2.png)
 
 ## 7. Understanding Blue-Green Configuration
 
@@ -301,7 +301,7 @@ kubectl argo rollouts set image frontend-rollout-bg frontend=ghcr.io/atkaridarsh
 kubectl argo rollouts set image backend-rollout-bg backend=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 -n mern-devops
 ```
 
-![argo-blue-green-3](./assets/argo-blue-green-3.png)
+![argo-blue-green-3](./assets/argo-rollouts/argo-blue-green-3.png)
 
 ### Test Green Environment Before Promoting
 
@@ -312,7 +312,7 @@ kubectl port-forward svc/ingress-nginx-controller 8080:80 -n ingress-nginx --add
 ```
 
 Navigate to [localhost:8080](http://localhost:8080) and verify the new version is working correctly before promoting.
-![argo-blue-green-4](./assets/argo-blue-green-4.png)
+![argo-blue-green-4](./assets/argo-rollouts/argo-blue-green-4.png)
 
 ### Monitor Progress
 
@@ -329,7 +329,7 @@ kubectl argo rollouts promote frontend-rollout-bg -n mern-devops
 
 Now navigate back to [localhost:8080](http://localhost:8080) to see the new version live after promotion.
 
-![argo-blue-green-1](./assets/argo-blue-green-5.png)
+![argo-blue-green-1](./assets/argo-rollouts/argo-blue-green-5.png)
 
 
 ### More Commands

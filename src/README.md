@@ -45,9 +45,9 @@ The script auto-detects the current version/color, updates all relevant files in
 <td align="center"><strong>v3.0.0 — Purple</strong></td>
 </tr>
 <tr>
-<td><img src="../docs/assets/apps/app-v1-frontend.png"/></td>
-<td><img src="../docs/assets/apps/app-v2-frontend.png"/></td>
-<td><img src="../docs/assets/apps/app-v3-frontend.png"/></td>
+<td><img src="s/assets/apps/app-v1-frontend.png"/></td>
+<td><img src="s/assets/apps/app-v2-frontend.png"/></td>
+<td><img src="s/assets/apps/app-v3-frontend.png"/></td>
 </tr>
 </table>
 
@@ -60,9 +60,9 @@ The script auto-detects the current version/color, updates all relevant files in
 <td align="center"><strong>v3.0.0</strong></td>
 </tr>
 <tr>
-<td><img src="../docs/assets/apps/app-v1-backend.png"/></td>
-<td><img src="../docs/assets/apps/app-v2-backend.png"/></td>
-<td><img src="../docs/assets/apps/app-v3-backend.png"/></td>
+<td><img src="s/assets/apps/app-v1-backend.png"/></td>
+<td><img src="s/assets/apps/app-v2-backend.png"/></td>
+<td><img src="s/assets/apps/app-v3-backend.png"/></td>
 </tr>
 </table>
 

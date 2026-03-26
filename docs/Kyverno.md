@@ -61,7 +61,7 @@ kubectl get clusterpolicy
 ```
 
 <div align="center">
-<img src="./assets/kyverno-clusterpolicy.png" alt="Kyverno Cluster Policies" width="100%">
+<img src="./assets/kyverno/kyverno-clusterpolicy.png" alt="Kyverno Cluster Policies" width="100%">
 </div>
 
 ### Image Tag Validation
@@ -69,13 +69,13 @@ kubectl get clusterpolicy
 When attempting to deploy with `latest` tag:
 
 <div align="center">
-<img src="./assets/kyverno-image-latest.png" alt="Deployment with Latest Tag" width="100%">
+<img src="./assets/kyverno/kyverno-image-latest.png" alt="Deployment with Latest Tag" width="100%">
 </div>
 
 The policy blocks the deployment:
 
 <div align="center">
-<img src="./assets/kyverno-image-error.png" alt="Kyverno Image Tag Error" width="100%">
+<img src="./assets/kyverno/kyverno-image-error.png" alt="Kyverno Image Tag Error" width="100%">
 </div>
 
 ### Label Validation
@@ -83,13 +83,13 @@ The policy blocks the deployment:
 When deploying without required labels:
 
 <div align="center">
-<img src="./assets/kyverno-label.png" alt="Deployment without Labels" width="100%">
+<img src="./assets/kyverno/kyverno-label.png" alt="Deployment without Labels" width="100%">
 </div>
 
 The policy enforcement blocks the deployment:
 
 <div align="center">
-<img src="./assets/kyverno-label-error.png" alt="Kyverno Label Error" width="100%">
+<img src="./assets/kyverno/kyverno-label-error.png" alt="Kyverno Label Error" width="100%">
 </div>
 
 ## Policy Testing
@@ -102,4 +102,4 @@ kubectl apply --dry-run=server -f deployment.yaml
 kubectl describe policyreport -n <namespace>
 ```
 
-![k8s-dry-run](./assets/k8s-dry-run.png)
+![k8s-dry-run](./assets/kubernetes/k8s-dry-run.png)

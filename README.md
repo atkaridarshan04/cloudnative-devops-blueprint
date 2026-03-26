@@ -130,8 +130,8 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #b84c09ff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/jenkins-ci.png" alt="Jenkins CI Image" width="100%">
-<img src="./docs/assets/jenkins-cd.png" alt="Jenkins CI Image" width="100%">
+<img src="./docs/assets/jenkins/jenkins-ci.png" alt="Jenkins CI Image" width="100%">
+<img src="./docs/assets/jenkins/jenkins-cd.png" alt="Jenkins CI Image" width="100%">
 
 </td>
 </tr>
@@ -188,7 +188,7 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #6f42c1; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/vault-ui.png" alt="HashiCorp Vault UI Dashboard" width="100%">
+<img src="./docs/assets/external-secrets/vault-ui.png" alt="HashiCorp Vault UI Dashboard" width="100%">
 
 </td>
 </tr>
@@ -213,8 +213,8 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #bc2323ff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/graphana-3.png" alt="Grafana Monitoring Dashboard" width="100%">
-<img src="./docs/assets/logs-1.png" alt="Grafana Logging Dashboard" width="100%">
+<img src="./docs/assets/observability/graphana-3.png" alt="Grafana Monitoring Dashboard" width="100%">
+<img src="./docs/assets/observability/logs-1.png" alt="Grafana Logging Dashboard" width="100%">
 
 </td>
 </tr>
@@ -237,7 +237,7 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #c9772bff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/argocd-5.png" alt="ArgoCD Dashboard" width="100%">
+<img src="./docs/assets/argocd/argocd-5.png" alt="ArgoCD Dashboard" width="100%">
 
 </td>
 </tr>
@@ -259,7 +259,7 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #c9772bff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/argo-rollouts-dash-3.png" alt="Argo Rollouts Dashboard Diagram" width="100%">
+<img src="./docs/assets/argo-rollouts/argo-rollouts-dash-3.png" alt="Argo Rollouts Dashboard Diagram" width="100%">
 
 </td>
 </tr>
@@ -281,7 +281,7 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #42a4bcff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/kiali-app-graph.png" alt="Kiali Service Mesh Graph" width="100%">
+<img src="./docs/assets/istio/kiali-app-graph.png" alt="Kiali Service Mesh Graph" width="100%">
 
 </td>
 </tr>
@@ -305,7 +305,7 @@ Three versions of the application are available, each with distinct visual and f
 </td>
 <td width="60%" style="border: 2px solid #7B42BC; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
-<img src="./docs/assets/terraform_architecture.png" alt="Terraform AWS EKS Diagram" width="100%">
+<img src="./docs/assets/terraform/terraform_architecture.png" alt="Terraform AWS EKS Diagram" width="100%">
 
 </td>
 </tr>

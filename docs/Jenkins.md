@@ -19,11 +19,11 @@ The Jenkins pipeline is divided into two major components:
    - Pushes the updated configurations back to GitHub.
    - Notifies the team via email about the build and deployment status.
 
-![jenkins-home](./assets/jenkins-home.png)
-![jenkins-ci](./assets/jenkins-ci.png)
-![jenkins-cd](./assets/jenkins-cd.png)
+![jenkins-home](./assets/jenkins/jenkins-home.png)
+![jenkins-ci](./assets/jenkins/jenkins-ci.png)
+![jenkins-cd](./assets/jenkins/jenkins-cd.png)
 
-![sonar-report](./assets/sonar-report.png)
+![sonar-report](./assets/jenkins/sonar-report.png)
 
 
 ---
@@ -63,7 +63,7 @@ The Jenkins pipeline is divided into two major components:
      - Docker Pipeline
      - Pipeline Stage View
    
-   ![install_plugins](./assets/install_plugins.png)
+   ![install_plugins](./assets/jenkins/install_plugins.png)
 
 ---
 
@@ -80,7 +80,7 @@ The Jenkins pipeline is divided into two major components:
       - Click on **Install Automatically**
          - Click on **Add installer** -> **Install from github.com**
 
-   ![owasp](./assets/owasp.png)
+   ![owasp](./assets/jenkins/owasp.png)
 
 ---
 
@@ -98,9 +98,9 @@ The Jenkins pipeline is divided into two major components:
      - **Navigate to:** `Administration > Security > Users > Tokens`.
      - **Create a token** and give it a name, e.g., `jenkins-token`.
 
-   ![sonarqube-token-1](./assets/sonarqube-token-1.png)
-   ![sonarqube-token-2](./assets/sonarqube-token-2.png)
-   ![sonarqube-token-3](./assets/sonarqube-token-3.png)
+   ![sonarqube-token-1](./assets/jenkins/sonarqube-token-1.png)
+   ![sonarqube-token-2](./assets/jenkins/sonarqube-token-2.png)
+   ![sonarqube-token-3](./assets/jenkins/sonarqube-token-3.png)
 
 3. **Integrate SonarQube with Jenkins:**
    - In Jenkins, go to **Manage Jenkins > Configure System**.
@@ -112,8 +112,8 @@ The Jenkins pipeline is divided into two major components:
        - Paste the **SonarQube token** generated earlier.
        - Give it a unique **ID** like `sonar-token`.       
        
-   ![sonarqube-credentials](./assets/sonarqube-credentials.png)
-   ![sonarqube-system](./assets/sonarqube-system.png)
+   ![sonarqube-credentials](./assets/jenkins/sonarqube-credentials.png)
+   ![sonarqube-system](./assets/jenkins/sonarqube-system.png)
 
    - Click **Save** to apply the changes.
 
@@ -122,7 +122,7 @@ The Jenkins pipeline is divided into two major components:
    - Scroll to **SonarQube Scanner installations** and install the latest version of the SonarQube Scanner.
    - Name it `sonar`.
 
-   ![sonar-scanner](./assets/sonar-scanner.png)
+   ![sonar-scanner](./assets/jenkins/sonar-scanner.png)
 ---
 
 ## 4. **Configure SonarQube Webhook** 
@@ -130,13 +130,13 @@ The Jenkins pipeline is divided into two major components:
 1. **Set Up Webhook in SonarQube:**
    - Go to **SonarQube > Administration > Configuration > Webhooks**.
 
-   ![sonarqube-webhook-1](./assets/sonarqube-webhook-1.png)
+   ![sonarqube-webhook-1](./assets/jenkins/sonarqube-webhook-1.png)
 
    - Add a new webhook with the following details:
      - **URL:** `http://<your-jenkins-url>/sonarqube-webhook/`
    - This allows SonarQube to send analysis results back to Jenkins.
 
-   ![sonarqube-webhook-2](./assets/sonarqube-webhook-2.png)
+   ![sonarqube-webhook-2](./assets/jenkins/sonarqube-webhook-2.png)
 
 ---
 
@@ -158,13 +158,13 @@ The Jenkins pipeline is divided into two major components:
 1. **Create Gmail App Password:**
    - Go to your Google Account and generate an **App Password** under **Security** > **App Passwords** (requires two-factor authentication).
 
-   ![gmail-1](./assets/gmail-1.png)
-   ![gmail-2](./assets/gmail-2.png)
-   ![gmail-3](./assets/gmail-3.png)
+   ![gmail-1](./assets/jenkins/gmail-1.png)
+   ![gmail-2](./assets/jenkins/gmail-2.png)
+   ![gmail-3](./assets/jenkins/gmail-3.png)
 
 2. **Setup Up Credentials in Jenkins:**  
    Paste the `Secret` at the password.
-   ![gmail-cred](./assets/gmail-cred.png)
+   ![gmail-cred](./assets/jenkins/gmail-cred.png)
 
 
 3. **Setup Email Notifications:**
@@ -174,14 +174,14 @@ The Jenkins pipeline is divided into two major components:
      - **SMTP port:** `465`
      - **Use SSL:** `Yes`
 
-      ![gmail-system-1](./assets/gmail-system-1.png)
+      ![gmail-system-1](./assets/jenkins/gmail-system-1.png)
 
    - Scroll to **E-mail Notification** and configure
      - **SMTP authentication username:** Your Gmail address
      - **SMTP authentication password:** App-specific password (generated via Gmail with two-factor authentication).
 
-      ![gmail-system-2](./assets/gmail-system-2.png)
-      ![gmail-system-3](./assets/gmail-system-3.png)
+      ![gmail-system-2](./assets/jenkins/gmail-system-2.png)
+      ![gmail-system-3](./assets/jenkins/gmail-system-3.png)
 
 ---
 
@@ -192,7 +192,7 @@ The Jenkins pipeline is divided into two major components:
 1. **Generate a GitHub Personal Access Token:**
    - Go to **GitHub** > **Settings** > **Developer settings** > **Personal access tokens**.
    - Generate a new token with necessary permissions (e.g., `repo`, `admin:repo_hook` for repository access).
-   ![github-cred](./assets/github-cred.png)
+   ![github-cred](./assets/jenkins/github-cred.png)
 
 2. **Add GitHub Credentials in Jenkins:**
    - In Jenkins, go to **Manage Jenkins > Manage Credentials**.
@@ -204,7 +204,7 @@ The Jenkins pipeline is divided into two major components:
      - **ID:** Give it a descriptive ID, such as `github-token`.
      - **Description:** Something like "GitHub Token for Jenkins".
 
-     ![github-cred](./assets/github-token.png)
+     ![github-cred](./assets/jenkins/github-token.png)
 
 ---
 
@@ -213,8 +213,8 @@ The Jenkins pipeline is divided into two major components:
 1. **Generate a Docker Hub Personal Access Token:**
    - Go to **Docker Hub** > **Account Settings** > **Personal Access Token** 
 
-      ![docker-token-1](./assets/docker-token-1.png)
-      ![docker-token-2](./assets/docker-token-2.png)
+      ![docker-token-1](./assets/jenkins/docker-token-1.png)
+      ![docker-token-2](./assets/jenkins/docker-token-2.png)
 
 2. **Add Docker Hub Credentials in Jenkins:**  
    - Follow same as done for GitHub Credentials  
@@ -222,7 +222,7 @@ The Jenkins pipeline is divided into two major components:
 ---
 
 ## 8. All Credentials
-   ![all-credentials](./assets/all-credentials.png)
+   ![all-credentials](./assets/jenkins/all-credentials.png)
 
 ---
 

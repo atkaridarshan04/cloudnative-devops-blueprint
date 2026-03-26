@@ -158,7 +158,7 @@ vault kv put secret/dev/mern-backend/mongodb \
 
 ✅ Secret is now securely stored in Vault
 
-![Vault UI](./assets/vault-ui.png)
+![Vault UI](./assets/external-secrets/vault-ui.png)
 
 
 
@@ -203,7 +203,7 @@ kubectl get secrets -n mern-devops
 
 You should see a newly created secret.
 
-![get-secrets](./assets/get-secrets.png)
+![get-secrets](./assets/external-secrets/get-secrets.png)
 
 Verify ExternalSecret:
 
@@ -212,7 +212,7 @@ kubectl get externalsecret -n mern-devops
 ```
 
 Look for status: `SecretSynced`
-![external-secret](./assets/external-secret.png)
+![external-secret](./assets/external-secrets/external-secret.png)
 
 
 ## ✅ Verify Secret Synchronization
