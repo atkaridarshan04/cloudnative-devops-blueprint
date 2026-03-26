@@ -1,0 +1,70 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: backend-dr
+  namespace: mern-devops
+spec:
+  host: backend-service
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_REQUEST
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    tls:
+      mode: ISTIO_MUTUAL   # since you're enabling strict mTLS
+  # subsets:
+  # - name: v1
+  #   labels:
+  #     version: v1
+  # - name: v2
+  #   labels:
+  #     version: v2
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend-dr
+  namespace: mern-devops
+spec:
+  host: frontend-service
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_REQUEST
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    tls:
+      mode: ISTIO_MUTUAL
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: mongodb-dr
+  namespace: mern-devops
+spec:
+  host: mongodb-service-headless
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 20   # MongoDB doesn't need many concurrent connections
+    tls:
+      mode: ISTIO_MUTUAL     # mTLS for MongoDB too

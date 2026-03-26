@@ -1,0 +1,17 @@
+# This Sidecar config restricts what services workloads in this namespace can access.
+# By default, Istio allows communication with all services in the mesh.
+# Here, we limit it to only:
+# - services within the same namespace
+# - Istio control plane (for config, metrics, etc.)
+# This helps improve performance and adds basic network isolation.
+
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: default
+  namespace: mern-devops
+spec:
+  egress:
+  - hosts:
+    - "./*"           # Allow traffic within mern-devops namespace
+    - "istio-system/*"

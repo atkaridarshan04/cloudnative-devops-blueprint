@@ -20,6 +20,11 @@ spec:
   - match:
     - uri:
         prefix: /books  # API endpoint prefix matching
+    timeout: 10s        # Request timeout for backend API
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+      retryOn: gateway-error,connect-failure,retriable-4xx
     route:
     - destination:
         host: backend-service  # Kubernetes service name (FQDN: backend-service.mern-devops.svc.cluster.local)
@@ -30,8 +35,13 @@ spec:
   - match:
     - uri:
         prefix: /        # Catch-all for frontend routes
+    timeout: 15s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+      retryOn: gateway-error,connect-failure,retriable-4xx
     route:
     - destination:
         host: frontend-service  # Frontend service endpoint
         port:
-          number: 5173
+          number: 80

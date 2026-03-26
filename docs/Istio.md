@@ -19,17 +19,17 @@ helm repo update
 ### **Step 3: Install Istio Components**
 Install Istio base components:
 ```bash
-helm install istio-base istio/base -n istio-system --version 1.25.2
+helm install istio-base istio/base -n istio-system 
 ```
 
 Install Istio control plane (istiod):
 ```bash
-helm install istiod istio/istiod -n istio-system --version 1.25.2 --wait
+helm install istiod istio/istiod -n istio-system --wait
 ```
 
 Install Istio ingress gateway:
 ```bash
-helm install istio-ingress istio/gateway -n istio-system --version 1.25.2
+helm install istio-ingress istio/gateway -n istio-system
 ```
 
 ### **Step 4: Verify Installation**
@@ -100,13 +100,28 @@ kubectl apply -f ../kubernetes/backend.yml
 kubectl apply -f ../kubernetes/frontend.yml
 ```
 
-### **Step 2: Deploy Istio Configuration**
-Apply Istio-specific configurations:
+### **Step 2: Deploy Istio Traffic Management Configuration**
+Apply all Istio-specific configurations:
 
 ```bash
+# mTLS enforcement
 kubectl apply -f mtls.yml
+
+# Service accounts (required for AuthorizationPolicy principal matching)
+kubectl apply -f serviceaccounts.yml
+
+# Ingress gateway and routing
 kubectl apply -f gateway.yml
 kubectl apply -f virtualService.yml
+
+# Traffic policies (load balancing, circuit breaking, connection pools)
+kubectl apply -f destinationRule.yml
+
+# Sidecar scope (limits egress to namespace + istio-system)
+kubectl apply -f sidecar.yml
+
+# Authorization policies (deny-all + allow rules)
+kubectl apply -f authorizationPolicy.yml
 ```
 
 ### **Step 3: Verify Deployment**
@@ -166,19 +181,29 @@ Access Jaeger at: `http://localhost:16686`
 ![kiali-grafana-workloads](./assets/kiali-grafana-workloads.png)
 *Workload-specific performance metrics and monitoring*
 
+
 ## **7. Security Features**
 
 ### **Mutual TLS (mTLS)**
-Istio automatically enables mTLS between services. Verify with:
+All service-to-service traffic is encrypted and authenticated via STRICT mTLS. The `PeerAuthentication` resource enforces this at the namespace level, and each `DestinationRule` sets `tls.mode: ISTIO_MUTUAL` to ensure the client side also uses mTLS.
 
 ```bash
 kubectl get peerauthentication -n mern-devops
 kubectl get destinationrule -n mern-devops
 ```
 
+### **AuthorizationPolicy (Zero-Trust)**
+The `deny-all` policy blocks all traffic by default. Explicit allow rules then permit only:
+- Istio ingress gateway → frontend & backend
+- frontend SA → backend (on `/books*`)
+- backend SA → mongodb
+
+This requires the `frontend` and `backend` ServiceAccounts to be created and referenced in the respective Deployments.
+
+
 ## **Key Benefits**
 
-- **Traffic Management**: Advanced routing, load balancing, and canary deployments
-- **Security**: Automatic mTLS, authentication, and authorization policies  
-- **Observability**: Distributed tracing, metrics, and service topology visualization
-- **Resilience**: Circuit breakers, retries, and fault injection capabilities
+- **Traffic Management**: Advanced routing, load balancing, retries, and timeouts
+- **Security**: Automatic mTLS, zero-trust AuthorizationPolicies
+- **Resilience**: Circuit breakers (outlier detection), connection pool limits, retries
+- **Observability**: Distributed tracing, metrics, and service topology visualization via Kiali

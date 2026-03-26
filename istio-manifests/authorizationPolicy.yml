@@ -1,0 +1,61 @@
+# This file enforces zero-trust communication in the namespace.
+# By default, all traffic is denied, and only specific service-to-service communication is explicitly allowed (frontend → backend → mongodb, and ingress access).
+
+
+---
+# Deny all by default
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: mern-devops
+spec: {}  # Empty spec = deny all
+
+---
+# Allow frontend → backend
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: mern-devops
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/mern-devops/sa/frontend"]
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/books*"]
+
+---
+# Allow backend → mongodb
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-backend-to-mongodb
+  namespace: mern-devops
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/mern-devops/sa/backend"]
+
+---
+# Allow ingress gateway → frontend and backend
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-to-app
+  namespace: mern-devops
+spec:
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]   # # Allow traffic coming from Istio ingress gateway
