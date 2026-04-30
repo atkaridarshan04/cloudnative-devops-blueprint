@@ -1,0 +1,96 @@
+# Loki Helm values — Fluent Bit → Loki pipeline
+# Deployment: SingleBinary for kind/dev, switch to SimpleScalable for EKS/prod
+# Storage:    MinIO (local S3-compatible) for dev, real AWS S3 for prod
+
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 1   # Use 3 for production HA
+
+  schemaConfig:
+    configs:
+      - from: 2024-04-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+  ingester:
+    chunk_encoding: snappy
+
+  limits_config:
+    allow_structured_metadata: true
+    volume_enabled: true
+    retention_period: 7d    # Retain logs for 7 days — increase for compliance needs
+
+  ruler:
+    enable_api: true
+
+  querier:
+    max_concurrent: 4
+
+  # Storage config — MinIO for dev
+  # For EKS prod, replace with:
+  #   storage:
+  #     type: s3
+  #     s3:
+  #       region: ap-south-1
+  #       bucketnames: your-loki-logs-bucket
+  #       insecure: false
+  storage:
+    type: s3
+    s3:
+      endpoint: http://loki-minio.logging.svc.cluster.local:9000
+      insecure: true
+      s3forcepathstyle: true
+      access_key_id: loki
+      secret_access_key: supersecret
+      bucketnames: loki-chunks
+
+# MinIO — local object storage for dev/kind
+# Disable and use real S3 bucket for EKS prod
+minio:
+  enabled: true
+  rootUser: loki
+  rootPassword: supersecret
+  buckets:
+    - name: loki-chunks
+      policy: none
+      purge: false
+  persistence:
+    size: 5Gi
+
+deploymentMode: SingleBinary
+singleBinary:
+  replicas: 1
+  extraEnv:
+    - name: GOMEMLIMIT
+      value: 512MiB
+
+chunksCache:
+  writebackSizeLimit: 10MB
+
+# All microservices-mode components disabled for SingleBinary
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+distributor:
+  replicas: 0
+compactor:
+  replicas: 0
+indexGateway:
+  replicas: 0

@@ -39,33 +39,22 @@ kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for
 ```
 
 
-## Step 3: Package the Helm Charts
+## Step 3: Install the Helm Chart
 
 ```bash
-helm package helm-chart
+helm install mern-devops ./helm-chart
 ```
 
-This will create `.tgz` files for each chart in the current directory.
+## Step 4: Verify
 
-
-## Step 4: Install the Helm Charts
-
-Install each chart using Helm:
-
-```bash
-helm install helm-chart ./helm-chart
-```
-
-## 5. Verify
-
-### Step 1: List all Helm releases to confirm they are deployed:
+### List Helm releases:
 
 ```bash
 helm ls
 ```
 ![helm-install](./assets/helm/helm-ls.png)
 
-Check the status of all resources in the Kubernetes cluster:
+Check the status of all resources:
 
 ```bash
 kubectl get all -n mern-devops
@@ -73,7 +62,7 @@ kubectl get all -n mern-devops
 ![helm-get-all](./assets/helm/helm-get-all.png)
 
 
-### Step 2: Verify Gateway API Resources
+### Verify Gateway API Resources
 
 ```bash
 kubectl get gatewayclass
@@ -82,7 +71,7 @@ kubectl get httproute -n mern-devops
 ```
 ![gateway-api-resources](./assets/kubernetes/gateway-api-resources.png)
 
-> **⚠️ Important:** If doing locally then the programmed will be false since there is no LoadBalancer support in kind. For that in further steps we will patch the service to NodePort.
+> **⚠️ Important:** If running locally, the gateway status will show `Programmed: False` since kind has no LoadBalancer support. The NodePort patch in the next step resolves this for local access.
 
 #### Verify Envoy Gateway Resources
 
@@ -91,21 +80,24 @@ kubectl get pods -n envoy-gateway-system
 kubectl get svc -n envoy-gateway-system
 ```
 
-### Step 3: Access the Application
+### Access the Application
 
-Patch the envoy-mern-devops-gateway service to use NodePort for external access:
+> **🔧 Local Testing Only:** Patch the envoy gateway service to NodePort for local access. Not needed in production (use LoadBalancer or proper DNS).
 
-> **🔧 Local Testing Only:** Only for local testing purposes, for production use LoadBalancer or Ingress with proper DNS.
+Get the envoy gateway service name:
+
+```bash
+kubectl get svc -n envoy-gateway-system
+# Look for the service named: mern-devops-envoy-gateway-<hash>
+```
+
+Patch it to NodePort:
 
 ```bash
 kubectl patch svc <service-name> -n envoy-gateway-system \
-  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":10080,"protocol":"TCP","nodePort":30080}]}}'
+  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"nodePort":30080,"protocol":"TCP"}]}}'
 ```
 ![envoy-mern-devops-gateway-patch](./assets/kubernetes/envoy-mern-devops-gateway-patch.png)
-
-```bash
-kubectl port-forward <service-name> 30080:80 -n envoy-gateway-system
-```
 
 Access the application at:
 ```
@@ -113,26 +105,17 @@ http://localhost:30080
 ```
 ![gateway-api-webapp](./assets/kubernetes/gateway-api-webapp.png)
 
-## Step 6: Cleanup
-
-If you need to uninstall the deployed Helm charts, use the following commands:
-
-### Uninstall Chart
+## Step 5: Cleanup
 
 ```bash
-helm uninstall helm-chart
+helm uninstall mern-devops
 ```
 
-After uninstalling the charts, you can also check the status to confirm that the resources have been removed:
-
-```bash
-kubectl get ns
-```
-
-List all Helm releases to confirm they are uninstalled:
+Confirm removal:
 
 ```bash
 helm ls
+kubectl get ns
 ```
 
 ---
@@ -201,7 +184,7 @@ helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 -
 ### 5) Install the Chart from GHCR
 
 ```bash
-helm install mern-chart oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm install mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
 ```
 
 ---
@@ -209,7 +192,7 @@ helm install mern-chart oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --v
 ### 6) Upgrade an Existing Release
 
 ```bash
-helm upgrade mern-chart oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm upgrade mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
 ```
 
 ---

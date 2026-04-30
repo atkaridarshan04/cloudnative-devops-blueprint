@@ -2,7 +2,7 @@
 
 Load test the bookstore backend with Locust, trigger Kubernetes HPA autoscaling, and observe it live through Prometheus and Grafana.
 
-> **Prerequisites:** Complete [Observability.md](./Observability.md) first — the cluster and monitoring stack must be running before proceeding here.
+> **Prerequisites:** Complete [Monitoring.md](./Monitoring.md) first — the cluster and monitoring stack must be running before proceeding here.
 
 ---
 

@@ -204,7 +204,7 @@ Then access Application at `http://localhost/30080`
 
 ## 4. Monitor Application
 
-1. Ensure Prometheus and Grafana are set up in the cluster. Steps: [Observability.md](./Observability.md)
+1. Ensure Prometheus and Grafana are set up in the cluster. Steps: [Monitoring.md](./Monitoring.md)
 2. Apply the ArgoCD service monitor configuration:
     ```bash
     kubectl apply -f argocd/monitoring/service-monitor.yml

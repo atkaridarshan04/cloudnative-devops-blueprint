@@ -1,103 +1,66 @@
 import express from "express";
 import { Book } from "../models/bookModel.js";
+import logger from "../logger.js";
 
 const router = express.Router();
 
-// Route for save a new book
 router.post("/", async (request, response) => {
   try {
-    if (
-      !request.body.title ||
-      !request.body.author ||
-      !request.body.publishYear
-    ) {
-      return response.status(400).send({
-        message: "Send all required fields!",
-      });
+    if (!request.body.title || !request.body.author || !request.body.publishYear) {
+      return response.status(400).send({ message: "Send all required fields!" });
     }
-
-    const newBook = {
-      title: request.body.title,
-      author: request.body.author,
-      publishYear: request.body.publishYear,
-    };
-
-    const book = await Book.create(newBook);
-
+    const book = await Book.create(request.body);
+    logger.info({ bookId: book._id }, "Book created");
     return response.status(201).send(book);
   } catch (error) {
-    console.log(error.message);
+    logger.error({ err: error }, "Failed to create book");
     response.status(500).send({ message: error.message });
   }
 });
 
-// Route for get all books from db
 router.get("/", async (request, response) => {
   try {
     const books = await Book.find({});
-    return response.status(200).json({
-      count: books.lenght,
-      data: books,
-    });
+    return response.status(200).json({ count: books.length, data: books });
   } catch (error) {
-    console.log(error.message);
+    logger.error({ err: error }, "Failed to fetch books");
     response.status(500).send({ message: error.message });
   }
 });
 
-// Route for get books from db by id
 router.get("/:id", async (request, response) => {
   try {
-    const { id } = request.params;
-
-    const book = await Book.findById(id);
+    const book = await Book.findById(request.params.id);
     return response.status(200).json(book);
   } catch (error) {
-    console.log(error.message);
+    logger.error({ err: error, bookId: request.params.id }, "Failed to fetch book");
     response.status(500).send({ message: error.message });
   }
 });
 
-// Route for update a book
 router.put("/:id", async (request, response) => {
   try {
-    if (
-      !request.body.title ||
-      !request.body.author ||
-      !request.body.publishYear
-    ) {
-      return response.status(400).send({
-        message: "Send all required fields!",
-      });
+    if (!request.body.title || !request.body.author || !request.body.publishYear) {
+      return response.status(400).send({ message: "Send all required fields!" });
     }
-
-    const { id } = request.params;
-
-    const result = await Book.findByIdAndUpdate(id, request.body);
-
-    if (!result) {
-      return response.status(404).json({ message: "Book not found!" });
-    }
+    const result = await Book.findByIdAndUpdate(request.params.id, request.body);
+    if (!result) return response.status(404).json({ message: "Book not found!" });
+    logger.info({ bookId: request.params.id }, "Book updated");
     return response.status(200).json({ message: "Book updated successfully!" });
   } catch (error) {
-    console.log(error.message);
+    logger.error({ err: error, bookId: request.params.id }, "Failed to update book");
     response.status(500).send({ message: error.message });
   }
 });
 
-// Route for delete a book
 router.delete("/:id", async (request, response) => {
   try {
-    const { id } = request.params;
-
-    const result = await Book.findByIdAndDelete(id);
-
-    if (!result) {
-      return response.status(404).json({ message: "Book not found!" });
-    }
+    const result = await Book.findByIdAndDelete(request.params.id);
+    if (!result) return response.status(404).json({ message: "Book not found!" });
+    logger.info({ bookId: request.params.id }, "Book deleted");
     return response.status(200).json({ message: "Book deleted successfully!" });
   } catch (error) {
-    console.log(error.message);
+    logger.error({ err: error, bookId: request.params.id }, "Failed to delete book");
     response.status(500).send({ message: error.message });
   }
 });

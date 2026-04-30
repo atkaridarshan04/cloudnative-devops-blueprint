@@ -11,6 +11,8 @@
 [![Kustomize](https://img.shields.io/badge/Kustomize-326CE5?logo=kubernetes&logoColor=white)](https://kustomize.io/)
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io/)
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)](https://grafana.com/)
+[![Fluent Bit](https://img.shields.io/badge/Fluent%20Bit-49BDA5?logo=fluentd&logoColor=white)](https://fluentbit.io/)
+[![Loki](https://img.shields.io/badge/Loki-F46800?logo=grafana&logoColor=white)](https://grafana.com/oss/loki/)
 [![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/rollouts/)  
 [![Istio](https://img.shields.io/badge/Istio-466BB0?logo=istio&logoColor=white)](https://istio.io/)
 [![HashiCorp Vault](https://img.shields.io/badge/HashiCorp%20Vault-FFEC13?logo=vault&logoColor=black)](https://www.vaultproject.io/)
@@ -65,7 +67,7 @@ Three versions of the application are available, each with distinct visual and f
 <td valign="top">• Jenkins<br>• ArgoCD<br>• Argo Rollouts<br>• SonarQube<br>• Trivy</td>
 <td valign="top">• Kubernetes<br>• Helm<br>• Kustomize<br>• Istio<br>• Kyverno<br>• HPA / Locust</td>
 <td valign="top">• HashiCorp Vault<br>• External Secrets Operator</td>
-<td valign="top">• Prometheus<br>• Grafana<br>• Loki<br>• Alloy</td>
+<td valign="top">• Prometheus<br>• Grafana<br>• Fluent Bit<br>• Loki</td>
 </tr>
 </table>
 
@@ -194,27 +196,47 @@ Three versions of the application are available, each with distinct visual and f
 </tr>
 </table>
 
-### 📈 **Observability**
+### 📈 **Monitoring**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #bc2323ff;">
 <tr>
 <td width="30%" style="border: 2px solid #bc2323ff; padding: 20px ; vertical-align: top;">
 
-**[Observability.md](./docs/Observability.md)**  
-*Comprehensive observability with Prometheus, Grafana, Loki & Alloy*
+**[Monitoring.md](./docs/Monitoring.md)**  
+*Metrics observability with Prometheus & Grafana*
 - Metrics collection & storage
 - Kube Prometheus Stack Dashboards
 - Real-time monitoring dashboards
-- Centralized log aggregation
 - Performance & resource tracking
 - Alert management & notifications
-- Log analysis & troubleshooting
 
 </td>
 <td width="60%" style="border: 2px solid #bc2323ff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
 <img src="./docs/assets/observability/graphana-3.png" alt="Grafana Monitoring Dashboard" width="100%">
-<img src="./docs/assets/observability/logs-1.png" alt="Grafana Logging Dashboard" width="100%">
+
+</td>
+</tr>
+</table>
+
+### 🪵 **Logging**
+
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #49BDA5;">
+<tr>
+<td width="30%" style="border: 2px solid #49BDA5; padding: 20px ; vertical-align: top;">
+
+**[Logging.md](./docs/Logging.md)**  
+*Centralized log collection with Fluent Bit, Loki & Grafana*
+- Fluent Bit DaemonSet collection
+- Kubernetes metadata enrichment
+- JSON log parsing
+- Loki log aggregation
+- LogQL querying in Grafana
+
+</td>
+<td width="60%" style="border: 2px solid #49BDA5; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
+
+<img src="./docs/assets/observability/container-logs.png" alt="Grafana Logging Dashboard" width="100%">
 
 </td>
 </tr>

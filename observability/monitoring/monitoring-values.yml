@@ -52,7 +52,7 @@ grafana:
     - name: Loki
       type: loki
       access: proxy
-      url: http://loki-gateway.observability.svc.cluster.local:80
+      url: http://loki.logging.svc.cluster.local:3100
 
   dashboardProviders:
     dashboardproviders.yaml:
@@ -66,14 +66,14 @@ grafana:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/default
-      - name: 'loki'
+      - name: 'logging'
         orgId: 1
-        folder: 'Loki Logs'
+        folder: 'Logs'
         type: file
         disableDeletion: false
         editable: true
         options:
-          path: /var/lib/grafana/dashboards/loki
+          path: /var/lib/grafana/dashboards/logging
       - name: 'argocd'
         orgId: 1
         folder: 'ArgoCD Monitoring'
@@ -90,15 +90,19 @@ grafana:
         revision: 1
         datasource: Prometheus
 
-    loki:
-      loki-logs:
-        gnetId: 13639
-        revision: 2
-        datasource: Loki
-      container-logs:
+    logging:
+      node-logs:
         gnetId: 16966
         revision: 1
-        datasource: Loki
+        datasource: Loki         # Container & node logs viewer
+      logging-operator:
+        gnetId: 7752
+        revision: 1
+        datasource: Prometheus   # Fluent Bit + Fluentd — input/output rates, errors, retries (banzaicloud)
+      fluent-bit:
+        gnetId: 19549
+        revision: 1
+        datasource: Prometheus   # Fluent Bit only — inspired by 7752, cleaner panels
 
     argocd:
       argocd:

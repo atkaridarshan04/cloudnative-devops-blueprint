@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-scripts
+  namespace: logging
+data:
+  pino_level.lua: |
+    -- Map Pino numeric levels to string so Loki detected_level works
+    local levels = { [10]="trace", [20]="debug", [30]="info", [40]="warn", [50]="error", [60]="fatal" }
+    function map_pino_level(tag, timestamp, record)
+      local n = tonumber(record["level"])
+      if n and levels[n] then
+        record["level"] = levels[n]
+      end
+      return 1, timestamp, record
+    end
