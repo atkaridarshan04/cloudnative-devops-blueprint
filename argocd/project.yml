@@ -27,6 +27,8 @@ spec:
       kind: ClusterRoleBinding
     - group: 'cert-manager.io'
       kind: ClusterIssuer
+    - group: 'gateway.networking.k8s.io'
+      kind: GatewayClass
 
 # Included resource kinds that can be deployed within the target namespace
   namespaceResourceWhitelist:
@@ -49,4 +51,10 @@ spec:
     - group: 'autoscaling'
       kind: HorizontalPodAutoscaler
     - group: 'policy'
-      kind: PodDisruptionBudget 
+      kind: PodDisruptionBudget
+    - group: 'gateway.networking.k8s.io'
+      kind: GatewayClass
+    - group: 'gateway.networking.k8s.io'
+      kind: Gateway
+    - group: 'gateway.networking.k8s.io'
+      kind: HTTPRoute

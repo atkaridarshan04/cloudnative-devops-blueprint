@@ -90,8 +90,10 @@ config/secrets/
 kubeconfig
 .kube/config
 
-# Environment specific files
-.env.*
+# Environment specific files - ignore real env files, keep templates
+.env
+.env.local
+.env.*.local
 
 # Build artifacts
 artifacts/

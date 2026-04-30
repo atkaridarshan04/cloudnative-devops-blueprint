@@ -114,7 +114,7 @@ docker-compose down
 For advanced and CI-friendly builds, use **Docker Buildx Bake**:
 
 ```bash
-docker buildx bake -f docker-bake.yml
+docker buildx bake -f docker-bake.hcl
 ```
 
 Benefits:

@@ -107,9 +107,6 @@ Apply all Istio-specific configurations:
 # mTLS enforcement
 kubectl apply -f mtls.yml
 
-# Service accounts (required for AuthorizationPolicy principal matching)
-kubectl apply -f serviceaccounts.yml
-
 # Ingress gateway and routing
 kubectl apply -f gateway.yml
 kubectl apply -f virtualService.yml

@@ -45,7 +45,7 @@ kubectl apply -n argocd \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
-> Note: Installing using manifest because the metrics services of ArgoCD will be created by only official manifests, not with helm. Which is requried in monitoring ArgoCD Stuff...
+> Note: Installing using manifest because the metrics services of ArgoCD will be created by only official manifests, not with Helm. This is required for monitoring ArgoCD.
 
 ### Verify Installation
 
@@ -95,7 +95,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 > Change the default password after first login in **User Info**.
 
-## 2. Intergration with Email (Optional)
+## 2. Integration with Email (Optional)
 
 ### Step 1: Install Triggers and Templates from the catalog
 ```bash
@@ -116,17 +116,17 @@ Use: [notifications/secret-smtp.yml](../argocd/notifications/secret-smtp.yml)
 Apply it:
 
 ```bash
-kubectl apply -f notifications/secret-smtp.yml
+kubectl apply -f argocd/notifications/secret-smtp.yml
 ```
 ---
 
 ### Step 3: Configure Notification ConfigMap
 
-ArgoCD Notifications configuration lives in `notifications/configmap.yml` ConfigMap.
+ArgoCD Notifications configuration lives in `argocd/notifications/configmap.yml` ConfigMap.
 
 Apply it:
 ```bash
-kubectl apply -f notifications/configmap.yml
+kubectl apply -f argocd/notifications/configmap.yml
 ```
 
 ### Step 4. Update ArgoCD Application Manifest
@@ -148,18 +148,18 @@ Please refer to **[`docs/Helm.md`](./Helm.md)** to set up the Gateway API and ex
 ### Method 1: Using Manifests
 
 ```bash
-kubectl apply -f project.yml
-kubectl apply -f application.yml
+kubectl apply -f argocd/project.yml
+kubectl apply -f argocd/application.yml
 ```
-![argo-ui-latest](./assets/argocd/argo-ui-latest.png))
-![argo-sucess-mail](./assets/argocd/argo-sucess-mail.png)
+![argo-ui-latest](./assets/argocd/argo-ui-latest.png)
+![argo-success-mail](./assets/argocd/argo-success-mail.png)
 
 ### Access the Application
 
 ✅ Make sure you have completed the application exposure steps from [docs/Helm.md](./Helm.md)
 
 
-Then access Application at `http://localhost/30080`
+Then access Application at `http://localhost:30080`
 ![argocd-app-ui](./assets/argocd/argocd-app-ui.png)
 
 <details>

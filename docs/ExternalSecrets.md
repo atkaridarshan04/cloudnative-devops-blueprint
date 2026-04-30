@@ -121,7 +121,7 @@ kubectl create namespace mern-devops
 Deploy Vault (dev mode for learning):
 
 ```bash
-kubectl apply -f hashicorp-vault/vault-deployment.yml
+kubectl apply -f external-secrets/vault-deployment.yml
 ```
 
 Expose Vault locally:
@@ -130,7 +130,7 @@ Expose Vault locally:
 kubectl port-forward -n vault deploy/vault 8200:8200
 ```
 Access the Vault UI at: [http://localhost:8200](http://localhost:8200)  
-Token: `root`, after applying the belwo step.
+Token: `root`, after applying the below step.
 
 
 ## 🗄️ Store Secrets in Vault
@@ -181,7 +181,7 @@ kubectl create secret generic vault-token \
 Apply the SecretStore configuration:
 
 ```bash
-kubectl apply -f hashicorp-vault/secretStore.yml
+kubectl apply -f external-secrets/secretStore.yml
 ```
 It tells ESO *how* to connect to Vault
 
@@ -192,7 +192,7 @@ It tells ESO *how* to connect to Vault
 This is the **only secret-related file that goes into Git**:
 
 ```bash
-kubectl apply -f hashicorp-vault/externalSecret.yml
+kubectl apply -f external-secrets/externalSecret.yml
 ```
 
 Verify Kubernetes Secret creation:
@@ -266,7 +266,7 @@ This is the **big win**:
 ### MongoDB
 
 ```bash
-kubectl apply -f hashicorp-vault//mongodb.yml
+kubectl apply -f external-secrets/mongodb.yml
 ```
 
 

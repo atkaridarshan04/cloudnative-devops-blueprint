@@ -58,9 +58,6 @@ spec:
                 - mongo
                 - --eval
                 - db.adminCommand('ping')
-            initialDelaySeconds: 20
-            periodSeconds: 10
-            timeoutSeconds: 5
             initialDelaySeconds: 30   # Wait for MongoDB to be ready
             periodSeconds: 10         # Frequent readiness checks
             timeoutSeconds: 5
