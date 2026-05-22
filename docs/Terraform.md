@@ -1,147 +1,242 @@
 # 🏗️ Deploying Application on AWS EKS with Terraform
 
-This guide contains the Terraform configuration for deploying the Book store application infrastructure on AWS EKS.
+This guide covers the Terraform configuration for deploying the Book Store application infrastructure on AWS EKS.
 
-## Terraform Architecture
+## Architecture
+
 ![terraform_architecture](./assets/terraform/terraform_architecture.png)
 
-## 🚀 Quick Start
+## Module Structure
 
-### 1. Prerequisites
+```
+terraform/
+├── main.tf          # root — calls all modules
+├── providers.tf     # AWS, Helm, Kubernetes provider configs
+├── versions.tf      # pinned provider versions
+├── variables.tf     # input variables
+├── locals.tf        # computed values (cluster name, AZs, tags)
+├── outputs.tf       # useful post-apply values
+└── modules/
+    ├── vpc/         # VPC, subnets, NAT gateway
+    ├── eks/         # EKS cluster + node security group rules
+    ├── addons/      # Envoy Gateway, cert-manager
+    └── gitops/      # ArgoCD
+```
+
+**Dependency chain:** `vpc → eks → addons → gitops`
+
+## Prerequisites
 
 - AWS CLI configured with appropriate credentials
-- Terraform >= 1.0 installed
-- kubectl installed
+- Terraform >= 1.9
+- kubectl
 
-### 2. Configuration
+---
 
-```bash
-# Copy the example variables file
-cp terraform.tfvars.example terraform.tfvars
+## How it works
 
-# Edit the variables file with your preferred settings
-vim terraform.tfvars
+When you run `terraform apply`, it provisions infrastructure in this exact order:
+
+```
+terraform apply
+    │
+    ├── module.vpc      → creates VPC, subnets, NAT gateway
+    ├── module.eks      → creates EKS cluster (waits ~10 min)
+    ├── module.addons   → installs Envoy Gateway + cert-manager
+    │                     → Envoy Gateway creates the NLB on AWS
+    └── module.gitops   → installs ArgoCD
+                          → applies ArgoCD AppProject + Application from argocd/
+                          → ArgoCD detects the Helm chart in Git
+                          → ArgoCD syncs and deploys the app automatically
 ```
 
-**Note**: The cluster name will automatically have a random 4-character suffix added (e.g., `book-store-mylm`) to prevent resource conflicts and ensure uniqueness.
+**This is why the Helm chart must be EKS-ready before `terraform apply`** — ArgoCD deploys it straight from Git the moment it's installed. There is no manual `helm install` step on EKS.
 
-### 3. Deploy Infrastructure
+---
 
-You can deploy in 3 phases for better control:
+## Step 1: Prepare the Helm Chart for EKS
 
-#### Phase 1: Deploy VPC Only
+> Terraform installs ArgoCD, which automatically syncs and deploys the Helm chart from Git. The Helm chart must be EKS-ready **before** you run `terraform apply`.
+
+Make these changes, then commit and push to your Git branch:
+
+**1. Enable persistent MongoDB storage (`helm-chart/templates/mongodb.yaml`)**
+
+Uncomment `volumeMounts` and `volumeClaimTemplates`:
+
+```yaml
+volumeMounts:
+  - name: mongodb-vol
+    mountPath: /data/db
+
+volumeClaimTemplates:
+  - metadata:
+      name: mongodb-vol
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: mern-devops-ebs-sc
+      resources:
+        requests:
+          storage: 5Gi
+```
+
+**2. Enable the EBS StorageClass (`helm-chart/templates/volume.yaml`)**
+
+Uncomment the EBS StorageClass block:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mern-devops-ebs-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+```
+
+> The EBS CSI driver is pre-installed on EKS Auto Mode — no extra setup needed.
+
+**3. Comment out the local GatewayClass + Gateway in `helm-chart/templates/gateway-api.yml`**
+
+Terraform creates `bookstore-gateway` in the `default` namespace. Deploying them again via the Helm chart will conflict. Comment out the GatewayClass and Gateway blocks at the bottom of that file — only the HTTPRoute is needed on EKS.
+
 ```bash
-# Initialize Terraform
+git add helm-chart/
+git commit -m "chore: enable EBS storage and remove local gateway resources for EKS deploy"
+git push
+```
+
+---
+
+## Step 2: Deploy Infrastructure
+
+```bash
 terraform init
-
-# Deploy only the VPC
-terraform apply -target=module.vpc --auto-approve
-```
-![terraform_vpc](./assets/terraform/terraform_vpc.png)
-![vpc](./assets/terraform/vpc.png)
-
-#### Phase 2: Deploy EKS Cluster Only
-```bash
-terraform apply -target=module.book_app_eks --auto-approve
-```
-![terraform_eks](./assets/terraform/terraform_eks.png)
-![eks_cluster](./assets/terraform/eks_cluster.png)
-
-#### Phase 3: Deploy Add-ons and ArgoCD
-```bash
-# Deploy the remaining components
-terraform apply --auto-approve
-```
-![terraform_output](./assets/terraform/terraform_output.png)
-
-#### Single Phase Deployment (Alternative)
-```bash
-# Initialize Terraform
-terraform init
-
-# Review the plan
 terraform plan
-
-# Apply the complete configuration
 terraform apply
 ```
 
-### 4. Configure kubectl
+**Provisioning time:** ~15–20 minutes.
+
+### Phased deployment (optional, for better visibility)
 
 ```bash
-# Update kubeconfig (replace with your region and cluster name)
-aws eks update-kubeconfig --region <region> --name <cluster-name>
+# Phase 1: VPC
+terraform apply -target=module.vpc --auto-approve
+
+# Phase 2: EKS cluster
+terraform apply -target=module.eks --auto-approve
+
+# Phase 3: Everything else (addons + ArgoCD)
+terraform apply --auto-approve
 ```
-> e.g: aws eks update-kubeconfig --region us-west-2 --name book-store-mylm
-<!-- ![eks_kubeconfig](./assets/terraform/eks_kubeconfig.png) -->
 
-### 5. Access ArgoCD
+![terraform_vpc](./assets/terraform/terraform_vpc.png)
+
+![terraform_eks](./assets/terraform/terraform_eks.png)
+
+![terraform_output](./assets/terraform/terraform_output.png)
+
+---
+
+## Step 3: Configure kubectl
+
+Run this from inside the `terraform/` directory:
 
 ```bash
-# Get ArgoCD admin password
+cd terraform
+
+# Get the cluster name from outputs
+terraform output -raw cluster_name
+# → book-store-dev
+
+# Configure kubectl
+aws eks update-kubeconfig --region us-west-2 --name book-store-dev
+
+# Or in one command (must be run from terraform/ directory)
+aws eks update-kubeconfig --region $(terraform output -raw aws_region 2>/dev/null || echo us-west-2) --name $(terraform output -raw cluster_name)
+
+# Verify
+kubectl get nodes
+```
+
+> If you get `argument --name: expected one argument`, you're running the command from outside the `terraform/` directory. `terraform output` only works where the state file is.
+
+![eks_kubeconfig](./assets/terraform/eks_kubeconfig.png)
+
+---
+
+## Step 4: Access ArgoCD
+
+```bash
+# Get admin password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 
-# Port-forward to ArgoCD server
+# Port-forward
 kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-# Open browser to https://localhost:8080
-# Username: admin
-# Password: (from step 1)
 ```
-![kubectl_access](./assets/kubernetes/kubectl_access.png)
+
+Open `http://localhost:8080` — username: `admin`
+
 ![terraform_argocd](./assets/terraform/terraform_argocd.png)
 
-## 📋 What Gets Deployed
+---
 
-### Core Infrastructure
-- **VPC** with public and private subnets across 3 AZs
-- **EKS Cluster** with Auto Mode enabled
-- **Security Groups** with appropriate rules
+## Step 5: Access the Application
 
-### Add-ons
-- **NGINX Ingress Controller** for load balancing
-- **Cert Manager** for SSL certificate management
-- **ArgoCD** for GitOps deployment
-
-### Applications (via ArgoCD)
-- Book Store Services (Frontend, Backend, MongoDB)
-
-## Access the Application
 ```bash
-kubectl get ing -n mern-devops
+# Get NLB address (provisioned by Envoy Gateway)
+kubectl get gateway bookstore-gateway -n default -o jsonpath='{.status.addresses[0].value}'
 ```
-Open the Address in the browser
 
-![terraform_ing](./assets/terraform/terraform_ing.png)
+Open the address in your browser.
+
 ![eks_app_access](./assets/terraform/eks_app_access.png)
 
 ---
 
-### Conflict Prevention
+## What Gets Deployed
 
-This configuration automatically prevents resource conflicts by:
-- Adding a random 4-character suffix to cluster names
-- Using unique KMS key aliases
-- Ensuring resource names don't collide with previous deployments
+| Module | Resources |
+|--------|-----------|
+| **vpc** | VPC, 3 public + 3 private subnets across 3 AZs, NAT gateway, IGW |
+| **eks** | EKS cluster (Auto Mode, K8s 1.33), KMS encryption, node SG rules |
+| **addons** | Envoy Gateway v1.7.0, GatewayClass, EnvoyProxy (NLB config), Gateway, cert-manager |
+| **gitops** | ArgoCD 7.8.23, AppProject, Application |
 
-### Adding More Add-ons
+> **Note:** ingress-nginx was retired in March 2026. This configuration uses **Envoy Gateway** which implements the Kubernetes Gateway API — the official successor.
 
-Edit `addons.tf` to enable additional EKS add-ons:
+## Variables
 
-```hcl
-# Enable AWS Load Balancer Controller
-enable_aws_load_balancer_controller = true
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `aws_region` | `us-west-2` | AWS region |
+| `cluster_name` | `book-store` | Base cluster name |
+| `environment` | `dev` | Environment suffix |
+| `kubernetes_version` | `1.36` | EKS Kubernetes version |
+| `vpc_cidr` | `10.0.0.0/16` | VPC CIDR |
+| `enable_single_nat_gateway` | `true` | Single NAT (cost saving; set `false` for prod HA) |
+| `argocd_chart_version` | `7.8.23` | ArgoCD Helm chart version |
 
-# Enable monitoring stack
-enable_kube_prometheus_stack = true
-```
+## Key Design Decisions
+
+**Cluster name:** `book-store-dev` (environment suffix, not random) — stable across destroy/apply cycles.
+
+**Security group rules on node SG:** Traffic from the NLB goes to nodes, not the control plane. Rules are placed on `node_security_group_id`, not `cluster_security_group_id`.
+
+**No `CreatedDate` tag:** `formatdate(timestamp())` in tags causes every `terraform plan` to show a diff even when nothing changed.
+
+**`wait = true` on Helm releases:** Replaces the old `time_sleep` anti-pattern. Terraform waits for the Helm release to be fully ready before proceeding.
+
+**`kubernetes_manifest` for ArgoCD apps:** Replaces `null_resource + local-exec kubectl apply`. Proper Terraform resource — tracks state, diffs on changes, idempotent.
 
 ## Cleanup
-
-To destroy all resources:
 
 ```bash
 terraform destroy
 ```
 
-**Note**: This will delete all resources including the EKS cluster and VPC. Make sure to backup any important data first.
+> Deletes all AWS resources: EKS cluster, VPC, NLB, and all associated infrastructure.

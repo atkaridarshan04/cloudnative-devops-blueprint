@@ -39,7 +39,7 @@ spec:
     matchLabels:
       app: mongodb
   updateStrategy:
-    type: RollingUpdate   
+    type: RollingUpdate
     rollingUpdate:
       partition: 0
   template:
@@ -66,10 +66,32 @@ spec:
                   key: password
             - name: MONGO_INITDB_DATABASE
               value: {{ .Values.mongodb.dbName }}
-      #     volumeMounts:
-      #       - name: mongodb-vol
-      #         mountPath: /data/db        
-      # volumes:
-      #   - name: mongodb-vol
-      #     persistentVolumeClaim:
-      #       claimName: {{ .Release.Name }}-mongo-pvc
+
+          # -----------------------------------------------------------------
+          # LOCAL (kind): no persistent storage — data lost on pod restart.
+          # Acceptable for local dev/testing.
+          # -----------------------------------------------------------------
+
+          # -----------------------------------------------------------------
+          # EKS (AWS): uncomment volumeMounts below and the
+          # volumeClaimTemplates section at the bottom of this StatefulSet.
+          # Also uncomment the EBS StorageClass in volume.yaml.
+          # -----------------------------------------------------------------
+          volumeMounts:
+            - name: mongodb-vol
+              mountPath: /data/db
+
+  # -----------------------------------------------------------------------
+  # EKS (AWS) — EBS persistent volume claim template.
+  # Uncomment when deploying on EKS. Each StatefulSet pod gets its own
+  # EBS gp3 volume provisioned automatically in the correct AZ.
+  # -----------------------------------------------------------------------
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-vol
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Release.Name }}-ebs-sc
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.storage }}

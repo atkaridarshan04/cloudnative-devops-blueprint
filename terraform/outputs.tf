@@ -1,121 +1,67 @@
-# =============================================================================
-# OUTPUT VALUES
-# =============================================================================
-
-# =============================================================================
-# CLUSTER INFORMATION
-# =============================================================================
-
 output "cluster_name" {
-  description = "Name of the EKS cluster (with unique suffix)"
-  value       = module.book_app_eks.cluster_name
-}
-
-output "cluster_name_base" {
-  description = "Base cluster name without suffix"
-  value       = var.cluster_name
-}
-
-output "cluster_name_suffix" {
-  description = "Random suffix added to cluster name"
-  value       = random_string.suffix.result
+  description = "EKS cluster name"
+  value       = module.eks.cluster_name
 }
 
 output "cluster_endpoint" {
-  description = "Endpoint for EKS control plane"
-  value       = module.book_app_eks.cluster_endpoint
+  description = "EKS cluster API endpoint"
+  value       = module.eks.cluster_endpoint
 }
 
 output "cluster_version" {
-  description = "The Kubernetes version for the EKS cluster"
-  value       = module.book_app_eks.cluster_version
-}
-
-output "cluster_security_group_id" {
-  description = "Security group ID attached to the EKS cluster"
-  value       = module.book_app_eks.cluster_security_group_id
+  description = "Kubernetes version"
+  value       = module.eks.cluster_version
 }
 
 output "cluster_oidc_issuer_url" {
-  description = "The URL on the EKS cluster for the OpenID Connect identity provider"
-  value       = module.book_app_eks.cluster_oidc_issuer_url
+  description = "OIDC issuer URL for IRSA"
+  value       = module.eks.cluster_oidc_issuer_url
 }
 
-# =============================================================================
-# NETWORK INFORMATION
-# =============================================================================
-
 output "vpc_id" {
-  description = "ID of the VPC where the cluster is deployed"
+  description = "VPC ID"
   value       = module.vpc.vpc_id
 }
 
-output "vpc_cidr_block" {
-  description = "CIDR block of the VPC"
-  value       = module.vpc.vpc_cidr_block
-}
-
 output "private_subnets" {
-  description = "List of IDs of private subnets"
+  description = "Private subnet IDs"
   value       = module.vpc.private_subnets
 }
 
 output "public_subnets" {
-  description = "List of IDs of public subnets"
+  description = "Public subnet IDs"
   value       = module.vpc.public_subnets
 }
 
-# =============================================================================
-# ACCESS INFORMATION
-# =============================================================================
-
 output "configure_kubectl" {
-  description = "Configure kubectl: make sure you're logged in with the correct AWS profile and run the following command to update your kubeconfig"
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.book_app_eks.cluster_name}"
+  description = "Command to configure kubectl"
+  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 
-output "argocd_namespace" {
-  description = "Namespace where ArgoCD is installed"
-  value       = var.argocd_namespace
-}
-
-output "argocd_server_port_forward" {
-  description = "Command to port-forward to ArgoCD server"
+output "argocd_port_forward" {
+  description = "Command to port-forward ArgoCD"
   value       = "kubectl port-forward svc/argocd-server -n ${var.argocd_namespace} 8080:443"
 }
 
 output "argocd_admin_password" {
-  description = "Command to get ArgoCD admin password"
+  description = "Command to retrieve ArgoCD admin password"
   value       = "kubectl -n ${var.argocd_namespace} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
   sensitive   = true
 }
 
-# =============================================================================
-# APPLICATION ACCESS
-# =============================================================================
-
-output "ingress_nginx_loadbalancer" {
-  description = "Command to get the LoadBalancer URL for accessing applications"
-  value       = "kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
+output "gateway_lb_hostname" {
+  description = "Command to get the NLB hostname from Envoy Gateway"
+  value       = "kubectl get gateway bookstore-gateway -n default -o jsonpath='{.status.addresses[0].value}'"
 }
-
-output "book_store_url" {
-  description = "Command to get the book store application URL"
-  value       = "echo 'http://'$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
-}
-
-# =============================================================================
-# USEFUL COMMANDS
-# =============================================================================
 
 output "useful_commands" {
   description = "Useful commands for managing the cluster"
   value = {
-    get_nodes           = "kubectl get nodes"
-    get_pods_all        = "kubectl get pods -A"
-    get_book_store    = "kubectl get pods -n book-store"
-    argocd_apps         = "kubectl get applications -n ${var.argocd_namespace}"
-    ingress_status      = "kubectl get ingress -A"
-    describe_cluster    = "kubectl cluster-info"
+    get_nodes        = "kubectl get nodes"
+    get_pods_all     = "kubectl get pods -A"
+    get_app_pods     = "kubectl get pods -n mern-devops"
+    argocd_apps      = "kubectl get applications -n ${var.argocd_namespace}"
+    gateway_status   = "kubectl get gateway -A"
+    httproute_status = "kubectl get httproute -A"
   }
 }

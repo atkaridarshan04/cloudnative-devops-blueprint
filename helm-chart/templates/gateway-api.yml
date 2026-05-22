@@ -1,27 +1,23 @@
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: {{ .Release.Name }}-envoy-gatewayclass
-spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+# =============================================================================
+# GATEWAY API — HTTPRoute
+# =============================================================================
+#
+# LOCAL (kind):
+#   GatewayClass and Gateway are NOT created by Terraform here.
+#   You must create them manually before installing this chart:
+#
+#     kubectl apply -f kubernetes/gateway-api.yml
+#
+#   That file creates the GatewayClass + Gateway for local kind use.
+#   Then patch the envoy service to NodePort for local access (see Helm.md).
+#
+# EKS (AWS):
+#   GatewayClass, EnvoyProxy config, and Gateway are provisioned by Terraform
+#   (terraform/modules/addons). The HTTPRoute below references that Gateway.
+#   No manual steps needed.
+#
+# =============================================================================
 
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: {{ .Release.Name }}-envoy-gateway
-  namespace: {{ .Values.namespace }}
-spec:
-  gatewayClassName: {{ .Release.Name }}-envoy-gatewayclass
-  listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-      # optional: hostnames: ["example.com"]
-      # allowedRoutes: omitted => default allows same-namespace routes
-
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -29,19 +25,47 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   parentRefs:
-    - name: {{ .Release.Name }}-envoy-gateway   # name of Gateway created above
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: "/"             # matches root and all subpaths
+            value: /books
       backendRefs:
-        - name: {{ .Release.Name }}-frontend-service
-          port: 80
+        - name: {{ .Release.Name }}-backend-service
+          port: {{ .Values.backend.service.port }}
     - matches:
         - path:
             type: PathPrefix
-            value: "/books"        # matches /books and subpaths
+            value: /
       backendRefs:
-        - name: {{ .Release.Name }}-backend-service
-          port: 8000
+        - name: {{ .Release.Name }}-frontend-service
+          port: {{ .Values.frontend.service.port }}
+
+# =============================================================================
+# LOCAL ONLY — GatewayClass + Gateway
+# These are cluster-scoped infrastructure resources.
+# On EKS these are created by Terraform — do NOT deploy them via Helm on EKS.
+# Uncomment when running locally with kind (or use kubernetes/gateway-api.yml).
+# =============================================================================
+---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: GatewayClass
+# metadata:
+#   name: bookstore-gatewayclass
+# spec:
+#   controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+# ---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: Gateway
+# metadata:
+#   name: {{ .Values.gateway.name }}
+#   namespace: {{ .Values.gateway.namespace }}
+# spec:
+#   gatewayClassName: bookstore-gatewayclass
+#   listeners:
+#     - name: http
+#       protocol: HTTP
+#       port: 80

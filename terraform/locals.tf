@@ -1,49 +1,20 @@
-# =============================================================================
-# LOCAL VALUES AND DATA SOURCES
-# =============================================================================
-
-# Data sources
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
-data "aws_caller_identity" "current" {}
-
-# Random suffix for unique resource names
-resource "random_string" "suffix" {
-  length  = 4
-  special = false
-  upper   = false
-}
-
-# Local computed values
+# NOTE: providers.tf uses data "aws_eks_cluster" which requires the cluster
+# to exist. On first apply, use phased deployment (see docs/Terraform.md):
+#   terraform apply -target=module.vpc -target=module.eks
+#   terraform apply
 locals {
-  # Cluster configuration with unique suffix to avoid conflicts
-  cluster_name = "${var.cluster_name}-${random_string.suffix.result}"
-  
-  # Network configuration
-  azs             = slice(data.aws_availability_zones.available.names, 0, 3)
-  private_subnets = [for k, v in local.azs : cidrsubnet(var.vpc_cidr, 8, k + 10)]
-  public_subnets  = [for k, v in local.azs : cidrsubnet(var.vpc_cidr, 8, k)]
-  
-  # Common tags applied to all resources
+  # Stable cluster name — no random suffix to avoid drift on re-apply
+  cluster_name = "${var.cluster_name}-${var.environment}"
+
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
+
   common_tags = {
-    Environment   = var.environment
-    Project       = "book-store"
-    ManagedBy     = "terraform"
-    CreatedBy     = "Darshan Atkari"
-    Owner         = data.aws_caller_identity.current.user_id
-    CreatedDate   = formatdate("YYYY-MM-DD", timestamp())
-  }
-  
-  # Kubernetes subnet tags
-  public_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                      = "1"
-  }
-  
-  private_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"             = "1"
+    Environment = var.environment
+    Project     = "book-store"
+    ManagedBy   = "terraform"
   }
 }

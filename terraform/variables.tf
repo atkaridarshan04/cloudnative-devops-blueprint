@@ -1,15 +1,11 @@
-# =============================================================================
-# INPUT VARIABLES
-# =============================================================================
-
 variable "aws_region" {
-  description = "AWS region where resources will be created"
+  description = "AWS region"
   type        = string
   default     = "us-west-2"
 }
 
 variable "cluster_name" {
-  description = "Name of the EKS cluster"
+  description = "Base name for the EKS cluster"
   type        = string
   default     = "book-store"
 }
@@ -21,15 +17,21 @@ variable "environment" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version for EKS cluster"
+  description = "Kubernetes version for the EKS cluster"
   type        = string
-  default     = "1.33"
+  default     = "1.36"
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for VPC"
+  description = "CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
+}
+
+variable "enable_single_nat_gateway" {
+  description = "Use a single NAT gateway (cost saving; set false for production HA)"
+  type        = bool
+  default     = true
 }
 
 variable "argocd_namespace" {
@@ -41,17 +43,5 @@ variable "argocd_namespace" {
 variable "argocd_chart_version" {
   description = "ArgoCD Helm chart version"
   type        = string
-  default     = "5.51.6"
-}
-
-variable "enable_single_nat_gateway" {
-  description = "Use single NAT gateway to reduce costs (not recommended for production)"
-  type        = bool
-  default     = true
-}
-
-variable "enable_monitoring" {
-  description = "Enable monitoring stack (Prometheus, Grafana)"
-  type        = bool
-  default     = false
+  default     = "7.8.23"
 }

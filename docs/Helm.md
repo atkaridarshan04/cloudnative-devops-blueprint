@@ -38,6 +38,14 @@ Wait for Envoy Gateway to become available:
 kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
 ```
 
+Then apply the GatewayClass and Gateway for local use:
+
+```bash
+kubectl apply -f kubernetes/gateway-api.yml
+```
+
+> **EKS note:** On AWS EKS, skip this step entirely. Terraform (`modules/addons`) provisions Envoy Gateway, GatewayClass, EnvoyProxy (with NLB annotations), and the Gateway automatically.
+
 
 ## Step 3: Install the Helm Chart
 
@@ -117,6 +125,15 @@ Confirm removal:
 helm ls
 kubectl get ns
 ```
+
+---
+
+## Local vs EKS — Storage and Gateway differences
+
+| | Local (kind) | EKS (AWS) |
+|---|---|---|
+| **Storage** | No persistent storage (data lost on restart). hostPath PV/PVC in `volume.yaml` is commented out — usable for local testing if needed. | Uncomment `volumeClaimTemplates` in `mongodb.yaml` and the EBS `StorageClass` in `volume.yaml`. Set `mongodb.storage` in `values.yaml`. EBS gp3 volumes are provisioned automatically by the EBS CSI driver. |
+| **Gateway** | GatewayClass + Gateway created by `kubernetes/gateway-api.yml` (or the Helm chart's `gateway-api.yml`). Patch envoy service to NodePort for local access. | GatewayClass, EnvoyProxy, and Gateway provisioned by Terraform. HTTPRoute in the Helm chart references `bookstore-gateway` in `default` namespace. NLB is created automatically. |
 
 ---
 
