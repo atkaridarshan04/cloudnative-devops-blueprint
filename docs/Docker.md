@@ -107,6 +107,51 @@ To stop and remove containers:
 docker-compose down
 ```
 
+## 🏗️ Multi-Platform Builds with Docker Buildx
+
+To build images that work across both **AMD64 (x86_64)** and **ARM64** architectures, use Docker Buildx:
+
+### Frontend
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:1.0.0 \
+  --push \
+  src/frontend/
+```
+
+### Backend
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:1.0.0 \
+  --push \
+  src/backend/
+```
+
+### Verify Supported Architectures
+
+```bash
+docker buildx imagetools inspect \
+ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:1.0.0
+```
+
+Expected output:
+
+```text
+linux/amd64
+linux/arm64
+```
+
+This ensures the images can run on:
+
+- Apple Silicon Macs (M1/M2/M3)
+- Intel/AMD machines
+- ARM-based Kubernetes nodes
+- Mixed-architecture clusters
+
 
 
 ## 🏗️ Multi-Platform Builds with Docker Buildx Bake

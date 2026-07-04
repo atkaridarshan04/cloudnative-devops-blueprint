@@ -20,10 +20,10 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 80
-        hostPort: 80
+      - containerPort: 30080 # for gateway api
+        hostPort: 30080
         protocol: TCP
-      - containerPort: 30001
+      - containerPort: 30001 # for ArgoCD UI
         hostPort: 30001
         protocol: TCP
 ```

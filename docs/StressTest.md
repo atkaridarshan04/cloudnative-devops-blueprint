@@ -119,7 +119,7 @@ Build and push the image:
 
 ```bash
 cd stress-test/
-docker build -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/stress-test:1.0.0 .
+docker buildx build --platform linux/amd64, linux/arm64 -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/stress-test:1.0.0 . 
 docker push ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/stress-test:1.0.0
 ```
 

@@ -14,8 +14,8 @@ target "frontend" {
   ]
 
   tags = [
-    "bookstore-frontend:latest",
-    "bookstore-frontend:v1",
+    "bookstore-frontend:local",
+    "ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:3.0.0",
   ]
 }
 
@@ -30,7 +30,7 @@ target "backend" {
   ]
 
   tags = [
-    "bookstore-backend:latest",
-    "bookstore-backend:v1",
+    "bookstore-backend:local",
+    "ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:3.0.0",
   ]
 }

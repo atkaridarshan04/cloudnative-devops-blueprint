@@ -3,6 +3,7 @@ services:
     container_name: frontend
     build: 
       context: ./src/frontend
+    # image: bookstore-frontend:local
     ports:
       - "80:80"
     networks:
@@ -23,6 +24,7 @@ services:
     container_name: backend
     build: 
       context: ./src/backend
+    # image: bookstore-backend:local
     ports:
       - "8000:8000"
     env_file:

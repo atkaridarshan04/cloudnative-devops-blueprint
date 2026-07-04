@@ -1,67 +1,159 @@
-#!/bin/bash
-# Usage: ./set-version.sh <version> <color>
-# Example: ./set-version.sh 1.0.0 blue
-#          ./set-version.sh 2.0.0 red
-#          ./set-version.sh 3.0.0 purple
+#!/usr/bin/env bash
 
-set -e
+# Usage:
+# ./set-version.sh 1.0.0 blue
+# ./set-version.sh 2.0.0 red
+# ./set-version.sh 3.0.0 purple
 
-VERSION=$1
-COLOR=$2
+set -euo pipefail
 
-if [ -z "$VERSION" ] || [ -z "$COLOR" ]; then
-  echo "Usage: $0 <version> <color>"
-  echo "  version: 1.0.0 | 2.0.0 | 3.0.0"
-  echo "  color:   blue | red | purple"
-  exit 1
+VERSION="${1:-}"
+COLOR="${2:-}"
+
+if [[ -z "$VERSION" || -z "$COLOR" ]]; then
+    echo "Usage: $0 <version> <color>"
+    echo "Versions: 1.0.0 | 2.0.0 | 3.0.0"
+    echo "Colors:   blue | red | purple"
+    exit 1
 fi
 
 FRONTEND_DIR="src/frontend/src/pages"
 BACKEND_FILE="src/backend/index.js"
 
-# Color mappings
-case $COLOR in
-  blue)   BG="blue-700";   HOVER="blue-500";   BORDER="blue-400"; BTN="blue-300" ;;
-  red)    BG="red-700";    HOVER="red-500";    BORDER="red-400";  BTN="red-400"  ;;
-  purple) BG="purple-700"; HOVER="purple-500"; BORDER="purple-400"; BTN="purple-300" ;;
-  *)
-    echo "Unknown color: $COLOR. Use blue | red | purple"
-    exit 1
-    ;;
+# Cross-platform sed
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    SED_CMD=(sed -i '')
+else
+    SED_CMD=(sed -i)
+fi
+
+# Target colors
+case "$COLOR" in
+    blue)
+        BG="blue-700"
+        HOVER="blue-500"
+        BORDER="blue-400"
+        BTN="blue-300"
+        ;;
+    red)
+        BG="red-700"
+        HOVER="red-500"
+        BORDER="red-400"
+        BTN="red-400"
+        ;;
+    purple)
+        BG="purple-700"
+        HOVER="purple-500"
+        BORDER="purple-400"
+        BTN="purple-300"
+        ;;
+    *)
+        echo "Unknown color: $COLOR"
+        echo "Use: blue | red | purple"
+        exit 1
+        ;;
 esac
 
-# Detect current color in Home.jsx to replace it
-CURRENT_BG=$(grep -o 'bg-[a-z]*-700' "$FRONTEND_DIR/Home.jsx" | head -1)
-CURRENT_COLOR=$(echo "$CURRENT_BG" | sed 's/bg-\([a-z]*\)-700/\1/')
+HOME_FILE="$FRONTEND_DIR/Home.jsx"
 
-case $CURRENT_COLOR in
-  blue)   CUR_BG="blue-700";   CUR_HOVER="blue-500";   CUR_BORDER="blue-400"; CUR_BTN="blue-300" ;;
-  red)    CUR_BG="red-700";    CUR_HOVER="red-500";    CUR_BORDER="red-400";  CUR_BTN="red-400"  ;;
-  purple) CUR_BG="purple-700"; CUR_HOVER="purple-500"; CUR_BORDER="purple-400"; CUR_BTN="purple-300" ;;
-  *)
-    echo "Could not detect current color from Home.jsx"
+if [[ ! -f "$HOME_FILE" ]]; then
+    echo "File not found: $HOME_FILE"
     exit 1
-    ;;
-esac
+fi
 
 # Detect current version
-CURRENT_VERSION=$(grep -o 'v[0-9]*\.[0-9]*\.[0-9]*' "$FRONTEND_DIR/Home.jsx" | head -1 | tr -d 'v')
+CURRENT_VERSION=$(
+    grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' "$HOME_FILE" \
+    | head -1 \
+    | sed 's/^v//'
+)
 
-echo "Switching: v$CURRENT_VERSION ($CURRENT_COLOR) → v$VERSION ($COLOR)"
+if [[ -z "$CURRENT_VERSION" ]]; then
+    echo "Could not detect current version"
+    exit 1
+fi
 
-# Update Home.jsx
-sed -i \
-  "s/bg-$CUR_BG/bg-$BG/g; s/hover:bg-$CUR_HOVER/hover:bg-$HOVER/g; s/text-$CUR_BG/text-$BG/g; s/v$CURRENT_VERSION/v$VERSION/g" \
-  "$FRONTEND_DIR/Home.jsx"
+# Detect current color
+CURRENT_COLOR=$(
+    grep -oE 'bg-(blue|red|purple)-700' "$HOME_FILE" \
+    | head -1 \
+    | cut -d'-' -f2
+)
 
-# Update Create/Edit forms
-sed -i "s/border-$CUR_BORDER/border-$BORDER/g; s/bg-$CUR_BTN/bg-$BTN/g" \
-  "$FRONTEND_DIR/CreateBooks.jsx" \
-  "$FRONTEND_DIR/EditBook.jsx"
+if [[ -z "$CURRENT_COLOR" ]]; then
+    echo "Could not detect current color"
+    exit 1
+fi
 
-# Update backend
-sed -i "s/v$CURRENT_VERSION/v$VERSION/" "$BACKEND_FILE"
+case "$CURRENT_COLOR" in
+    blue)
+        CUR_BG="blue-700"
+        CUR_HOVER="blue-500"
+        CUR_BORDER="blue-400"
+        CUR_BTN="blue-300"
+        ;;
+    red)
+        CUR_BG="red-700"
+        CUR_HOVER="red-500"
+        CUR_BORDER="red-400"
+        CUR_BTN="red-400"
+        ;;
+    purple)
+        CUR_BG="purple-700"
+        CUR_HOVER="purple-500"
+        CUR_BORDER="purple-400"
+        CUR_BTN="purple-300"
+        ;;
+    *)
+        echo "Unsupported detected color: $CURRENT_COLOR"
+        exit 1
+        ;;
+esac
 
-echo "Done. Now build:"
-echo "  docker build -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:$VERSION src/frontend/"
-echo "  docker build -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:$VERSION src/backend/"
+echo "Switching: v${CURRENT_VERSION} (${CURRENT_COLOR}) → v${VERSION} (${COLOR})"
+
+# Home.jsx
+"${SED_CMD[@]}" \
+-e "s/bg-$CUR_BG/bg-$BG/g" \
+-e "s/hover:bg-$CUR_HOVER/hover:bg-$HOVER/g" \
+-e "s/text-$CUR_BG/text-$BG/g" \
+-e "s/v$CURRENT_VERSION/v$VERSION/g" \
+"$HOME_FILE"
+
+# CreateBooks.jsx
+if [[ -f "$FRONTEND_DIR/CreateBooks.jsx" ]]; then
+    "${SED_CMD[@]}" \
+    -e "s/border-$CUR_BORDER/border-$BORDER/g" \
+    -e "s/bg-$CUR_BTN/bg-$BTN/g" \
+    "$FRONTEND_DIR/CreateBooks.jsx"
+fi
+
+# EditBook.jsx
+if [[ -f "$FRONTEND_DIR/EditBook.jsx" ]]; then
+    "${SED_CMD[@]}" \
+    -e "s/border-$CUR_BORDER/border-$BORDER/g" \
+    -e "s/bg-$CUR_BTN/bg-$BTN/g" \
+    "$FRONTEND_DIR/EditBook.jsx"
+fi
+
+# Backend
+if [[ -f "$BACKEND_FILE" ]]; then
+    "${SED_CMD[@]}" \
+    -e "s/v$CURRENT_VERSION/v$VERSION/g" \
+    "$BACKEND_FILE"
+fi
+
+echo ""
+echo "✅ Done"
+echo ""
+echo "Frontend image:"
+echo "docker buildx build \\"
+echo "  --platform linux/amd64,linux/arm64 \\"
+echo "  -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:$VERSION \\"
+echo "  --push src/frontend/"
+echo ""
+echo "Backend image:"
+echo "docker buildx build \\"
+echo "  --platform linux/amd64,linux/arm64 \\"
+echo "  -t ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:$VERSION \\"
+echo "  --push src/backend/"

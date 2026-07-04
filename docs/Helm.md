@@ -12,6 +12,9 @@ nodes:
       - containerPort: 80   # for nginx ingress
         hostPort: 80
         protocol: TCP
+      - containerPort: 30080 # for gateway api
+        hostPort: 30080
+        protocol: TCP
 ```
 
 - Run the following command to create a Kubernetes cluster using the provided `kind-config.yaml`:
