@@ -1,0 +1,46 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tls-cert-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: tls-cert-expiry-blackbox
+      rules:
+        - alert: TLSCertExpiringSoon
+          expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "TLS cert for {{ $labels.instance }} expires within 14 days"
+            description: >-
+              blackbox-exporter reports the certificate served at {{ $labels.instance }}
+              expires soon. Check cert-manager's Certificate/wildcard-tls and the
+              ClusterIssuer if it hasn't auto-renewed.
+        - alert: TLSProbeFailing
+          expr: probe_success == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "HTTPS probe failing for {{ $labels.instance }}"
+            description: >-
+              blackbox-exporter could not complete an HTTPS probe against
+              {{ $labels.instance }} for 5+ minutes.
+
+    - name: tls-cert-expiry-cert-manager
+      rules:
+        - alert: CertManagerCertExpiringSoon
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "cert-manager Certificate {{ $labels.name }} expires within 14 days"
+            description: >-
+              cert-manager hasn't renewed {{ $labels.name }} in namespace
+              {{ $labels.exported_namespace }} yet — check ClusterIssuer status and the
+              DNS-01 challenge chain (see tls-setup-guide.md's troubleshooting section).

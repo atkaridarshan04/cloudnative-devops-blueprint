@@ -1,0 +1,22 @@
+# Assumes the kube-prometheus-stack Helm release is named "monitoring" (Grafana subchart
+# Service naming convention: <release-name>-grafana). Grafana serves plain HTTP internally
+# by default, so no --insecure-equivalent flag needed (unlike ArgoCD).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-route
+  namespace: monitoring
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: mern-devops
+  hostnames:
+    - grafana.cndb.atkaridarshan.online
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: monitoring-grafana
+          port: 80

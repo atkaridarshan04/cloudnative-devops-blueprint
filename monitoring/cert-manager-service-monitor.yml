@@ -1,0 +1,16 @@
+# Scrapes cert-manager's own metrics (certmanager_certificate_expiration_timestamp_seconds
+# among others) — the K8s-side view of cert expiry, complementing blackbox-exporter's
+# live-serving-side view (probe_ssl_earliest_cert_expiry).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-manager-metrics
+  namespace: cert-manager
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cert-manager
+  endpoints:
+    - port: http-metrics

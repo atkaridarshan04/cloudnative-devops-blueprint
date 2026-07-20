@@ -19,6 +19,7 @@ gateway/            GatewayClass, Gateway, ClusterIssuers, Certificate — platf
 helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute, Rollouts
 argocd/              AppProject, Application, HTTPRoute — GitOps deployment of the app via ArgoCD
 argorollouts/        HTTPRoute for the Argo Rollouts dashboard (canary progressive delivery)
+monitoring/          kube-prometheus-stack + blackbox-exporter values, ServiceMonitors/Probe/alerts, HTTPRoutes
 kind-config.yml      local kind cluster config (NodePort → host port mappings)
 docs/                setup guides and concept notes
 ```
@@ -28,12 +29,12 @@ docs/                setup guides and concept notes
 `*.cndb.atkaridarshan.online` is served over HTTPS terminated at the Envoy Gateway, using a
 single wildcard Let's Encrypt certificate obtained via cert-manager's DNS-01 challenge
 (Cloudflare DNS) — covering `app.cndb...` (the bookstore app), `argocd.cndb...` (the ArgoCD
-UI), and `argorollouts.cndb...` (the Argo Rollouts dashboard) under one
-`Certificate`/`Secret`. Both `letsencrypt-staging` and `letsencrypt-prod` `ClusterIssuer`s
-exist so new cert configs get proven on staging before touching the production rate limit.
-DNS-01 (rather than HTTP-01) is what makes the cert issuance independent of whether the
-cluster is publicly reachable yet, and it's the only challenge type that supports wildcard
-certs at all.
+UI), `argorollouts.cndb...` (the Argo Rollouts dashboard), `grafana.cndb...`, and
+`prometheus.cndb...` under one `Certificate`/`Secret`. Both `letsencrypt-staging` and
+`letsencrypt-prod` `ClusterIssuer`s exist so new cert configs get proven on staging before
+touching the production rate limit. DNS-01 (rather than HTTP-01) is what makes the cert
+issuance independent of whether the cluster is publicly reachable yet, and it's the only
+challenge type that supports wildcard certs at all.
 
 See [`docs/tls-concepts.md`](docs/tls-concepts.md) for the full HTTP-01 vs DNS-01
 reasoning and TLS trust-chain explanation, and
@@ -79,6 +80,13 @@ flowchart TD
             RolloutsRoute[HTTPRoute: argorollouts.cndb...]
             RolloutsSvc[argo-rollouts-dashboard]
         end
+
+        subgraph "monitoring namespace"
+            GrafanaRoute[HTTPRoute: grafana.cndb...]
+            PromRoute[HTTPRoute: prometheus.cndb...]
+            GrafanaSvc[monitoring-grafana]
+            PromSvc[prometheus-operated]
+        end
     end
 
     subgraph "cert-manager"
@@ -92,6 +100,8 @@ flowchart TD
     AppRoute --> BE --> DB
     GW --> ArgoRoute --> ArgoSvc
     GW --> RolloutsRoute --> RolloutsSvc
+    GW --> GrafanaRoute --> GrafanaSvc
+    GW --> PromRoute --> PromSvc
 
     DNSRec -.->|resolves to| LB
     CI -->|DNS-01 via provider API| TXT
@@ -131,6 +141,13 @@ flowchart TD
             RolloutsRoute[HTTPRoute: argorollouts.cndb...]
             RolloutsSvc[argo-rollouts-dashboard]
         end
+
+        subgraph "monitoring namespace"
+            GrafanaRoute[HTTPRoute: grafana.cndb...]
+            PromRoute[HTTPRoute: prometheus.cndb...]
+            GrafanaSvc[monitoring-grafana]
+            PromSvc[prometheus-operated]
+        end
     end
 
     subgraph "cert-manager"
@@ -139,12 +156,14 @@ flowchart TD
         Secret[Secret: wildcard-tls]
     end
 
-    Browser -->|"https://app.cndb..., argocd.cndb...,<br/>or argorollouts.cndb...<br/>(via /etc/hosts → 127.0.0.1)"| NP
+    Browser -->|"https://app/argocd/argorollouts/<br/>grafana/prometheus.cndb...<br/>(via /etc/hosts → 127.0.0.1)"| NP
     NP --> GW
     GW --> AppRoute --> FE
     AppRoute --> BE --> DB
     GW --> ArgoRoute --> ArgoSvc
     GW --> RolloutsRoute --> RolloutsSvc
+    GW --> GrafanaRoute --> GrafanaSvc
+    GW --> PromRoute --> PromSvc
 
     CI --> Cert
     Cert -->|writes| Secret
@@ -162,5 +181,10 @@ the architecture, the nested-hostname problem hit while testing it, and the fix.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
 - [`docs/gitops-deploy.md`](docs/gitops-deploy.md) — deploying the app via Argo Rollouts +
   ArgoCD (GitOps), the only supported deployment path now, in the required install order.
+- [`docs/monitoring-concepts.md`](docs/monitoring-concepts.md) — learning notes:
+  ServiceMonitor vs PodMonitor, how the blackbox-exporter Probe mechanism works,
+  PrometheusRule alert states, Grafana dashboard provisioning.
+- [`docs/monitoring-deploy.md`](docs/monitoring-deploy.md) — Prometheus, Grafana, and TLS
+  cert-expiry monitoring/alerting via blackbox-exporter and cert-manager metrics.
 - [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) —
   alternative approach (not currently used) for exposing the local cluster publicly.

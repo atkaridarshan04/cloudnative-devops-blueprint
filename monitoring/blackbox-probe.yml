@@ -1,0 +1,27 @@
+# Probe CRD (prometheus-operator, already installed via kube-prometheus-stack) — tells
+# Prometheus to scrape blackbox-exporter's /probe endpoint against each target below.
+# `prober.url` assumes the blackbox-exporter Helm release is named "blackbox-exporter" in
+# the "monitoring" namespace — verify with `kubectl get svc -n monitoring` and adjust if
+# you used a different release name.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: cndb-https-probes
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  jobName: blackbox-https
+  interval: 30s
+  module: http_2xx
+  prober:
+    url: blackbox-exporter-prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      static:
+        - https://app.cndb.atkaridarshan.online
+        - https://argocd.cndb.atkaridarshan.online
+        - https://argorollouts.cndb.atkaridarshan.online
+        - https://prometheus.cndb.atkaridarshan.online
+        - https://grafana.cndb.atkaridarshan.online
+        - https://atkaridarshan.online

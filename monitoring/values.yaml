@@ -1,0 +1,99 @@
+# Kube-Prometheus-Stack Configuration
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+          storageClassName: standard
+    # Allow Prometheus to pick up PrometheusRules from all namespaces
+    ruleNamespaceSelector: {}
+    ruleSelector:
+      matchLabels:
+        release: monitoring
+  service:
+    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+
+alertmanager:
+  enabled: true
+  service:
+    type: ClusterIP
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# kube-prometheus-stack auto-discovers node-exporter and kube-state-metrics
+# via ServiceMonitors - no need for manual static scrape configs
+
+prometheusOperator:
+  enabled: true
+
+# ---------------------------------------------------------------------------------
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: password
+  service:
+    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+
+  persistence:
+    enabled: true
+    type: pvc
+    size: 5Gi
+    storageClassName: standard
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+      - name: 'argocd'
+        orgId: 1
+        folder: 'ArgoCD Monitoring'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/argocd
+      - name: 'tls'
+        orgId: 1
+        folder: 'TLS & Certificates'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/tls
+
+  dashboards:
+    default:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+
+    argocd:
+      argocd:
+        gnetId: 14584
+        revision: 1
+      argocd-application-overview:
+        gnetId: 19974
+        revision: 1
+
+    tls:
+      blackbox-exporter:
+        gnetId: 7587
+        revision: 1
+        datasource: Prometheus

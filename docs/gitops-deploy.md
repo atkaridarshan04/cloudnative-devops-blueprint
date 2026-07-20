@@ -102,13 +102,26 @@ the Gateway, exactly like the app.
 ```bash
 helm install argocd argo/argo-cd \
   -n argocd --create-namespace \
-  --set configs.params."server\.insecure"=true
+  --set configs.params."server\.insecure"=true \
+  --set controller.metrics.enabled=true \
+  --set server.metrics.enabled=true \
+  --set repoServer.metrics.enabled=true \
+  --set applicationSet.metrics.enabled=true
 ```
+
+The four `metrics.enabled` flags matter for [`monitoring-deploy.md`](./monitoring-deploy.md)
+later: unlike the raw upstream `install.yaml` manifest (which creates
+`argocd-metrics`/`argocd-server-metrics`/`argocd-repo-server-metrics` unconditionally), this
+Helm chart makes those metrics Services **opt-in per component** — without these flags,
+`monitoring/argocd-service-monitor.yml` has nothing to scrape.
 
 Verify:
 
 ```bash
 kubectl get pods -n argocd
+kubectl get svc -n argocd | grep metrics
+# should show argocd-application-controller-metrics, argocd-applicationset-controller-metrics,
+# argocd-repo-server-metrics, argocd-server-metrics
 ```
 
 **6. Apply the routing + bootstrap manifests directly via `kubectl`** — not through ArgoCD

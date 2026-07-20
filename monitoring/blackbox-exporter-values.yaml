@@ -1,0 +1,11 @@
+# prometheus-community/prometheus-blackbox-exporter
+# The chart's bundled default modules (http_2xx, tcp_connect, icmp, etc.) are sufficient —
+# probing any https:// target with http_2xx already yields probe_ssl_earliest_cert_expiry,
+# no custom module config needed.
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
