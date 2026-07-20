@@ -35,6 +35,8 @@ Cluster controllers this repo's manifests depend on but doesn't install itself:
 kind create cluster --config kind-config.yml          # local (Path B)
 # or: point kubeconfig at your existing EKS/AKS/GKE cluster (Path A)
 
+kubectl create namespace mern-devops
+
 # Envoy Gateway (provides the envoy-gatewayclass controller)
 helm install eg oci://docker.io/envoyproxy/gateway-helm \
   --version v1.1.0 \
@@ -100,7 +102,9 @@ kubectl apply -f gateway/gateway-api.yml
 kubectl get gateway -n mern-devops
 ```
 
-The `Gateway` will show `Programmed: Unknown/False` until the `app-tls` Secret exists
+![gateway-programmed-false](./assets/app/gateway-programed-false.png)
+
+The `Gateway` will show `Programmed: Unknown/False` until the `wildcard-tls` Secret exists
 (Phase 4) — that's expected, not an error.
 
 **`kind`-only gotcha — Gateway stays `Programmed: False` even after Phase 4:** Envoy Gateway
@@ -157,7 +161,7 @@ Apply and watch:
 
 ```bash
 kubectl apply -f gateway/certificate.yml
-kubectl describe certificate app-tls -n mern-devops
+kubectl describe certificate wildcard-tls -n mern-devops
 ```
 
 <details>
@@ -174,18 +178,20 @@ The `Challenge` describe output shows the exact DNS record it's waiting on. Conf
 TXT record actually landed and has propagated:
 
 ```bash
-dig TXT _acme-challenge.app.cndb.atkaridarshan.online +short
+# note: for a wildcard cert (*.cndb.atkaridarshan.online), the TXT record is on the
+# base name, not any specific subdomain — one record covers every hostname under it.
+dig TXT _acme-challenge.cndb.atkaridarshan.online +short
 # or, to bypass local DNS caching:
-dig @1.1.1.1 TXT _acme-challenge.app.cndb.atkaridarshan.online +short
+dig @1.1.1.1 TXT _acme-challenge.cndb.atkaridarshan.online +short
 ```
 
 </details>
 
-Once `kubectl get certificate app-tls -n mern-devops` shows `READY=True`, confirm which
+Once `kubectl get certificate wildcard-tls -n mern-devops` shows `READY=True`, confirm which
 issuer actually signed it:
 
 ```bash
-kubectl get secret app-tls -n mern-devops -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -issuer
+kubectl get secret wildcard-tls -n mern-devops -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -issuer
 ```
 ![get-tls-secret](./assets/app/get-tls-secret.png)
 
@@ -209,11 +215,21 @@ now shows `C=US, O=Let's Encrypt`.
 
 ## Phase 5 — App + HTTPRoute
 
+Two ways to get the app deployed from here — pick one:
+
+**Option 1 — Helm directly:**
+
 ```bash
 helm install mern helm-chart/ -n mern-devops --create-namespace
 kubectl get httproute -n mern-devops
 ```
 ![get-app-http-route](./assets/app/get-app-http-route.png)
+
+**Option 2 — via ArgoCD (GitOps):** installs ArgoCD itself first, then lets it sync the
+same Helm chart continuously from git instead of a one-off `helm install`. See
+[`argocd-deploy.md`](./argocd-deploy.md) for the full steps, including the `argocd.cndb...`
+hostname this adds and why ArgoCD needs to run with `server.insecure: true` behind our
+TLS-terminating Gateway.
 
 ## Phase 6 — Public exposure
 

@@ -43,8 +43,8 @@ flowchart TD
 
     subgraph "cert-manager"
         CI[ClusterIssuer<br/>letsencrypt-staging / prod]
-        Cert[Certificate: app-tls]
-        Secret[Secret: app-tls]
+        Cert[Certificate: wildcard-tls]
+        Secret[Secret: wildcard-tls]
     end
 
     Browser -->|"https://<hostname>"| Edge
@@ -131,7 +131,7 @@ If adopting this, the rename touches:
 - `cloudflared`'s `config.yml` — `ingress[].hostname` and `originRequest.originServerName`
 
 Note this only affects the *edge* cert (Cloudflare's, for the public leg) — the *origin*
-cert from cert-manager (`app-tls`) can be requested for any hostname/depth regardless, via
+cert from cert-manager (`wildcard-tls`) can be requested for any hostname/depth regardless, via
 DNS-01, no matter which naming scheme is chosen.
 
 ## How Cloudflare Tunnel actually works (mechanics)

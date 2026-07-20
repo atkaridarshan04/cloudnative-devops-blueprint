@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: book-store
+  namespace: argocd
+spec:
+  description: Book Store Application
+  sourceRepos:
+    - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
+
+  destinations:
+    - namespace: mern-devops
+      server: https://kubernetes.default.svc
+
+# Included resource kinds that can be created cluster-wide
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: ''
+      kind: PersistentVolume
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+    - group: 'cert-manager.io'
+      kind: ClusterIssuer
+    - group: 'gateway.networking.k8s.io'
+      kind: GatewayClass
+
+# Included resource kinds that can be deployed within the target namespace
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Secret
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: PersistentVolumeClaim
+    - group: ''
+      kind: ServiceAccount
+    - group: 'apps'
+      kind: Deployment
+    - group: 'apps'
+      kind: StatefulSet
+    - group: 'networking.k8s.io'
+      kind: Ingress
+    - group: 'autoscaling'
+      kind: HorizontalPodAutoscaler
+    - group: 'policy'
+      kind: PodDisruptionBudget
+    - group: 'gateway.networking.k8s.io'
+      kind: GatewayClass
+    - group: 'gateway.networking.k8s.io'
+      kind: Gateway
+    - group: 'gateway.networking.k8s.io'
+      kind: HTTPRoute

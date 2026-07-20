@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: book-store
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: book-store
+  source:
+    repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+    targetRevision: domain-and-tls # Branch/tag/commit - use tags for production releases
+    path: helm-chart # Helm chart path - enables templating and values override
+    helm:
+      valueFiles:
+        - values.yaml # Default values - environment-specific overrides possible
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mern-devops
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 10

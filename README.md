@@ -17,19 +17,21 @@ current focus is local NodePort/browser testing.
 ```
 gateway/            GatewayClass, Gateway, ClusterIssuers, Certificate — platform-level, not per-app
 helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute
+argocd/              AppProject, Application, HTTPRoute — GitOps deployment of the app via ArgoCD
 kind-config.yml      local kind cluster config (NodePort → host port mappings)
 docs/                setup guides and concept notes
 ```
 
 ## Domain & TLS
 
-`app.cndb.atkaridarshan.online` is served over HTTPS terminated at the Envoy Gateway, using
-a Let's Encrypt certificate obtained via cert-manager's DNS-01 challenge (Cloudflare DNS).
-Both `letsencrypt-staging` and `letsencrypt-prod` `ClusterIssuer`s exist so new cert configs
-get proven on staging before touching the production rate limit. DNS-01 (rather than
-HTTP-01) is what makes the cert issuance independent of whether the cluster is publicly
-reachable yet, and it's the only challenge type that supports wildcard certs for future
-subdomains (`argocd.cndb...`, `argorollouts.cndb...`)
+`*.cndb.atkaridarshan.online` is served over HTTPS terminated at the Envoy Gateway, using a
+single wildcard Let's Encrypt certificate obtained via cert-manager's DNS-01 challenge
+(Cloudflare DNS) — covering `app.cndb...` (the bookstore app) and `argocd.cndb...` (the
+ArgoCD UI, for the GitOps deployment option) under one `Certificate`/`Secret`. Both
+`letsencrypt-staging` and `letsencrypt-prod` `ClusterIssuer`s exist so new cert configs get
+proven on staging before touching the production rate limit. DNS-01 (rather than HTTP-01)
+is what makes the cert issuance independent of whether the cluster is publicly reachable
+yet, and it's the only challenge type that supports wildcard certs at all.
 
 See [`docs/tls-concepts.md`](docs/tls-concepts.md) for the full HTTP-01 vs DNS-01
 reasoning and TLS trust-chain explanation, and
@@ -48,32 +50,40 @@ versus what's identical in both places.
 
 ```mermaid
 flowchart TD
-    Browser[Browser] -->|"https://app.cndb...online"| LB
+    Browser[Browser] -->|"https://*.cndb...online"| LB
 
     subgraph "Cloud DNS"
-        DNSRec["A / CNAME record → LB address"]
+        DNSRec["wildcard A / CNAME record → LB address"]
         TXT["ACME TXT record (DNS-01)"]
     end
 
     subgraph "EKS / AKS / GKE cluster"
         LB[Cloud Load Balancer<br/>provisioned from the Gateway resource]
-        GW[Envoy Gateway<br/>HTTPS listener :443<br/>TLS mode Terminate]
-        Route[HTTPRoute]
-        FE[frontend-service]
-        BE[backend-service]
-        DB[(mongodb)]
+        GW[Envoy Gateway<br/>HTTPS listener :443<br/>wildcard hostname, TLS mode Terminate]
+
+        subgraph "mern-devops namespace"
+            AppRoute[HTTPRoute: app.cndb...]
+            FE[frontend-service]
+            BE[backend-service]
+            DB[(mongodb)]
+        end
+
+        subgraph "argocd namespace"
+            ArgoRoute[HTTPRoute: argocd.cndb...]
+            ArgoSvc[argocd-server]
+        end
     end
 
     subgraph "cert-manager"
         CI[ClusterIssuer<br/>letsencrypt-staging / prod]
-        Cert[Certificate: app-tls]
-        Secret[Secret: app-tls]
+        Cert[Certificate: wildcard-tls]
+        Secret[Secret: wildcard-tls]
     end
 
-    LB --> GW --> Route
-    Route --> FE
-    Route --> BE
-    BE --> DB
+    LB --> GW
+    GW --> AppRoute --> FE
+    AppRoute --> BE --> DB
+    GW --> ArgoRoute --> ArgoSvc
 
     DNSRec -.->|resolves to| LB
     CI -->|DNS-01 via provider API| TXT
@@ -93,27 +103,34 @@ flowchart TD
         Browser[Browser / curl]
     end
 
-    subgraph "kind cluster (mern-devops namespace)"
+    subgraph "kind cluster"
         NP[kind NodePort<br/>host :443 → node :30443]
-        GW[Envoy Gateway<br/>HTTPS listener :443<br/>TLS mode Terminate]
-        Route[HTTPRoute]
-        FE[frontend-service]
-        BE[backend-service]
-        DB[(mongodb)]
+        GW[Envoy Gateway<br/>HTTPS listener :443<br/>wildcard hostname, TLS mode Terminate]
+
+        subgraph "mern-devops namespace"
+            AppRoute[HTTPRoute: app.cndb...]
+            FE[frontend-service]
+            BE[backend-service]
+            DB[(mongodb)]
+        end
+
+        subgraph "argocd namespace"
+            ArgoRoute[HTTPRoute: argocd.cndb...]
+            ArgoSvc[argocd-server]
+        end
     end
 
     subgraph "cert-manager"
         CI[ClusterIssuer<br/>letsencrypt-staging / prod]
-        Cert[Certificate: app-tls]
-        Secret[Secret: app-tls]
+        Cert[Certificate: wildcard-tls]
+        Secret[Secret: wildcard-tls]
     end
 
-    Browser -->|"https://app.cndb...online<br/>(via /etc/hosts → 127.0.0.1)"| NP
+    Browser -->|"https://app.cndb...online or<br/>argocd.cndb...online<br/>(via /etc/hosts → 127.0.0.1)"| NP
     NP --> GW
-    GW --> Route
-    Route --> FE
-    Route --> BE
-    BE --> DB
+    GW --> AppRoute --> FE
+    AppRoute --> BE --> DB
+    GW --> ArgoRoute --> ArgoSvc
 
     CI --> Cert
     Cert -->|writes| Secret
@@ -129,5 +146,7 @@ the architecture, the nested-hostname problem hit while testing it, and the fix.
 - [`docs/tls-concepts.md`](docs/tls-concepts.md) — learning notes: cert-manager, ACME,
   HTTP-01 vs DNS-01, Let's Encrypt staging vs prod.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
+- [`docs/argocd-deploy.md`](docs/argocd-deploy.md) — deploying the app via ArgoCD (GitOps)
+  instead of a one-off `helm install`.
 - [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) —
   alternative approach (not currently used) for exposing the local cluster publicly.

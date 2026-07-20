@@ -2,12 +2,12 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: app-tls
+  name: wildcard-tls
   namespace: mern-devops
 spec:
-  secretName: app-tls
+  secretName: wildcard-tls
   dnsNames:
-    - app.cndb.atkaridarshan.online
+    - '*.cndb.atkaridarshan.online'
   issuerRef:
     name: letsencrypt-prod # Use `letsencrypt-prod` for production
     kind: ClusterIssuer

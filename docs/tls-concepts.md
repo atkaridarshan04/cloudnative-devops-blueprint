@@ -73,10 +73,10 @@ Let's Encrypt checks DNS instead of HTTP.
 
 **Why this project uses DNS-01:** the cluster is a local `kind` cluster with no public IP —
 there's nothing to point an HTTP-01 challenge at. DNS-01 decouples "getting a cert" from
-"having a publicly reachable ingress", which also matches where this is headed:
-`argocd.cndb...` and `argorollouts.cndb...` subdomains later, and eventually a single
-wildcard cert (`*.cndb.atkaridarshan.online`) covering all of them — only possible with
-DNS-01.
+"having a publicly reachable ingress", which is also why `gateway/certificate.yml` requests
+a single wildcard cert (`*.cndb.atkaridarshan.online`) rather than one cert per hostname —
+it covers `app.cndb...`, `argocd.cndb...`, and any future `*.cndb...` subdomain with one
+`Certificate`/`Secret`, and wildcards are only issuable via DNS-01 in the first place.
 
 Note: this nested `cndb.` naming works fine for everything in this doc and for local
 testing (`tls-setup-guide.md` Phase 6a) — it only runs into a wall if the hostname is later
@@ -92,17 +92,24 @@ own, unrelated one-level certificate limit. See
 - name: https
   protocol: HTTPS
   port: 443
-  hostname: app.cndb.atkaridarshan.online
+  hostname: '*.cndb.atkaridarshan.online'
+  allowedRoutes:
+    namespaces:
+      from: All
   tls:
     mode: Terminate
     certificateRefs:
-      - name: app-tls   # the Secret cert-manager writes to
+      - name: wildcard-tls   # the Secret cert-manager writes to
 ```
 
-`mode: Terminate` means Envoy Gateway decrypts TLS right here, using the `app-tls` Secret,
-then forwards plain HTTP internally to whichever Service the `HTTPRoute` (now templated in
-the Helm chart — see `helm-chart/templates/httproute.yaml`) points at. The `hostname` field
-also acts as an SNI filter: this listener only answers for that exact hostname.
+`mode: Terminate` means Envoy Gateway decrypts TLS right here, using the `wildcard-tls`
+Secret, then forwards plain HTTP internally to whichever Service the request's `HTTPRoute`
+points at. The listener's `hostname` is now a wildcard, so it accepts any one-level
+subdomain (`app.cndb...`, `argocd.cndb...`, etc.) via SNI — each individual `HTTPRoute`
+(`helm-chart/templates/httproute.yaml` for the app, `argocd/httproute.yml` for ArgoCD)
+still declares its own exact hostname underneath that. `allowedRoutes.namespaces.from: All`
+is what lets `HTTPRoute`s from *other* namespaces (like `argocd`) attach to this Gateway at
+all — by default a listener only accepts routes from its own namespace (`mern-devops`).
 
 ## Architecture (current: local testing, no public exposure)
 
@@ -112,25 +119,33 @@ flowchart TD
         Browser[Browser / curl]
     end
 
-    subgraph "kind cluster (mern-devops namespace)"
+    subgraph "kind cluster"
         NP[kind NodePort<br/>host :443 → node :30443]
-        GW[Envoy Gateway<br/>HTTPS listener :443<br/>TLS mode Terminate]
-        Route[HTTPRoute<br/>helm-chart/templates/httproute.yaml]
-        FE[frontend-service]
-        BE[backend-service]
+        GW[Envoy Gateway<br/>HTTPS listener :443<br/>wildcard hostname, TLS mode Terminate]
+
+        subgraph "mern-devops namespace"
+            AppRoute[HTTPRoute: app.cndb...<br/>helm-chart/templates/httproute.yaml]
+            FE[frontend-service]
+            BE[backend-service]
+        end
+
+        subgraph "argocd namespace"
+            ArgoRoute[HTTPRoute: argocd.cndb...<br/>argocd/httproute.yml]
+            ArgoSvc[argocd-server]
+        end
     end
 
     subgraph "cert-manager"
         CI[ClusterIssuer<br/>letsencrypt-staging / prod]
-        Cert[Certificate: app-tls]
-        Secret[Secret: app-tls]
+        Cert[Certificate: wildcard-tls]
+        Secret[Secret: wildcard-tls]
     end
 
-    Browser -->|"https://app.cndb...online<br/>(via /etc/hosts → 127.0.0.1)"| NP
+    Browser -->|"https://app.cndb...online or<br/>argocd.cndb...online<br/>(via /etc/hosts → 127.0.0.1)"| NP
     NP --> GW
-    GW --> Route
-    Route --> FE
-    Route --> BE
+    GW --> AppRoute --> FE
+    AppRoute --> BE
+    GW --> ArgoRoute --> ArgoSvc
 
     CI -->|DNS-01 via Cloudflare API| Secret
     CI --> Cert

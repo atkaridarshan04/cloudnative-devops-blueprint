@@ -18,13 +18,19 @@ spec:
     - name: http
       protocol: HTTP
       port: 80
-      hostname: app.cndb.atkaridarshan.online
+      hostname: '*.cndb.atkaridarshan.online'
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: https
       protocol: HTTPS
       port: 443
-      hostname: app.cndb.atkaridarshan.online
+      hostname: '*.cndb.atkaridarshan.online'
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         mode: Terminate
         certificateRefs:
-          - name: app-tls
+          - name: wildcard-tls
             kind: Secret
