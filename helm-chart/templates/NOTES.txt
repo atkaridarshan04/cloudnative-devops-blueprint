@@ -1,0 +1,26 @@
+🚀 MERN Stack Application Successfully Deployed!
+================================================================================
+
+📋 DEPLOYMENT SUMMARY:
+  Release Name:    {{ .Release.Name }}
+  Namespace:       {{ .Values.namespace }}
+  Chart Version:   {{ .Chart.Version }}
+  App Version:     {{ .Chart.AppVersion }}
+
+🌐 APPLICATION ACCESS:
+If using "Ingress":
+  Your application is available at:
+  🔗 http://<<instance-ip>>
+If using "NodePort Service"
+  Your application is available at:
+  🔗 http://<<instance-ip>>:31000
+
+IMPORTANT NOTES:
+  - MongoDB data is persisted using PVC
+  - Default credentials are stored in secrets
+  - Health checks are configured for all services
+  - Rolling updates are enabled for zero-downtime deployments
+
+📖 For more information, visit: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/
+
+Happy Helming! 🎉

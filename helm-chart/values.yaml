@@ -1,0 +1,82 @@
+namespace: mern-devops
+
+gateway:
+  name: envoy-gateway
+  hostname: app.cndb.atkaridarshan.online
+
+frontend:
+  replicas: 1
+  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+  tag: 2.0.0
+  containerPort: 80
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  config:
+    backendUrl: ""
+
+
+backend:
+  replicas: 1
+  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+  tag: 2.0.0
+  containerPort: 8000
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+
+persistentVolume:
+  capacity: 1Gi
+  accessMode: ReadWriteOnce
+  reclaimPolicy: Retain
+  storageClassName: manual
+  hostPath: "/mnt/data"
+
+persistentVolumeClaim:
+  accessMode: ReadWriteOnce
+  storage: 1Gi
+  storageClassName: manual
+
+
+mongodb:
+  replicas: 1
+  image: mongo:4.4
+  serviceName: mongodb-service
+
+  username: admin
+  password: password123
+  dbName: db
+
+  authSource: admin

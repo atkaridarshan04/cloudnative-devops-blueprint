@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-tls
+  namespace: mern-devops
+spec:
+  secretName: app-tls
+  dnsNames:
+    - app.cndb.atkaridarshan.online
+  issuerRef:
+    name: letsencrypt-prod # Use `letsencrypt-prod` for production
+    kind: ClusterIssuer
+    group: cert-manager.io

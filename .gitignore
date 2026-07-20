@@ -1,0 +1,102 @@
+**/.terraform/*
+
+.local/
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+*.terraform.lock.hcl
+
+node_modules
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which are likely to contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they are usually used to override resources locally
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Helm dependencies
+charts/*/charts/
+charts/*/Chart.lock
+
+# Helm package files
+*.tgz
+
+# Helm rendered templates (for debugging)
+rendered-templates/
+
+build/
+dist/
+
+.sonar/
+.scannerwork/
+
+# Istio generated files
+istio-*.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# SSH keys
+id_rsa
+id_rsa.pub
+*.ppk
+
+config/secrets/
+**/config/local.json
+**/config/production.json
+kubeconfig
+.kube/config
+
+# Environment specific files - ignore real env files, keep templates
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+artifacts/
+releases/
