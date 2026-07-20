@@ -160,9 +160,7 @@ the architecture, the nested-hostname problem hit while testing it, and the fix.
 - [`docs/tls-concepts.md`](docs/tls-concepts.md) — learning notes: cert-manager, ACME,
   HTTP-01 vs DNS-01, Let's Encrypt staging vs prod.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
-- [`docs/argocd-deploy.md`](docs/argocd-deploy.md) — deploying the app via ArgoCD (GitOps),
-  the only supported deployment path now.
-- [`docs/argorollouts-deploy.md`](docs/argorollouts-deploy.md) — canary progressive delivery
-  with Argo Rollouts and the Gateway API traffic-routing plugin.
+- [`docs/gitops-deploy.md`](docs/gitops-deploy.md) — deploying the app via Argo Rollouts +
+  ArgoCD (GitOps), the only supported deployment path now, in the required install order.
 - [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) —
   alternative approach (not currently used) for exposing the local cluster publicly.

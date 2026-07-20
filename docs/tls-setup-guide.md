@@ -213,21 +213,20 @@ cert-manager detects the `issuerRef` change and re-requests a cert automatically
 to delete anything manually. Re-run the `openssl x509 -issuer` check above and confirm it
 now shows `C=US, O=Let's Encrypt`.
 
-## Phase 5 — App + HTTPRoute (via ArgoCD)
+## Phase 5 — App + HTTPRoute (via ArgoCD + Argo Rollouts)
 
 ArgoCD (GitOps) is the only supported way to deploy the app from here — not a one-off
 `helm install`. The Helm chart is still what gets deployed, but ArgoCD renders and syncs it
 continuously from git instead of you running Helm by hand, so changes go through a commit,
-not a manual `helm upgrade`. See [`argocd-deploy.md`](./argocd-deploy.md) for the full
-steps: installing ArgoCD (with `server.insecure: true`, required behind our
-TLS-terminating Gateway), the `argocd.cndb...` hostname this adds, and bootstrapping the
-`Application` that deploys `helm-chart/` into `mern-devops`.
+not a manual `helm upgrade`. The chart deploys `Rollout` resources (Argo Rollouts), not
+plain `Deployment`s, for the frontend and backend — so the Argo Rollouts CRDs/controller
+must be installed *before* ArgoCD's first sync, or it fails with "resource not found" for
+`argoproj.io/Rollout`.
 
-**Note:** `helm-chart/` deploys `Rollout` resources (Argo Rollouts), not plain
-`Deployment`s, for the frontend and backend — do the Argo Rollouts controller install from
-[`argorollouts-deploy.md`](./argorollouts-deploy.md) *before* this phase, or ArgoCD's sync
-will fail with a "resource not found" error for `argoproj.io/Rollout` (the CRD won't exist
-yet).
+See [`gitops-deploy.md`](./gitops-deploy.md) for the full steps, in the required order:
+installing Argo Rollouts first, then ArgoCD (with `server.insecure: true`, required behind
+our TLS-terminating Gateway) to bootstrap the `Application` that deploys `helm-chart/` into
+`mern-devops` — plus the `argocd.cndb...` and `argorollouts.cndb...` hostnames this adds.
 
 ## Phase 6 — Public exposure
 
@@ -298,7 +297,3 @@ clean padlock against the real `letsencrypt-prod` cert. Remove the line from `/e
 when done, so normal DNS resolution takes over again.
 
 ![web-app-cert](./assets/app/web-app-cert.png)
-
-**6b. Cloudflare Tunnel (public access) — not part of the current focus.** Moved out to
-[`public-access-cloudflare-tunnel.md`](./public-access-cloudflare-tunnel.md) — it covers the
-approach, the nested-hostname problem hit while testing it, and the setup steps for later.
