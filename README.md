@@ -16,8 +16,9 @@ current focus is local NodePort/browser testing.
 
 ```
 gateway/            GatewayClass, Gateway, ClusterIssuers, Certificate — platform-level, not per-app
-helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute
+helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute, Rollouts
 argocd/              AppProject, Application, HTTPRoute — GitOps deployment of the app via ArgoCD
+argorollouts/        HTTPRoute for the Argo Rollouts dashboard (canary progressive delivery)
 kind-config.yml      local kind cluster config (NodePort → host port mappings)
 docs/                setup guides and concept notes
 ```
@@ -26,12 +27,13 @@ docs/                setup guides and concept notes
 
 `*.cndb.atkaridarshan.online` is served over HTTPS terminated at the Envoy Gateway, using a
 single wildcard Let's Encrypt certificate obtained via cert-manager's DNS-01 challenge
-(Cloudflare DNS) — covering `app.cndb...` (the bookstore app) and `argocd.cndb...` (the
-ArgoCD UI, for the GitOps deployment option) under one `Certificate`/`Secret`. Both
-`letsencrypt-staging` and `letsencrypt-prod` `ClusterIssuer`s exist so new cert configs get
-proven on staging before touching the production rate limit. DNS-01 (rather than HTTP-01)
-is what makes the cert issuance independent of whether the cluster is publicly reachable
-yet, and it's the only challenge type that supports wildcard certs at all.
+(Cloudflare DNS) — covering `app.cndb...` (the bookstore app), `argocd.cndb...` (the ArgoCD
+UI), and `argorollouts.cndb...` (the Argo Rollouts dashboard) under one
+`Certificate`/`Secret`. Both `letsencrypt-staging` and `letsencrypt-prod` `ClusterIssuer`s
+exist so new cert configs get proven on staging before touching the production rate limit.
+DNS-01 (rather than HTTP-01) is what makes the cert issuance independent of whether the
+cluster is publicly reachable yet, and it's the only challenge type that supports wildcard
+certs at all.
 
 See [`docs/tls-concepts.md`](docs/tls-concepts.md) for the full HTTP-01 vs DNS-01
 reasoning and TLS trust-chain explanation, and
@@ -72,6 +74,11 @@ flowchart TD
             ArgoRoute[HTTPRoute: argocd.cndb...]
             ArgoSvc[argocd-server]
         end
+
+        subgraph "argo-rollouts namespace"
+            RolloutsRoute[HTTPRoute: argorollouts.cndb...]
+            RolloutsSvc[argo-rollouts-dashboard]
+        end
     end
 
     subgraph "cert-manager"
@@ -84,6 +91,7 @@ flowchart TD
     GW --> AppRoute --> FE
     AppRoute --> BE --> DB
     GW --> ArgoRoute --> ArgoSvc
+    GW --> RolloutsRoute --> RolloutsSvc
 
     DNSRec -.->|resolves to| LB
     CI -->|DNS-01 via provider API| TXT
@@ -118,6 +126,11 @@ flowchart TD
             ArgoRoute[HTTPRoute: argocd.cndb...]
             ArgoSvc[argocd-server]
         end
+
+        subgraph "argo-rollouts namespace"
+            RolloutsRoute[HTTPRoute: argorollouts.cndb...]
+            RolloutsSvc[argo-rollouts-dashboard]
+        end
     end
 
     subgraph "cert-manager"
@@ -126,11 +139,12 @@ flowchart TD
         Secret[Secret: wildcard-tls]
     end
 
-    Browser -->|"https://app.cndb...online or<br/>argocd.cndb...online<br/>(via /etc/hosts → 127.0.0.1)"| NP
+    Browser -->|"https://app.cndb..., argocd.cndb...,<br/>or argorollouts.cndb...<br/>(via /etc/hosts → 127.0.0.1)"| NP
     NP --> GW
     GW --> AppRoute --> FE
     AppRoute --> BE --> DB
     GW --> ArgoRoute --> ArgoSvc
+    GW --> RolloutsRoute --> RolloutsSvc
 
     CI --> Cert
     Cert -->|writes| Secret
@@ -146,7 +160,9 @@ the architecture, the nested-hostname problem hit while testing it, and the fix.
 - [`docs/tls-concepts.md`](docs/tls-concepts.md) — learning notes: cert-manager, ACME,
   HTTP-01 vs DNS-01, Let's Encrypt staging vs prod.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
-- [`docs/argocd-deploy.md`](docs/argocd-deploy.md) — deploying the app via ArgoCD (GitOps)
-  instead of a one-off `helm install`.
+- [`docs/argocd-deploy.md`](docs/argocd-deploy.md) — deploying the app via ArgoCD (GitOps),
+  the only supported deployment path now.
+- [`docs/argorollouts-deploy.md`](docs/argorollouts-deploy.md) — canary progressive delivery
+  with Argo Rollouts and the Gateway API traffic-routing plugin.
 - [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) —
   alternative approach (not currently used) for exposing the local cluster publicly.

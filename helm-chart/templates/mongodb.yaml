@@ -1,9 +1,8 @@
----
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ .Release.Name }}-mongodb-secret
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.namespace | quote }}
 type: Opaque
 data:
   username: {{ .Values.mongodb.username | b64enc }}
@@ -14,11 +13,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Release.Name }}-mongodb-service
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.namespace | quote }}
 spec:
+  type: {{ .Values.mongodb.serviceType }}
   selector:
     app: mongodb
-  clusterIP: None
   ports:
     - port: 27017
       targetPort: 27017
@@ -29,19 +28,16 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Release.Name }}-mongodb-statefulset
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.namespace | quote }}
   labels:
     app: mongodb
 spec:
   replicas: {{ .Values.mongodb.replicas }}
-  serviceName: {{ .Release.Name }}-mongodb-service
   selector:
     matchLabels:
       app: mongodb
   updateStrategy:
-    type: RollingUpdate   
-    rollingUpdate:
-      partition: 0
+    type: RollingUpdate
   template:
     metadata:
       name: mongodb
@@ -66,10 +62,37 @@ spec:
                   key: password
             - name: MONGO_INITDB_DATABASE
               value: {{ .Values.mongodb.dbName }}
-      #     volumeMounts:
-      #       - name: mongodb-vol
-      #         mountPath: /data/db        
-      # volumes:
-      #   - name: mongodb-vol
-      #     persistentVolumeClaim:
-      #       claimName: {{ .Release.Name }}-mongo-pvc
+          # volumeMounts:
+          #   - name: mongodb-vol
+          #     mountPath: /data/db
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - mongo
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+  # volumeClaimTemplates:
+  #   - metadata:
+  #       name: mongodb-vol
+  #     spec:
+  #       accessModes: [ "ReadWriteOnce" ]
+  #       resources:
+  #         requests:
+  #           storage: 5Gi
+  #       storageClassName: {{ .Release.Name }}-ebs-sc

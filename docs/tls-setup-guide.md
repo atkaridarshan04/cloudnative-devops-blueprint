@@ -213,23 +213,21 @@ cert-manager detects the `issuerRef` change and re-requests a cert automatically
 to delete anything manually. Re-run the `openssl x509 -issuer` check above and confirm it
 now shows `C=US, O=Let's Encrypt`.
 
-## Phase 5 — App + HTTPRoute
+## Phase 5 — App + HTTPRoute (via ArgoCD)
 
-Two ways to get the app deployed from here — pick one:
+ArgoCD (GitOps) is the only supported way to deploy the app from here — not a one-off
+`helm install`. The Helm chart is still what gets deployed, but ArgoCD renders and syncs it
+continuously from git instead of you running Helm by hand, so changes go through a commit,
+not a manual `helm upgrade`. See [`argocd-deploy.md`](./argocd-deploy.md) for the full
+steps: installing ArgoCD (with `server.insecure: true`, required behind our
+TLS-terminating Gateway), the `argocd.cndb...` hostname this adds, and bootstrapping the
+`Application` that deploys `helm-chart/` into `mern-devops`.
 
-**Option 1 — Helm directly:**
-
-```bash
-helm install mern helm-chart/ -n mern-devops --create-namespace
-kubectl get httproute -n mern-devops
-```
-![get-app-http-route](./assets/app/get-app-http-route.png)
-
-**Option 2 — via ArgoCD (GitOps):** installs ArgoCD itself first, then lets it sync the
-same Helm chart continuously from git instead of a one-off `helm install`. See
-[`argocd-deploy.md`](./argocd-deploy.md) for the full steps, including the `argocd.cndb...`
-hostname this adds and why ArgoCD needs to run with `server.insecure: true` behind our
-TLS-terminating Gateway.
+**Note:** `helm-chart/` deploys `Rollout` resources (Argo Rollouts), not plain
+`Deployment`s, for the frontend and backend — do the Argo Rollouts controller install from
+[`argorollouts-deploy.md`](./argorollouts-deploy.md) *before* this phase, or ArgoCD's sync
+will fail with a "resource not found" error for `argoproj.io/Rollout` (the CRD won't exist
+yet).
 
 ## Phase 6 — Public exposure
 

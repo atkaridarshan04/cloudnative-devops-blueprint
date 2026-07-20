@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argorollouts-route
+  namespace: argo-rollouts
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: mern-devops
+  hostnames:
+    - argorollouts.cndb.atkaridarshan.online
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: argo-rollouts-dashboard
+          port: 3100
