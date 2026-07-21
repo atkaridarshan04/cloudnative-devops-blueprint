@@ -18,6 +18,10 @@
 [![HashiCorp Vault](https://img.shields.io/badge/HashiCorp%20Vault-FFEC13?logo=vault&logoColor=black)](https://www.vaultproject.io/)
 [![External Secrets Operator](https://img.shields.io/badge/External%20Secrets%20Operator-326CE5?logo=kubernetes&logoColor=white)](https://external-secrets.io/)
 [![AWS EKS](https://img.shields.io/badge/AWS%20EKS-FF9900?logo=amazon-eks&logoColor=white)](https://aws.amazon.com/eks/)
+[![cert-manager](https://img.shields.io/badge/cert--manager-2C3E50)](https://cert-manager.io/)
+[![Let's Encrypt](https://img.shields.io/badge/Let's%20Encrypt-003A70)](https://letsencrypt.org/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?logo=cloudflare&logoColor=white)](https://www.cloudflare.com/)
+[![GitHub OAuth SSO](https://img.shields.io/badge/SSO-GitHub%20OAuth-181717?logo=github&logoColor=white)](https://docs.github.com/en/apps/oauth-apps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 *A comprehensive DevOps blueprint for deploying cloud-native applications with enterprise-grade tooling*
@@ -28,6 +32,58 @@
 ## 🎯 Overview
 
 This project demonstrates a **production-ready DevOps pipeline** for deploying a MERN (MongoDB, Express, React, Node.js) application using modern cloud-native technologies and best practices. From local development to cloud deployment, this blueprint covers the entire application lifecycle.
+
+## 🌿 Explore Other Branches
+
+This repository is organized as a set of branches. `main` (this one) is the broadest,
+most comprehensive blueprint — the branches below are standalone, focused deep-dives
+into a specific slice of the stack, each with its own complete setup and docs:
+
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
+<tr>
+<td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
+
+### 🌱 **[`begineer`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/begineer)**
+**Beginner-Friendly Core Flow**
+
+The starting point, before `main`'s more advanced pieces (service mesh, policy engines, secrets management, log aggregation).
+
+- Docker + Docker Compose
+- Kubernetes on `kind` with Ingress
+- Jenkins CI/CD
+- Helm + ArgoCD GitOps
+- Kustomize (dev/prod overlays)
+- Prometheus/Grafana observability
+
+</td>
+<td width="33%" style="border: 2px solid #0ea5e9; padding: 20px; vertical-align: top;">
+
+### 🔐 **[`domain-and-tls`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/domain-and-tls)**
+**Domain, TLS & Platform**
+
+A custom domain and TLS setup on Kubernetes, and everything that requires end-to-end.
+
+- Gateway API + wildcard Let's Encrypt cert via DNS-01
+- GitOps deployment (ArgoCD + Argo Rollouts canary)
+- Prometheus/Grafana + blackbox-exporter TLS monitoring
+- GitHub OAuth SSO (Dex, native Grafana OAuth, oauth2-proxy)
+
+</td>
+<td width="33%" style="border: 2px solid #7B42BC; padding: 20px; vertical-align: top;">
+
+### ☁️ **[`prod`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/prod)**
+**Real AWS EKS Production Deployment**
+
+Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD pipeline.
+
+- Terraform-provisioned AWS EKS, VPC, ECR
+- Envoy Gateway (Gateway API) + cert-manager
+- Jenkins + Trivy + SonarQube CI/CD pipeline
+- ArgoCD + Argo Rollouts canary, triggered by CI
+
+</td>
+</tr>
+</table>
 
 ## 📦 Application Versions
 
