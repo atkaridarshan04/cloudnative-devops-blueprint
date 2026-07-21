@@ -1,29 +1,25 @@
-# Cloudnative DevOps Blueprint
+# Cloudnative DevOps Blueprint — Domain, TLS & Platform
 
-This project is a staged learning blueprint for deploying a MERN (MongoDB, Express, React,
-Node.js) application using cloud-native DevOps practices. It's organized as a set of
-branches, each focused on a specific stage of the journey — from a beginner-friendly setup
-to a full production-grade pipeline — so the repo itself can double as a learning resource,
-for us and for anyone following along.
-
-**This branch (`domain-and-tls`)** started as one stage — a custom domain and TLS for the
-app — and grew to cover what that actually requires end-to-end: Kubernetes via `kind`,
-Gateway API (Envoy Gateway) instead of Ingress, cert-manager + Let's Encrypt over DNS-01,
-GitOps deployment via ArgoCD + Argo Rollouts, Prometheus/Grafana monitoring with TLS
-cert-expiry alerting, and GitHub OAuth SSO across all three UIs. Public access via
-Cloudflare Tunnel is on hold for now (see below) — current focus is local NodePort/browser
-testing.
+A custom domain and TLS setup on Kubernetes, and everything that requires end-to-end:
+`kind` cluster, Gateway API (Envoy Gateway) instead of Ingress, cert-manager + Let's
+Encrypt over DNS-01, GitOps deployment via ArgoCD + Argo Rollouts, Prometheus/Grafana
+monitoring with TLS cert-expiry alerting, and GitHub OAuth SSO across all three UIs.
+Public access via Cloudflare Tunnel is on hold for now (see below) — current focus is
+local NodePort/browser testing.
 
 ## Layout
 
 ```
-gateway/            GatewayClass, Gateway, ClusterIssuers, Certificate — platform-level, not per-app
-helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute, Rollouts
-argocd/              AppProject, Application, HTTPRoute, Helm values (incl. Dex GitHub SSO) — ArgoCD
-argorollouts/        HTTPRoute + oauth2-proxy values for the Argo Rollouts dashboard (no native auth)
-monitoring/          kube-prometheus-stack (incl. Grafana GitHub SSO) + blackbox-exporter values, ServiceMonitors/Probe/alerts, HTTPRoutes
-kind-config.yml      local kind cluster config (NodePort → host port mappings)
-docs/                setup guides; docs/concepts/ has the learning-notes docs
+.
+├── gateway/            # platform-level: GatewayClass, Gateway, ClusterIssuers, Certificate
+├── helm-chart/         # the app itself — frontend, backend, mongodb, Rollouts, HTTPRoute
+├── argocd/             # GitOps deployment of the app (ArgoCD, incl. Dex GitHub SSO)
+├── argorollouts/       # Argo Rollouts dashboard route + oauth2-proxy (no native auth)
+├── monitoring/         # kube-prometheus-stack + blackbox-exporter (incl. Grafana SSO)
+├── docs/
+│   ├── concepts/       # learning notes — the "why" behind each piece
+│   └── assets/         # screenshots referenced by the docs
+└── kind-config.yml     # local kind cluster config
 ```
 
 ## Domain & TLS
