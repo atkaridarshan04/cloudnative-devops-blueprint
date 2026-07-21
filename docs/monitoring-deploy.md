@@ -2,7 +2,7 @@
 
 Concepts and the "why" behind each piece — `ServiceMonitor` vs `PodMonitor`, how
 blackbox-exporter's `Probe` actually works, `PrometheusRule` alert states — are in
-[`monitoring-concepts.md`](./monitoring-concepts.md). This doc is the runnable checklist.
+[`monitoring-concepts.md`](./concepts/monitoring-concepts.md). This doc is the runnable checklist.
 
 Metrics + alerting for the cluster, ArgoCD, and — the focus of this branch — the domain's
 TLS certificates, using two complementary sources:
@@ -22,20 +22,25 @@ Do Phases 0–4 in [`tls-setup-guide.md`](./tls-setup-guide.md) first (Gateway a
 ## Note: blackbox-exporter probes show no TLS data locally — expected, not a bug
 
 `blackbox-exporter` runs *inside* the cluster and probes the real public hostnames
-(`app`/`argocd`/`argorollouts`/`grafana`/`prometheus.cndb...`). On `kind`, these hostnames
-aren't actually publicly reachable yet (same reasoning as the `/etc/hosts` override needed
-for manual browser testing in `tls-setup-guide.md` Phase 6a — blackbox-exporter has no
-equivalent override), so `probe_success == 0` and no `probe_ssl_earliest_cert_expiry` data
-is expected locally, not a sign of misconfiguration.
+(`app`/`argocd`/`argorollouts`/`grafana`/`prometheus.cndb...`). On `kind`, these five
+hostnames aren't actually publicly reachable yet (same reasoning as the `/etc/hosts`
+override needed for manual browser testing in `tls-setup-guide.md` Phase 6a —
+blackbox-exporter has no equivalent override), so `probe_success == 0` and no
+`probe_ssl_earliest_cert_expiry` data is expected locally, not a sign of misconfiguration.
 
-**This resolves itself automatically on a real cloud cluster** (EKS/AKS/GKE, per
-`tls-setup-guide.md`'s production path) — DNS points directly at the Gateway's real public
-address there, so the exact same `Probe` targets in `blackbox-probe.yml` become genuinely
-reachable and start reporting real data, with zero manifest changes needed. Locally, treat
-`TLSProbeFailing` firing for these five hostnames as expected background noise —
-`cert-manager-service-monitor.yml`'s `CertManagerCertExpiringSoon` alert (the K8s-side
-source) remains meaningful locally regardless, since it doesn't depend on public
-reachability at all.
+`blackbox-probe.yml` also includes a sixth target, the bare apex `atkaridarshan.online` —
+this one *is* genuinely reachable, so it should show `probe_success == 1` with real cert
+data even locally. It's a canary for the probe setup itself: if this one ever fails too,
+the problem is blackbox-exporter/Probe config, not "app isn't public yet."
+
+**The five `.cndb` targets resolve themselves automatically on a real cloud cluster**
+(EKS/AKS/GKE, per `tls-setup-guide.md`'s production path) — DNS points directly at the
+Gateway's real public address there, so the exact same `Probe` targets in
+`blackbox-probe.yml` become genuinely reachable and start reporting real data, with zero
+manifest changes needed. Locally, treat `TLSProbeFailing` firing for those five as expected
+background noise — `cert-manager-service-monitor.yml`'s `CertManagerCertExpiringSoon` alert
+(the K8s-side source) remains meaningful locally regardless, since it doesn't depend on
+public reachability at all.
 
 ## Install
 
@@ -104,8 +109,8 @@ echo "127.0.0.1 prometheus.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
 
 **Grafana** — `https://grafana.cndb.atkaridarshan.online/`, login `admin` /
-`password` (from `monitoring/values.yaml` — change this before using anywhere
-beyond local testing). Dashboards auto-provisioned: `kubernetes-cluster` (default folder),
+`password` (from `monitoring/values.yaml` — this is break-glass only once GitHub SSO is set
+up, see [`sso-deploy.md`](./sso-deploy.md)). Dashboards auto-provisioned: `kubernetes-cluster` (default folder),
 two ArgoCD dashboards (`ArgoCD Monitoring` folder), and the Blackbox Exporter dashboard
 (`TLS & Certificates` folder) — the last one graphs `probe_ssl_earliest_cert_expiry` and
 `probe_success` for all three probed hostnames.

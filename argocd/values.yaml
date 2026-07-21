@@ -1,0 +1,54 @@
+# ArgoCD Helm values. See docs/sso-deploy.md for the GitHub OAuth App setup and the
+# `argocd-secret` keys this Dex config expects ($dex.github.clientId/clientSecret) —
+# those are created via kubectl, never committed here.
+
+configs:
+  params:
+    server.insecure: true   # Gateway terminates TLS; see tls-concepts.md/gitops-deploy.md
+
+  cm:
+    # Required for Dex to correctly build the redirect_uri it sends to GitHub — without
+    # this, Dex falls back to an internal/incorrect base URL, which GitHub then rejects
+    # with "Invalid redirect URL: the protocol and host ... must match".
+    url: https://argocd.cndb.atkaridarshan.online
+
+    # Disables the built-in local `admin` superuser once GitHub SSO is confirmed working —
+    # SSO becomes the only way in. Keep the initial admin secret documented as a
+    # break-glass recovery path (re-enable this temporarily + `helm upgrade` to get back in
+    # if GitHub OAuth ever breaks) rather than deleting the secret outright.
+    admin.enabled: "false"
+
+    dex.config: |
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: $dex.github.clientId
+            clientSecret: $dex.github.clientSecret
+
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, accounts, *, *, allow
+      p, role:admin, gpgkeys, *, *, allow
+      g, atkaridarshan04@gmail.com, role:admin
+
+# Metrics — see monitoring-deploy.md / monitoring/argocd-service-monitor.yml
+controller:
+  metrics:
+    enabled: true
+server:
+  metrics:
+    enabled: true
+repoServer:
+  metrics:
+    enabled: true
+applicationSet:
+  metrics:
+    enabled: true

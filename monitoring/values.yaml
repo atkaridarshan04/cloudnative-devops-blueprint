@@ -38,9 +38,44 @@ prometheusOperator:
 grafana:
   enabled: true
   adminUser: admin
-  adminPassword: password
+  adminPassword: password   # break-glass only once GitHub OAuth below is working — see sso-deploy.md
   service:
     type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+
+  # client-id/client-secret keys come from a Secret created via kubectl (see sso-deploy.md)
+  # — never committed here. envValueFrom injects them as env vars, and grafana.ini
+  # references them via $__env{} so the plaintext secret never touches values.yaml/git.
+  envValueFrom:
+    GF_AUTH_GITHUB_CLIENT_ID:
+      secretKeyRef:
+        name: grafana-github-oauth
+        key: client-id
+    GF_AUTH_GITHUB_CLIENT_SECRET:
+      secretKeyRef:
+        name: grafana-github-oauth
+        key: client-secret
+
+  grafana.ini:
+    server:
+      root_url: https://grafana.cndb.atkaridarshan.online
+    # Hides the local admin/password login form once GitHub SSO is confirmed working —
+    # SSO becomes the only way in. The admin/password credentials above still work if you
+    # ever need break-glass access — just flip this back to false temporarily.
+    auth:
+      disable_login_form: true
+    auth.github:
+      enabled: true
+      allow_sign_up: true
+      client_id: $__env{GF_AUTH_GITHUB_CLIENT_ID}
+      client_secret: $__env{GF_AUTH_GITHUB_CLIENT_SECRET}
+      scopes: user:email,read:org
+      auth_url: https://github.com/login/oauth/authorize
+      token_url: https://github.com/login/oauth/access_token
+      api_url: https://api.github.com/user
+      # Without this, every GitHub login (including yours) gets the default
+      # auto_assign_org_role (Viewer) — only the local admin/password account would have
+      # real admin rights. Maps your specific GitHub username to Admin, everyone else Viewer.
+      role_attribute_path: login=='atkaridarshan04' && 'Admin' || 'Viewer'
 
   persistence:
     enabled: true

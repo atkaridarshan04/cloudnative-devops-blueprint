@@ -74,7 +74,7 @@ flowchart TD
 
 Cloudflare Tunnel is unrelated to how the ACME challenge itself is solved — DNS-01 only
 needs the Cloudflare API to write a TXT record, never inbound traffic — so nothing about
-tunnel setup changes the cert-manager config in `tls-concepts.md`.
+tunnel setup changes the cert-manager config in `concepts/tls-concepts.md`.
 
 ## The problem: nested hostnames don't work here
 

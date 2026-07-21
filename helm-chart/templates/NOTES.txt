@@ -8,19 +8,17 @@
   App Version:     {{ .Chart.AppVersion }}
 
 🌐 APPLICATION ACCESS:
-If using "Ingress":
-  Your application is available at:
-  🔗 http://<<instance-ip>>
-If using "NodePort Service"
-  Your application is available at:
-  🔗 http://<<instance-ip>>:31000
+  Served via Gateway API (Envoy Gateway), not Ingress — TLS terminated at the Gateway
+  with a Let's Encrypt cert (see gateway/certificate.yml):
+  🔗 https://{{ .Values.gateway.hostname }}/
 
 IMPORTANT NOTES:
-  - MongoDB data is persisted using PVC
-  - Default credentials are stored in secrets
+  - MongoDB has no persistent storage (ephemeral) — data is lost on Pod restart
+  - Default credentials are stored in Secrets
   - Health checks are configured for all services
-  - Rolling updates are enabled for zero-downtime deployments
+  - frontend/backend deploy as Argo Rollouts (canary), not plain Deployments —
+    see helm-chart/templates/backend.yaml / frontend.yaml
 
 📖 For more information, visit: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/
 
-Happy Helming! 🎉
+Happy Helming!

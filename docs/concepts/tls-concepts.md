@@ -2,7 +2,7 @@
 
 This doc explains the *why* behind the TLS setup in this repo (`gateway/certificate.yml`,
 `gateway/cluster-issuer.yml`, `gateway/gateway-api.yml`). For the runnable steps, see
-[`tls-setup-guide.md`](./tls-setup-guide.md).
+[`../tls-setup-guide.md`](../tls-setup-guide.md).
 
 ## The goal
 
@@ -79,10 +79,10 @@ it covers `app.cndb...`, `argocd.cndb...`, and any future `*.cndb...` subdomain 
 `Certificate`/`Secret`, and wildcards are only issuable via DNS-01 in the first place.
 
 Note: this nested `cndb.` naming works fine for everything in this doc and for local
-testing (`tls-setup-guide.md` Phase 6a) — it only runs into a wall if the hostname is later
+testing (`../tls-setup-guide.md` Phase 6a) — it only runs into a wall if the hostname is later
 put behind Cloudflare's proxy/edge (e.g. Cloudflare Tunnel for public access), which has its
 own, unrelated one-level certificate limit. See
-[`public-access-cloudflare-tunnel.md`](./public-access-cloudflare-tunnel.md) for that.
+[`../public-access-cloudflare-tunnel.md`](../public-access-cloudflare-tunnel.md) for that.
 
 ## How the Gateway consumes the cert
 
@@ -154,7 +154,7 @@ flowchart TD
 ```
 
 Public access (Cloudflare Tunnel) is a separate, currently-unused path — see
-[`public-access-cloudflare-tunnel.md`](./public-access-cloudflare-tunnel.md).
+[`../public-access-cloudflare-tunnel.md`](../public-access-cloudflare-tunnel.md).
 
 ## Related reading
 

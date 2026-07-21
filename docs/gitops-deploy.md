@@ -102,18 +102,17 @@ the Gateway, exactly like the app.
 ```bash
 helm install argocd argo/argo-cd \
   -n argocd --create-namespace \
-  --set configs.params."server\.insecure"=true \
-  --set controller.metrics.enabled=true \
-  --set server.metrics.enabled=true \
-  --set repoServer.metrics.enabled=true \
-  --set applicationSet.metrics.enabled=true
+  -f argocd/values.yaml
 ```
 
-The four `metrics.enabled` flags matter for [`monitoring-deploy.md`](./monitoring-deploy.md)
+`argocd/values.yaml` consolidates what used to be four separate `--set` flags: the
+`server.insecure` flag (Gateway terminates TLS, same reasoning as below), the four
+`*.metrics.enabled` flags — these matter for [`monitoring-deploy.md`](./monitoring-deploy.md)
 later: unlike the raw upstream `install.yaml` manifest (which creates
 `argocd-metrics`/`argocd-server-metrics`/`argocd-repo-server-metrics` unconditionally), this
-Helm chart makes those metrics Services **opt-in per component** — without these flags,
-`monitoring/argocd-service-monitor.yml` has nothing to scrape.
+Helm chart makes those metrics Services **opt-in per component**, without them
+`monitoring/argocd-service-monitor.yml` has nothing to scrape — plus the Dex GitHub SSO
+connector and RBAC policy, covered in [`sso-deploy.md`](./sso-deploy.md).
 
 Verify:
 
@@ -168,6 +167,11 @@ kubectl argo rollouts promote mern-backend-rollout -n mern-devops
 
 ## Access the UIs
 
+**This describes initial access, before SSO is set up.** Once you do
+[`sso-deploy.md`](./sso-deploy.md), both of these change: ArgoCD's local admin login gets
+disabled in favor of GitHub SSO, and the Rollouts dashboard goes from open access to gated
+by oauth2-proxy — see that doc for the SSO-based access this gets superseded by.
+
 Same local-testing pattern as the app itself (`tls-setup-guide.md` Phase 6a):
 
 ```bash
@@ -187,7 +191,7 @@ Open `https://argocd.cndb.atkaridarshan.online/` — username `admin`, the passw
 ![agrocd-dashboard](./assets/argocd-dashboard.png)
 
 **Argo Rollouts dashboard** — open `https://argorollouts.cndb.atkaridarshan.online/`
-directly, no login required by default.
+directly, no login required at this stage.
 
 ![rollouts-dashboard](./assets/rollouts-dashboard.png)
 

@@ -1,6 +1,6 @@
 # TLS Setup — Implementation Guide
 
-Concepts and the "why" behind each step are in [`tls-concepts.md`](./tls-concepts.md) — read
+Concepts and the "why" behind each step are in [`concepts/tls-concepts.md`](./concepts/tls-concepts.md) — read
 that first if anything below is unclear. This doc is the runnable checklist.
 
 Phases 0–5 are identical regardless of where the cluster runs. Phase 6 forks: **Path A**
@@ -264,7 +264,7 @@ never resolves to anything internet-reachable. Two steps:
 **6a. Local sanity check — this is the current focus.** `kind-config.yml` maps the
 Gateway's NodePorts to your host (`30080→80`, `30443→443`), so you can confirm end-to-end
 TLS termination works with zero public exposure. This never goes anywhere near
-Cloudflare's edge, so the nested `cndb.` naming has no issue here (see `tls-concepts.md`'s
+Cloudflare's edge, so the nested `cndb.` naming has no issue here (see `concepts/tls-concepts.md`'s
 Cloudflare-specific limit note — it only matters for 6b below).
 
 `curl` first:
@@ -280,7 +280,7 @@ publicly trusted cert, straight from your laptop, with zero public exposure.
 
 **Testing from an actual browser, not just `curl`:** the public DNS for
 `app.cndb.atkaridarshan.online` already resolves to Cloudflare's proxy IPs (see
-`tls-concepts.md`), so a browser navigating there normally will go out to the real internet
+`concepts/tls-concepts.md`), so a browser navigating there normally will go out to the real internet
 — not your local cluster — and won't have `curl`'s `--resolve` trick available. Override
 DNS locally instead, by adding a hosts-file entry:
 

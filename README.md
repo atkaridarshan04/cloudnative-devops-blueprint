@@ -6,22 +6,24 @@ branches, each focused on a specific stage of the journey — from a beginner-fr
 to a full production-grade pipeline — so the repo itself can double as a learning resource,
 for us and for anyone following along.
 
-**This branch (`domain-and-tls`)** covers one such stage: configuring a custom domain and
-TLS for the app — Kubernetes via `kind`, Gateway API (Envoy Gateway) instead of Ingress,
-Helm for app packaging, and cert-manager + Let's Encrypt for browser-trusted HTTPS via the
-DNS-01 challenge. Public access via Cloudflare Tunnel is on hold for now (see below) —
-current focus is local NodePort/browser testing.
+**This branch (`domain-and-tls`)** started as one stage — a custom domain and TLS for the
+app — and grew to cover what that actually requires end-to-end: Kubernetes via `kind`,
+Gateway API (Envoy Gateway) instead of Ingress, cert-manager + Let's Encrypt over DNS-01,
+GitOps deployment via ArgoCD + Argo Rollouts, Prometheus/Grafana monitoring with TLS
+cert-expiry alerting, and GitHub OAuth SSO across all three UIs. Public access via
+Cloudflare Tunnel is on hold for now (see below) — current focus is local NodePort/browser
+testing.
 
 ## Layout
 
 ```
 gateway/            GatewayClass, Gateway, ClusterIssuers, Certificate — platform-level, not per-app
 helm-chart/          Helm chart for the app itself: frontend, backend, mongodb, HTTPRoute, Rollouts
-argocd/              AppProject, Application, HTTPRoute — GitOps deployment of the app via ArgoCD
-argorollouts/        HTTPRoute for the Argo Rollouts dashboard (canary progressive delivery)
-monitoring/          kube-prometheus-stack + blackbox-exporter values, ServiceMonitors/Probe/alerts, HTTPRoutes
+argocd/              AppProject, Application, HTTPRoute, Helm values (incl. Dex GitHub SSO) — ArgoCD
+argorollouts/        HTTPRoute + oauth2-proxy values for the Argo Rollouts dashboard (no native auth)
+monitoring/          kube-prometheus-stack (incl. Grafana GitHub SSO) + blackbox-exporter values, ServiceMonitors/Probe/alerts, HTTPRoutes
 kind-config.yml      local kind cluster config (NodePort → host port mappings)
-docs/                setup guides and concept notes
+docs/                setup guides; docs/concepts/ has the learning-notes docs
 ```
 
 ## Domain & TLS
@@ -36,7 +38,7 @@ touching the production rate limit. DNS-01 (rather than HTTP-01) is what makes t
 issuance independent of whether the cluster is publicly reachable yet, and it's the only
 challenge type that supports wildcard certs at all.
 
-See [`docs/tls-concepts.md`](docs/tls-concepts.md) for the full HTTP-01 vs DNS-01
+See [`docs/concepts/tls-concepts.md`](docs/concepts/tls-concepts.md) for the full HTTP-01 vs DNS-01
 reasoning and TLS trust-chain explanation, and
 [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) for the runnable steps.
 
@@ -174,17 +176,58 @@ Public access (Cloudflare Tunnel) is a separate, currently-unused approach — s
 [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) for
 the architecture, the nested-hostname problem hit while testing it, and the fix.
 
+## Authentication (SSO)
+
+All three UIs (ArgoCD, Grafana, Argo Rollouts dashboard) are gated by GitHub OAuth instead
+of local admin/password logins, each via a different mechanism since none of the three
+tools handle auth the same way — see
+[`docs/concepts/sso-concepts.md`](docs/concepts/sso-concepts.md) for why. ArgoCD's local
+admin and Grafana's local login form are disabled once SSO is confirmed working (see
+[`docs/sso-deploy.md`](docs/sso-deploy.md)); the Rollouts dashboard has no local login to
+disable in the first place, since it never had one.
+
+```mermaid
+flowchart TD
+    Browser[Browser]
+    GH[GitHub OAuth<br/>3 separate OAuth Apps]
+
+    subgraph "ArgoCD"
+        Dex[argocd-dex-server<br/>broker]
+        ArgoSrv[argocd-server]
+        RBAC[argocd-rbac-cm<br/>identity → role]
+    end
+
+    subgraph "Grafana"
+        GrafSrv[Grafana<br/>native auth.github]
+        GrafRole[role_attribute_path<br/>identity → role]
+    end
+
+    subgraph "Argo Rollouts"
+        Proxy[oauth2-proxy<br/>does the OAuth dance itself]
+        Dash[argo-rollouts-dashboard<br/>no auth, trusts the proxy]
+    end
+
+    Browser -->|login| GH
+    GH -->|callback: /api/dex/callback| Dex --> ArgoSrv --> RBAC
+    GH -->|callback: /login/github| GrafSrv --> GrafRole
+    GH -->|callback: /oauth2/callback| Proxy --> Dash
+```
+
 ## Docs
 
-- [`docs/tls-concepts.md`](docs/tls-concepts.md) — learning notes: cert-manager, ACME,
+- [`docs/concepts/tls-concepts.md`](docs/concepts/tls-concepts.md) — learning notes: cert-manager, ACME,
   HTTP-01 vs DNS-01, Let's Encrypt staging vs prod.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
 - [`docs/gitops-deploy.md`](docs/gitops-deploy.md) — deploying the app via Argo Rollouts +
   ArgoCD (GitOps), the only supported deployment path now, in the required install order.
-- [`docs/monitoring-concepts.md`](docs/monitoring-concepts.md) — learning notes:
+- [`docs/concepts/monitoring-concepts.md`](docs/concepts/monitoring-concepts.md) — learning notes:
   ServiceMonitor vs PodMonitor, how the blackbox-exporter Probe mechanism works,
   PrometheusRule alert states, Grafana dashboard provisioning.
 - [`docs/monitoring-deploy.md`](docs/monitoring-deploy.md) — Prometheus, Grafana, and TLS
   cert-expiry monitoring/alerting via blackbox-exporter and cert-manager metrics.
+- [`docs/concepts/sso-concepts.md`](docs/concepts/sso-concepts.md) — learning notes: OAuth2/OIDC,
+  Dex as a broker vs Grafana's native OAuth, why the Rollouts dashboard needs oauth2-proxy.
+- [`docs/sso-deploy.md`](docs/sso-deploy.md) — GitHub OAuth SSO for ArgoCD, Grafana, and the
+  Argo Rollouts dashboard.
 - [`docs/public-access-cloudflare-tunnel.md`](docs/public-access-cloudflare-tunnel.md) —
   alternative approach (not currently used) for exposing the local cluster publicly.

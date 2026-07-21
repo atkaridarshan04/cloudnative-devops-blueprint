@@ -2,7 +2,7 @@
 
 This doc explains the *why* and *how* behind `monitoring/*` — the CRDs, blackbox-exporter's
 probing mechanism, and how it all wires up to Prometheus/Grafana. For the runnable steps,
-see [`monitoring-deploy.md`](./monitoring-deploy.md).
+see [`monitoring-deploy.md`](../monitoring-deploy.md).
 
 ## The goal
 

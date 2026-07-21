@@ -1,0 +1,23 @@
+# oauth2-proxy in front of argo-rollouts-dashboard (which has no auth of its own — see
+# concepts/sso-concepts.md). client-id/client-secret/cookie-secret come from a Secret
+# created via kubectl (see sso-deploy.md), referenced here via config.existingSecret —
+# never committed in plaintext.
+config:
+  existingSecret: argorollouts-oauth2-proxy
+
+extraArgs:
+  provider: github
+  # read:org is required even for github-user (not just github-org/team) restriction —
+  # oauth2-proxy's GitHub provider always tries to list orgs as part of session creation.
+  scope: user:email read:org
+  # Unlike ArgoCD/Grafana, oauth2-proxy has no readonly/viewer concept — anyone who
+  # passes this gate gets full dashboard access, including promote/abort. Restrict to
+  # specific GitHub username(s) rather than email-domain: "*" (which would allow anyone).
+  github-user: atkaridarshan04
+  upstream: http://argo-rollouts-dashboard.argo-rollouts.svc.cluster.local:3100
+  redirect-url: https://argorollouts.cndb.atkaridarshan.online/oauth2/callback
+  cookie-secure: "true"
+
+service:
+  type: ClusterIP
+  portNumber: 4180
