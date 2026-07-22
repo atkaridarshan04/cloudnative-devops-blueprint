@@ -37,6 +37,21 @@ flowchart LR
 > ArgoCD watches Git), but pointed at different paths in this repo today. Point both at the
 > same path if you want the CD job's commits to be exactly what this Application syncs.
 
+## 🔀 Two Deployment Paths in This Repo
+
+This guide covers two separate, self-contained ways to deploy the app via ArgoCD — pick one,
+each is complete on its own:
+
+- **Path A — Helm chart, single environment** (§3 *Deploy the Application* below): one
+  `Application` (`argocd/application.yml`) deploying `helm-chart/` into one `mern-devops`
+  namespace.
+- **Path B — Kustomize overlays, multi-environment** (§5 *Multi-Environment Deployment*
+  below): three `Application`s (`argocd/application-{dev,staging,prod}.yml`), each deploying
+  its own `kustomize/overlays/{dev,staging,prod}` into its own namespace.
+
+Both share the same `argocd/project.yml` `AppProject` — see that file's comments for which
+`destinations`/whitelist entries belong to which path.
+
 ## Cluster Configuration
 
 ```yaml
@@ -238,5 +253,47 @@ Then access Application at `http://localhost:30080`
     > Note: Ensure the `release` label matches your Prometheus installation. In this case, it's set to `monitoring`.
 
 ![Argocd Dashboard](./assets/argocd/argocd-dashboard.png)
+
+---
+
+## 5. Multi-Environment Deployment (Kustomize overlays)
+
+**Path B** from the [Two Deployment Paths](#-two-deployment-paths-in-this-repo) section above
+— an alternative to §3's Helm-chart Application, not something layered on top of it. Three
+`Application`s — `argocd/application-dev.yml`, `argocd/application-staging.yml`,
+`argocd/application-prod.yml` — each watching its own `kustomize/overlays/{dev,staging,prod}`
+path and syncing into its own namespace. They share the same `book-store` `AppProject` as §3,
+which whitelists `dev`/`staging`/`prod` as destinations alongside `mern-devops`.
+
+```mermaid
+flowchart LR
+    Git[(Git repo<br/>kustomize/overlays/)]
+
+    Git -->|dev| AppDev[Application<br/>book-store-dev]
+    Git -->|staging| AppStaging[Application<br/>book-store-staging]
+    Git -->|prod| AppProd[Application<br/>book-store-prod]
+
+    AppDev --> NsDev[namespace: dev]
+    AppStaging --> NsStaging[namespace: staging]
+    AppProd --> NsProd[namespace: prod]
+
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+
+    class Git store
+    class AppDev,AppStaging,AppProd controller
+    class NsDev,NsStaging,NsProd workload
+```
+
+```bash
+kubectl apply -f argocd/project.yml
+kubectl apply -f argocd/application-dev.yml
+kubectl apply -f argocd/application-staging.yml
+kubectl apply -f argocd/application-prod.yml
+```
+
+See [`docs/Kustomize.md`](./Kustomize.md#gitops-deployment-via-argocd-multi-environment)
+for the full context.
 
 ---

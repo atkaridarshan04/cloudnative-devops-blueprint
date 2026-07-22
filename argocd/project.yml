@@ -5,17 +5,30 @@ metadata:
   namespace: argocd
 spec:
   description: Book Store Application
-  
+
 # Allowed source repositories for applications in this project
   sourceRepos:
     - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
-  
-# Allowed destination clusters and namespaces for applications in this project
+
+# Allowed destination clusters and namespaces for applications in this project.
+# Both deployment paths below share this one AppProject.
   destinations:
+    # --- Path A: Helm chart (argocd/application.yml) ---
     - namespace: mern-devops
       server: https://kubernetes.default.svc
-  
-# Included resource kinds that can be created cluster-wide
+
+    # --- Path B: Kustomize overlays (argocd/application-{dev,staging,prod}.yml) ---
+    - namespace: dev
+      server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: prod
+      server: https://kubernetes.default.svc
+
+# Included resource kinds that can be created cluster-wide.
+# Shared by both paths below — not split per-path, since several of these (PersistentVolume,
+# RBAC, cert-manager, Gateway API) are used by other guides in this repo too, not cleanly
+# owned by just one of the two ArgoCD paths.
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
@@ -30,7 +43,10 @@ spec:
     - group: 'gateway.networking.k8s.io'
       kind: GatewayClass
 
-# Included resource kinds that can be deployed within the target namespace
+# Included resource kinds that can be deployed within the target namespace.
+# Shared by both paths below. Note: 'networking.k8s.io/Ingress' is used only by Path B
+# (Kustomize's nginx Ingress) — Path A (Helm chart) uses Gateway API (GatewayClass/Gateway/
+# HTTPRoute, in the cluster-scoped list above and HTTPRoute here) instead of Ingress.
   namespaceResourceWhitelist:
     - group: ''
       kind: ConfigMap

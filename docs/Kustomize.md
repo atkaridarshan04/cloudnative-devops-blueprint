@@ -9,7 +9,7 @@ Kustomize simplifies Kubernetes configurations by allowing environment-specific 
 We have configured the following environments with separate namespaces and ingress hosts:
 
 - **Development (`overlays/dev`)** - Accessible via `dev.local`
-- **Staging (`overlays/staging`)** - Accessible via `staging.local`  
+- **Staging (`overlays/staging`)** - Accessible via `staging.local`
 - **Production (`overlays/prod`)** - Accessible via `prod.local`
 
 ### Environment Matrix
@@ -91,7 +91,7 @@ Before deploying, verify the configurations for each environment:
 # Verify Development environment
 kubectl kustomize kustomize/overlays/dev
 
-# Verify Staging environment  
+# Verify Staging environment
 kubectl kustomize kustomize/overlays/staging
 
 # Verify Production environment
@@ -216,6 +216,29 @@ kubectl delete namespace dev staging prod
 ```bash
 # Remove the added entries from /etc/hosts
 sudo sed -i '/dev.local/d; /staging.local/d; /prod.local/d' /etc/hosts
+```
+
+---
+
+## GitOps Deployment via ArgoCD (multi-environment)
+
+Everything above deploys each overlay by hand via `kubectl apply -k`. Each overlay can
+instead be managed by its own ArgoCD `Application` — one per environment, each watching its
+own `kustomize/overlays/{dev,staging,prod}` path and syncing automatically whenever that
+path changes in Git, instead of anyone running `kubectl apply -k` by hand.
+
+```bash
+kubectl apply -f argocd/project.yml
+kubectl apply -f argocd/application-dev.yml
+kubectl apply -f argocd/application-staging.yml
+kubectl apply -f argocd/application-prod.yml
+```
+
+Verify all three synced:
+
+```bash
+kubectl get application -n argocd
+# SYNC STATUS should show Synced, HEALTH STATUS should show Healthy for all three
 ```
 
 ---
