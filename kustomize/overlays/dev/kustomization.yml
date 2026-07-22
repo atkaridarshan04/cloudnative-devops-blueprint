@@ -10,9 +10,9 @@ patches:
 - path: ingress-patch.yml
 images:
 - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
-  newTag: 3.0.0
+  newTag: 1.0.0
 - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
-  newTag: 3.0.0
+  newTag: 1.0.0
 configMapGenerator:
 - name: backend-config
   literals:
