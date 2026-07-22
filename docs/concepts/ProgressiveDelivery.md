@@ -33,3 +33,25 @@ Canary when you can split traffic and want gradual risk reduction with real prod
 Argo Rollouts replaces the `Deployment` kind with a `Rollout` CR that understands canary/blue-green steps natively. The useful part isn't just the staged traffic shift — it's `AnalysisTemplate`, which queries a metrics source (Prometheus, in this repo) after each step and automatically aborts/rolls back if error rate or latency crosses a threshold, instead of relying on someone watching a dashboard.
 
 This is why progressive delivery pairs with [GitOps](./GitOps.md): the `Rollout` spec is declared in Git like any other resource, and ArgoCD reconciles it — the rollout strategy itself becomes version-controlled and auditable.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Git[(Git: new image tag)] -->|ArgoCD syncs| Rollout[Rollout controller]
+    Rollout -->|small weight| Canary[Canary pods<br/>new version]
+    Rollout -->|remaining weight| Stable[Stable pods<br/>current version]
+    Canary --> Analysis[AnalysisTemplate<br/>queries Prometheus]
+    Analysis -->|within threshold| Rollout
+    Analysis -->|breach threshold| Abort[Abort + roll back]
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef alert fill:#cf222e,color:#fff,stroke:#cf222e
+
+    class Git store
+    class Rollout,Analysis controller
+    class Canary,Stable workload
+    class Abort alert
+```

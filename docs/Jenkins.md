@@ -1,5 +1,9 @@
 # 🔄 CI/CD Pipeline Automation with Jenkins
 
+> 📘 The CD job below only commits to Git — [ArgoCD.md](./ArgoCD.md) (and
+> [concepts/GitOps.md](./concepts/GitOps.md)) covers the pull-based sync that actually
+> gets those changes into the cluster.
+
 This guide explains the Jenkins pipeline used to automate the Continuous Integration (CI) and Continuous Deployment (CD) processes for the MERN stack application.
 
 ---
@@ -16,8 +20,29 @@ The Jenkins pipeline is divided into two major components:
 
 2. **Continuous Deployment (CD) Pipeline**:
    - Updates Kubernetes manifest files with the new Docker image tags.
-   - Pushes the updated configurations back to GitHub.
+   - Commits and pushes those updated manifests back to GitHub — it does **not** touch the
+     cluster directly; ArgoCD picks the change up from Git on its own (GitOps pull, not a push).
    - Notifies the team via email about the build and deployment status.
+
+```mermaid
+flowchart LR
+    Dev[Developer push] --> CI[CI: Jenkinsfile<br/>Trivy fs + SonarQube + Trivy image<br/>build & push image]
+    CI -->|triggers bookstore-cd,<br/>passes image tags| CD[CD: gitops/Jenkinsfile<br/>sed-updates kubernetes/*.yml]
+    CD -->|git commit + push| Git[(GitHub: main)]
+    Git -.->|watched by| Argo[ArgoCD<br/>pulls & syncs, on its own]
+    CI -.->|email| Notify[Team notification]
+    CD -.->|email| Notify
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class Dev external
+    class CI,CD,Argo controller
+    class Git store
+    class Notify observability
+```
 
 ![jenkins-home](./assets/jenkins/jenkins-home.png)
 ![jenkins-ci](./assets/jenkins/jenkins-ci.png)
@@ -282,7 +307,7 @@ The pipeline requires the following parameters:
 
 1. **CI Pipeline**: Triggers automatically when code is pushed to the repository, running tests, security scans, building Docker images, and pushing them to Docker Hub.
    
-2. **CD Pipeline**: Triggers after successful CI execution. It updates the Kubernetes manifests with the new Docker image tags, pushes the changes to GitHub, and applies the new configurations to the Kubernetes cluster.
+2. **CD Pipeline**: Triggers after successful CI execution. It updates the Kubernetes manifests with the new Docker image tags and pushes the changes to GitHub — from there, ArgoCD is what actually applies the new configuration to the cluster, by watching and syncing from Git on its own (see [ArgoCD.md](./ArgoCD.md)).
 
 ---
 

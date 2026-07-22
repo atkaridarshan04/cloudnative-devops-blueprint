@@ -16,21 +16,33 @@ image: your-dockerhub-username/bookstore-backend:3.0.1
 
 ## 🎯 Architecture
 
-```
-App containers (JSON stdout)
-        ↓
-  /var/log/containers/ on each node
-        ↓
-  Fluent Bit DaemonSet (one pod per node)
-    - tail:       reads container log files
-    - kubernetes: enriches with pod/namespace/label metadata
-    - parser:     parses JSON log fields
-    - lua:        maps Pino numeric level → string (30→info, 40→warn, 50→error)
-    - output:     pushes to Loki HTTP API with level label
-        ↓
-  Loki (stores compressed chunks in MinIO/S3, indexes only labels)
-        ↓
-  Grafana (LogQL queries, dashboards, alerts)
+```mermaid
+flowchart TD
+    App[App containers<br/>JSON stdout] --> Node["/var/log/containers/<br/>on each node"]
+    Node --> FB[Fluent Bit DaemonSet<br/>one pod per node]
+
+    FB --> Tail[tail:<br/>reads log files]
+    Tail --> K8sMeta[kubernetes filter:<br/>adds pod/namespace/label metadata]
+    K8sMeta --> Parser[parser filter:<br/>parses JSON fields]
+    Parser --> Lua["lua filter:<br/>Pino level → string"]
+    Lua --> Output[output:<br/>pushes to Loki HTTP API]
+
+    Output --> Loki[Loki<br/>indexes only labels]
+    Loki --> Storage[(MinIO / S3<br/>compressed log chunks)]
+    Loki --> Grafana[Grafana]
+
+    Grafana --> LogQL[Explore:<br/>ad-hoc LogQL queries]
+    Grafana --> Dash[Pre-built dashboards]
+
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class App,Node workload
+    class FB,Tail,K8sMeta,Parser,Lua,Output controller
+    class Loki,Storage store
+    class Grafana,LogQL,Dash observability
 ```
 
 ## 🎯 Components

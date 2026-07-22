@@ -1,6 +1,6 @@
 # 🌐 Ingress vs Gateway API
 
-> Hands-on guide: [Kubernetes.md](../Kubernetes.md) (§5 — both are shown, Gateway API is the recommended path)
+> Hands-on guide: [Kubernetes.md](../Kubernetes.md) (Section 5 — both are shown, Gateway API is the recommended path)
 
 ## Ingress: simple, but limited
 
@@ -19,3 +19,24 @@ This separation means the infra team can manage the shared entry point while app
 ## Why the guide shows both
 
 Ingress is in maintenance mode across the ecosystem — no new features are being added to the API. Gateway API is the actively developed, official successor. The Kubernetes guide keeps the Ingress setup around (marked "retired") mostly for comparison/context, and treats Gateway API as the setup to actually use going forward.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph "Ingress — one resource, annotation-driven"
+        IngressRes[Ingress<br/>+ controller-specific annotations] --> IngSvc[Service]
+    end
+
+    subgraph "Gateway API — split by owner"
+        GWClass[GatewayClass<br/>cluster-admin owned] --> GW[Gateway<br/>infra team: listeners, TLS]
+        GW --> Route[HTTPRoute<br/>app team: routing rules]
+        Route --> GWSvc[Service]
+    end
+
+    classDef packaging fill:#8957e5,color:#fff,stroke:#8957e5
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+
+    class IngressRes,GWClass,GW,Route packaging
+    class IngSvc,GWSvc workload
+```

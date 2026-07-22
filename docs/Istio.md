@@ -4,6 +4,30 @@
 
 This guide provides step-by-step instructions to **install and configure Istio service mesh** and **deploy the MERN application** with advanced traffic management, security, and observability features.
 
+```mermaid
+flowchart LR
+    Client[Client] --> IGW[istio-ingress gateway]
+    IGW -->|VirtualService| FE[frontend<br/>+ Envoy sidecar]
+    FE -->|mTLS · frontend SA → backend<br/>on /books*| BE[backend<br/>+ Envoy sidecar]
+    BE -->|mTLS · backend SA → mongodb| DB[(mongodb)]
+
+    Istiod[istiod<br/>control plane] -.->|pushes routing,<br/>TLS certs, policy| FE
+    Istiod -.->|pushes routing,<br/>TLS certs, policy| BE
+
+    FE -.->|telemetry| Obs[Kiali / Grafana / Jaeger]
+    BE -.->|telemetry| Obs
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class Client external
+    class IGW,Istiod controller
+    class FE,BE,DB workload
+    class Obs observability
+```
+
 
 ## **1. Install Istio Service Mesh**
 

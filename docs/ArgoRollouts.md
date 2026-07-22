@@ -183,6 +183,17 @@ strategy:
 4. **Step 3**: 100% → Canary *(10s pause)*
 5. **Completion**: Canary becomes the new stable version
 
+```mermaid
+flowchart LR
+    S0["100% Stable"] --> S1["20% Canary / 80% Stable<br/>(manual pause)"]
+    S1 --> S2["60% Canary / 40% Stable<br/>(10s pause)"]
+    S2 --> S3["100% Canary<br/>(10s pause)"]
+    S3 --> S4["Canary → new Stable"]
+
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    class S0,S1,S2,S3,S4 workload
+```
+
 ## 5. Canary Commands
 
 ### Trigger a Deployment
@@ -277,16 +288,26 @@ strategy:
 
 ### Traffic Flow
 
-```
-DURING ROLLOUT (paused):
-  Ingress ──► frontend-service-active  ──► Blue pods (v1)   ← production traffic
-              frontend-service-preview ──► Green pods (v2)  ← port-forward only
+```mermaid
+flowchart TD
+    subgraph "During rollout (paused)"
+        Ing1[Ingress] --> Active1[frontend-service-active] --> Blue1[Blue pods v1<br/>production traffic]
+        Prev1[frontend-service-preview] --> Green1[Green pods v2<br/>port-forward only]
+    end
 
-AFTER PROMOTION:
-  Ingress ──► frontend-service-active  ──► Green pods (v2)  ← active selector patched
-              frontend-service-preview ──► Green pods (v2)
-  (Blue pods kept for scaleDownDelaySeconds, then deleted)
+    subgraph "After promotion"
+        Ing2[Ingress] --> Active2[frontend-service-active] --> Green2[Green pods v2<br/>now production traffic]
+        Prev2[frontend-service-preview] --> Green2
+    end
+
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef packaging fill:#8957e5,color:#fff,stroke:#8957e5
+
+    class Ing1,Ing2,Active1,Active2,Prev1,Prev2 packaging
+    class Blue1,Green1,Green2 workload
 ```
+
+Blue pods are kept for `scaleDownDelaySeconds` after promotion, then deleted.
 
 1. **Update triggered**: Green pods (new version) created alongside blue
 2. **Paused**: Preview service selector patched to green pods; active unchanged

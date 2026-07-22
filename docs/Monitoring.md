@@ -12,6 +12,22 @@ Complete metrics monitoring setup for Kubernetes with Prometheus and Grafana.
 - **Node Exporter** - System metrics
 - **Kube State Metrics** - Kubernetes metrics
 
+```mermaid
+flowchart LR
+    NodeExp[Node Exporter<br/>system metrics: CPU, memory, disk] --> Prom[Prometheus<br/>scrapes & stores time series]
+    KSM[Kube State Metrics<br/>K8s object state: pods, deployments] --> Prom
+    App[App pods<br/>/metrics endpoints] --> Prom
+    Prom --> Graf[Grafana<br/>dashboards & queries]
+
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class NodeExp,KSM,App workload
+    class Prom controller
+    class Graf observability
+```
+
 ## 🚀 Setup
 
 ### 1. Cluster Configuration

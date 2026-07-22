@@ -13,6 +13,30 @@ ArgoCD provides declarative GitOps continuous delivery for Kubernetes applicatio
 - Easy rollback and application lifecycle management
 - Multi-environment deployment capabilities
 
+```mermaid
+flowchart LR
+    CD[Jenkins CD<br/>gitops/Jenkinsfile<br/>updates image tag] -->|git commit + push| Git[(Git repo)]
+    Git -.->|watched by| App[ArgoCD Application<br/>book-store]
+    App -->|sync| Cluster[mern-devops namespace]
+    App -.->|on-health-degraded / on-deployed| Notify[Email notifications]
+    Cluster -.->|metrics| Prom[Prometheus<br/>via ServiceMonitor]
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class CD,App controller
+    class Git store
+    class Cluster workload
+    class Notify,Prom observability
+```
+
+> Note: `gitops/Jenkinsfile` updates image tags in `kubernetes/*.yml`, while this
+> `Application`'s `source.path` below is `helm-chart` — same GitOps mechanism (CD commits,
+> ArgoCD watches Git), but pointed at different paths in this repo today. Point both at the
+> same path if you want the CD job's commits to be exactly what this Application syncs.
+
 ## Cluster Configuration
 
 ```yaml

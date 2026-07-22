@@ -17,6 +17,21 @@ Instead:
 * Git contains only *references*
 * Kubernetes gets native `Secret` objects at runtime
 
+```mermaid
+flowchart LR
+    Vault[(HashiCorp Vault<br/>secret/dev/mern-backend/mongodb)] -->|SecretStore: vault-token| ESO[External Secrets<br/>Operator]
+    ESO -->|ExternalSecret| Secret[Kubernetes Secret<br/>mongodb-credentials-external]
+    Secret -->|secretKeyRef| Pod[MongoDB Pod]
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+
+    class Vault store
+    class ESO controller
+    class Secret,Pod workload
+```
+
 
 ## 🧠 Why This Matters
 

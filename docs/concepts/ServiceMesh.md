@@ -34,3 +34,28 @@ Because every request already passes through a sidecar, the mesh gets distribute
 ## The tradeoff
 
 None of this is free: every request now hops through two extra proxies (client sidecar → network → server sidecar), each pod carries an extra container's worth of CPU/memory, and the mesh itself (control plane, CRDs, policies) is another system to operate and debug. For a handful of services owned by one team with no compliance requirement for encrypted internal traffic, a mesh is usually more operational overhead than it's worth — it pays off once you have enough services, teams, or a real mTLS/zero-trust requirement that hand-rolling it per-service would be worse.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Istiod[istiod<br/>control plane]
+
+    subgraph "Pod: frontend"
+        FEApp[frontend app] <-->|localhost, plaintext| FESidecar[Envoy sidecar]
+    end
+
+    subgraph "Pod: backend"
+        BESidecar[Envoy sidecar] <-->|localhost, plaintext| BEApp[backend app]
+    end
+
+    Istiod -.->|pushes routing rules,<br/>TLS certs, policy| FESidecar
+    Istiod -.->|pushes routing rules,<br/>TLS certs, policy| BESidecar
+    FESidecar -->|mTLS, authorized by<br/>AuthorizationPolicy| BESidecar
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+
+    class Istiod controller
+    class FEApp,BEApp,FESidecar,BESidecar workload
+```

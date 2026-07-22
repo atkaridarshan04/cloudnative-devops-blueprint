@@ -39,6 +39,23 @@ This repository is organized as a set of branches. `main` (this one) is the broa
 most comprehensive blueprint — the branches below are standalone, focused deep-dives
 into a specific slice of the stack, each with its own complete setup and docs:
 
+```mermaid
+flowchart LR
+    Begin["🌱 begineer<br/>core flow only"] -->|adds mesh, policy,<br/>secrets, log aggregation| Main["🚀 main<br/>broadest blueprint · this branch"]
+    Main -->|focus: custom domain,<br/>TLS, GitHub SSO| TLS["🔐 domain-and-tls<br/>focused deep-dive"]
+    Main -->|focus: real cloud,<br/>Terraform-provisioned EKS| Prod["☁️ prod<br/>production deployment"]
+
+    classDef begin fill:#23ce26,color:#000,stroke:#23ce26
+    classDef main fill:#57606a,color:#fff,stroke:#57606a
+    classDef tls fill:#0ea5e9,color:#fff,stroke:#0ea5e9
+    classDef prod fill:#7B42BC,color:#fff,stroke:#7B42BC
+
+    class Begin begin
+    class Main main
+    class TLS tls
+    class Prod prod
+```
+
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
 <tr>
 <td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
@@ -85,6 +102,25 @@ Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD 
 </tr>
 </table>
 
+**At a glance — what each branch actually includes:**
+
+| Capability | 🌱 begineer | 🚀 main (this branch) | 🔐 domain-and-tls | ☁️ prod |
+|---|---|---|---|---|
+| Containerization | ✅ Docker Compose | ✅ Docker | ✅ Docker | ✅ Docker |
+| Kubernetes cluster | `kind` + Ingress | `kind` + Ingress/Gateway API | `kind` + Gateway API | Real AWS EKS |
+| Infra as Code | — | ✅ Terraform (optional path) | — | ✅ Terraform (EKS, VPC, ECR) |
+| CI/CD | ✅ Jenkins | ✅ Jenkins + Trivy + SonarQube | — | ✅ Jenkins + Trivy + SonarQube |
+| GitOps | ✅ ArgoCD | ✅ ArgoCD | ✅ ArgoCD | ✅ ArgoCD |
+| Progressive Delivery | — | ✅ Argo Rollouts (canary + blue-green) | ✅ Argo Rollouts (canary) | ✅ Argo Rollouts (canary) |
+| Config management | Helm + Kustomize | Helm + Kustomize | Helm | Helm |
+| Service Mesh | — | ✅ Istio | — | — |
+| Policy Engine | — | ✅ Kyverno | — | — |
+| Secrets Management | — | ✅ Vault + External Secrets Operator | — | — |
+| Custom Domain + TLS | — | — | ✅ cert-manager, DNS-01 wildcard | ✅ cert-manager |
+| SSO | — | — | ✅ GitHub OAuth (Dex, Grafana, oauth2-proxy) | — |
+| Monitoring | ✅ Prometheus/Grafana | ✅ Prometheus/Grafana | ✅ + TLS cert-expiry alerts | ✅ Prometheus/Grafana |
+| Log Aggregation | — | ✅ Fluent Bit + Loki | — | — |
+
 ## 📦 Application Versions
 
 Three versions of the application are available, each with distinct visual and functional differences:
@@ -107,6 +143,53 @@ Three versions of the application are available, each with distinct visual and f
 
 </div>
 
+The gif above walks through one path end-to-end; it doesn't show every piece running at
+once. Every box below is a real, working piece of this repo — but most of the per-tool
+guides ([Kyverno.md](./docs/Kyverno.md), [Istio.md](./docs/Istio.md),
+[ArgoRollouts.md](./docs/ArgoRollouts.md), etc.) demo their slice **standalone**, each with
+its own `kind` cluster, not wired to the others. This is the *composite* architecture — how
+they compose if you ran them together, not a claim that this exact end-to-end chain runs in
+any single guide today:
+
+```mermaid
+flowchart TD
+    Dev[Developer commit] --> CI[Jenkins CI<br/>SonarQube + Trivy scan<br/>build & push image]
+    CI -->|triggers| CD[Jenkins CD<br/>gitops/Jenkinsfile<br/>updates image tag]
+    CD -->|git commit + push| Git[(Git repo<br/>manifests / Helm values)]
+    Git -.->|watched by| ArgoApp[ArgoCD Application]
+
+    subgraph "AWS EKS cluster (provisioned by Terraform)"
+        ArgoApp -->|sync| Kyverno[Kyverno<br/>admission policies]
+        Kyverno -->|allowed| Rollout[Argo Rollouts<br/>canary / blue-green]
+
+        subgraph "mern-devops namespace (Istio mesh)"
+            Rollout --> FE[frontend<br/>+ Envoy sidecar]
+            FE -->|mTLS| BE[backend<br/>+ Envoy sidecar]
+            BE -->|mTLS| DB[(mongodb)]
+        end
+
+        Vault[(HashiCorp Vault)] --> ESO[External Secrets<br/>Operator] --> Secret[Kubernetes Secret]
+        Secret --> BE
+        Secret --> DB
+    end
+
+    FE -.->|metrics| Prom[Prometheus / Grafana]
+    BE -.->|metrics| Prom
+    FE -.->|logs| Fluent[Fluent Bit] --> Loki[Loki]
+    BE -.->|logs| Fluent
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+    classDef observability fill:#d29922,color:#000,stroke:#d29922
+
+    class Dev external
+    class CI,CD,ArgoApp,Kyverno,Rollout,ESO controller
+    class Git,Vault store
+    class FE,BE,DB,Secret workload
+    class Prom,Fluent,Loki observability
+```
 
 ## 🛠️ Technology Stack
 

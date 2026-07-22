@@ -34,3 +34,29 @@ Two knobs matter most in practice:
 - **Self-heal + prune** — if someone edits a live resource out-of-band, self-heal reverts it back to match Git on the next reconcile loop. `prune` removes resources that were deleted from Git. Together they make Git the *enforced* truth, not just the *intended* one.
 
 This is also why GitOps composes naturally with [progressive delivery](./ProgressiveDelivery.md): ArgoCD reconciles the desired `Rollout` spec from Git, and Argo Rollouts drives the actual canary/blue-green traffic shift.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph "Push (traditional CD)"
+        CI[CI pipeline<br/>holds cluster credentials] -->|kubectl apply / helm upgrade| K1[Kubernetes]
+    end
+
+    subgraph "Pull (GitOps)"
+        Git[(Git repo<br/>desired state)] -.->|watched by| Argo[ArgoCD<br/>in-cluster controller]
+        Argo -->|reconciles| K2[Kubernetes]
+        K2 -.->|drift detected| Argo
+        Argo -->|self-heal + prune| K2
+    end
+
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+
+    class CI external
+    class Git store
+    class Argo controller
+    class K1,K2 workload
+```
