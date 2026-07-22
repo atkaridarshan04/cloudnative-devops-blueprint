@@ -1,25 +1,20 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 namespace: staging
 namePrefix: staging-
-
 resources:
-  - ../../base
-  - namespace.yml
-
+- ../../base
+- namespace.yml
 patches:
-  - path: app-patches.yml
-  - path: ingress-patch.yml
-
+- path: app-patches.yml
+- path: ingress-patch.yml
 images:
-  - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
-    newTag: 1.0.0
-  - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
-    newTag: 1.0.0
-
+- name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+  newTag: 3.0.0
+- name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+  newTag: 3.0.0
 configMapGenerator:
-  - name: backend-config
-    literals:
-      - PORT=8000
-      - mongoDBURL=mongodb://admin:password123@staging-mongodb-deployment-0.staging-mongodb-service-headless.staging.svc.cluster.local:27017/db?authSource=admin
+- name: backend-config
+  literals:
+  - PORT=8000
+  - mongoDBURL=mongodb://admin:password123@staging-mongodb-deployment-0.staging-mongodb-service-headless.staging.svc.cluster.local:27017/db?authSource=admin
