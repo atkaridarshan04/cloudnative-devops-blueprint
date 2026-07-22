@@ -1,5 +1,7 @@
 # 🔐 Git-Safe Secret Management with External Secrets Operator (ESO)
 
+> 📘 See [concepts/SecretsManagement.md](./concepts/SecretsManagement.md) for why native Secrets aren't enough and how Vault + ESO fit together.
+
 This guide demonstrates **secure, Git-safe secret management in Kubernetes** using:
 
 * **HashiCorp Vault** as the secret store

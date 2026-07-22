@@ -1,5 +1,7 @@
 # ☸️ Kubernetes Deployment & Container Orchestration
 
+> 📘 Section 5 below covers both Ingress and Gateway API — see [concepts/IngressVsGatewayAPI.md](./concepts/IngressVsGatewayAPI.md) for why Gateway API is the recommended path.
+
 ## 📋 Cluster Configuration: `kind-config.yaml`
 
 ```yaml
@@ -35,7 +37,7 @@ kubectl get nodes
 
 
 
-## 2️⃣ Create a Namespace 
+## 2️⃣ Create a Namespace
 
 Organize your resources by creating a dedicated namespace:
 
@@ -83,12 +85,12 @@ kubectl apply -f frontend.yml
 
 ```bash
 kubectl get all -n mern-devops
-```  
+```
 
 ### 🌐 Access Points
 
 - **Frontend:** Access the application at:
-  
+
   ```
   http://<node-ip>:31000
   ```

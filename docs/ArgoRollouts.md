@@ -1,5 +1,7 @@
 # Argo Rollouts: Progressive Deployments in Kubernetes
 
+> 📘 See [concepts/ProgressiveDelivery.md](./concepts/ProgressiveDelivery.md) for why canary/blue-green exist and when to pick which.
+
 Argo Rollouts is a Kubernetes controller that enables advanced deployment strategies such as **canary** and **blue-green** deployments, allowing you to release application updates with greater safety and control.
 
 | | Canary | Blue-Green |

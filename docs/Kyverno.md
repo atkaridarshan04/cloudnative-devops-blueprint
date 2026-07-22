@@ -1,5 +1,7 @@
 # 🛡️ Policy Management with Kyverno
 
+> 📘 See [concepts/PolicyAsCode.md](./concepts/PolicyAsCode.md) for how admission control and policy-as-code work.
+
 This guide demonstrates how to implement Kubernetes policy management using Kyverno, a policy engine designed for Kubernetes that enables security, compliance, and governance through declarative policies.
 
 ## Overview

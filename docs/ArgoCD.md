@@ -1,5 +1,7 @@
 # ⚡ GitOps Continuous Delivery with ArgoCD
 
+> 📘 New to GitOps? See [concepts/GitOps.md](./concepts/GitOps.md) for the push-vs-pull model this guide implements.
+
 This guide demonstrates how to deploy and manage the MERN stack application using ArgoCD for GitOps continuous delivery, enabling automated synchronization between Git repository and Kubernetes cluster.
 
 ## Overview

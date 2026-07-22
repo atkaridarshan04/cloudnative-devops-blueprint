@@ -129,6 +129,8 @@ Three versions of the application are available, each with distinct visual and f
 
 ## 📚 Documentation Hub
 
+> 📘 **[docs/concepts/](./docs/concepts/README.md)** — the guides below are how-to runbooks; the concepts folder covers the *why* (GitOps, service mesh, progressive delivery, policy-as-code, secrets management, Helm vs Kustomize, Ingress vs Gateway API).
+
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #2e6ccaff;">
 <tr>
 <td width="33%" style="border: 2px solid #2e6ccaff; padding: 20px; vertical-align: top;">

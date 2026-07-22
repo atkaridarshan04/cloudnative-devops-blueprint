@@ -1,5 +1,7 @@
 #  📦 Packaging & Deploying Applications with Helm Charts
 
+> 📘 See [concepts/HelmVsKustomize.md](./concepts/HelmVsKustomize.md) for how Helm compares to Kustomize and when to reach for each.
+
 ## Step 1: Cluster Setup
 
 Cluster Configuration: `kind-config.yaml`

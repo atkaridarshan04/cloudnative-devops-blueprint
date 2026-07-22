@@ -1,5 +1,7 @@
 # 🕸️ Service Mesh Implementation with Istio
 
+> 📘 See [concepts/ServiceMesh.md](./concepts/ServiceMesh.md) for the sidecar pattern and why mTLS/zero-trust live at this layer.
+
 This guide provides step-by-step instructions to **install and configure Istio service mesh** and **deploy the MERN application** with advanced traffic management, security, and observability features.
 
 
