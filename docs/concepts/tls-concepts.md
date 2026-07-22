@@ -111,6 +111,30 @@ still declares its own exact hostname underneath that. `allowedRoutes.namespaces
 is what lets `HTTPRoute`s from *other* namespaces (like `argocd`) attach to this Gateway at
 all — by default a listener only accepts routes from its own namespace (`mern-devops`).
 
+**Confirmed: Envoy Gateway hot-reloads the cert automatically on renewal.** Forced a renewal
+by switching `wildcard-tls`'s issuer to `letsencrypt-staging` and back — the moment
+cert-manager wrote the new cert into the Secret, a live TLS handshake against the Gateway
+immediately returned the new cert's fingerprint, with zero manual intervention (no pod
+restart, no reload command). See [`../tls-renewal-test.md`](../tls-renewal-test.md) for the
+full test and result.
+
+<details>
+<summary><strong>Mechanism: why no restart is needed (control plane vs data plane, SDS)</strong></summary>
+
+"Envoy Gateway" here is actually two separate pieces, worth distinguishing since they do
+different jobs: the **control plane** (the `envoy-gateway` deployment in
+`envoy-gateway-system`) is what watches the `Gateway`/`HTTPRoute`/Secret resources — a
+standard Kubernetes controller watch, event-driven, not a poll loop. The **data plane** (the
+actual Envoy proxy pods handling traffic) never reads the Kubernetes Secret itself at all.
+When the control plane sees the referenced Secret change, it translates the new cert into
+Envoy's native config and pushes it to the proxy over a persistent connection via **SDS**
+(Secret Discovery Service, part of Envoy's xDS API) — Envoy is built around accepting config
+updates, including TLS certs, live over that stream, without restarting or dropping
+connections. That's *why* no restart is needed here: it's the mechanism Envoy was designed
+around, not an accident of this particular setup.
+
+</details>
+
 ## Architecture (TLS/Gateway layer, local testing, no public exposure)
 
 Scoped to just the app + ArgoCD routes — the two that existed when this doc was written.

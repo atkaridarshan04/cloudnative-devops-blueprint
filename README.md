@@ -242,6 +242,8 @@ flowchart TD
 - [`docs/concepts/tls-concepts.md`](docs/concepts/tls-concepts.md) — learning notes: cert-manager, ACME,
   HTTP-01 vs DNS-01, Let's Encrypt staging vs prod.
 - [`docs/tls-setup-guide.md`](docs/tls-setup-guide.md) — runnable step-by-step setup.
+- [`docs/tls-renewal-test.md`](docs/tls-renewal-test.md) — validates that cert renewal
+  actually reaches Envoy Gateway, not just that cert-manager reissues it.
 - [`docs/gitops-deploy.md`](docs/gitops-deploy.md) — deploying the app via Argo Rollouts +
   ArgoCD (GitOps), the only supported deployment path now, in the required install order.
 - [`docs/concepts/monitoring-concepts.md`](docs/concepts/monitoring-concepts.md) — learning notes:
