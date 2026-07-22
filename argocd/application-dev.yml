@@ -10,7 +10,7 @@ spec:
 
   source:
     repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-    targetRevision: main
+    targetRevision: kargo-promotion # working branch — switch back to main once this merges
     path: kustomize/overlays/dev
 
   destination:
