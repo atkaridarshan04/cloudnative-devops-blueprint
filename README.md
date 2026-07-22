@@ -6,6 +6,7 @@
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Jenkins](https://img.shields.io/badge/Jenkins-D24939?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
+[![Kargo](https://img.shields.io/badge/Kargo-EF7B4D)](https://docs.kargo.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
 [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Kustomize](https://img.shields.io/badge/Kustomize-326CE5?logo=kubernetes&logoColor=white)](https://kustomize.io/)
@@ -158,6 +159,9 @@ flowchart TD
     CD -->|git commit + push| Git[(Git repo<br/>manifests / Helm values)]
     Git -.->|watched by| ArgoApp[ArgoCD Application]
 
+    CI -.->|image published| Kargo[Kargo Warehouse<br/>watches image tags]
+    Kargo -->|promotes dev→staging→prod<br/>opens PR, human merges| Git
+
     subgraph "AWS EKS cluster (provisioned by Terraform)"
         ArgoApp -->|sync| Kyverno[Kyverno<br/>admission policies]
         Kyverno -->|allowed| Rollout[Argo Rollouts<br/>canary / blue-green]
@@ -185,7 +189,7 @@ flowchart TD
     classDef observability fill:#d29922,color:#000,stroke:#d29922
 
     class Dev external
-    class CI,CD,ArgoApp,Kyverno,Rollout,ESO controller
+    class CI,CD,ArgoApp,Kyverno,Rollout,ESO,Kargo controller
     class Git,Vault store
     class FE,BE,DB,Secret workload
     class Prom,Fluent,Loki observability

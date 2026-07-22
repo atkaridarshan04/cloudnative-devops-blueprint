@@ -9,22 +9,58 @@ Depends on [`docs/ArgoCD.md`](./ArgoCD.md) §5 and [`docs/Kustomize.md`](./Kusto
 three per-environment ArgoCD `Application`s need to already be `Synced`/`Healthy` on their
 own, standalone, before anything here will make sense.
 
-## ⚠️ Before applying anything
+```mermaid
+flowchart TD
+    GHCR[(Image repo<br/>new tag published)] -.->|watched by| WH[Kargo Warehouse]
+    WH -->|produces| Freight[Freight]
 
-Kargo's promotion-step schema has genuinely changed shape across releases. The manifests in
-`kargo/` were written against the current docs at
-[docs.kargo.io](https://docs.kargo.io/user-guide/reference-docs/promotion-steps) — but
-verify against your installed version before trusting them blindly:
+    Freight -->|direct| Dev[Stage: dev]
+    Dev -->|verified healthy| Staging[Stage: staging]
+    Staging -->|verified healthy| Prod[Stage: prod]
 
-```bash
-kargo version
-kubectl explain warehouse.spec.subscriptions.image --recursive
+    Dev -->|opens PR, human merges| Git[(GitHub repo<br/>kargo-promotion branch)]
+    Staging -->|opens PR, human merges| Git
+    Prod -->|opens PR, human merges| Git
+
+    Git -.->|watched by| AppDev[ArgoCD Application<br/>book-store-dev]
+    Git -.->|watched by| AppStaging[ArgoCD Application<br/>book-store-staging]
+    Git -.->|watched by| AppProd[ArgoCD Application<br/>book-store-prod]
+
+    AppDev -->|sync<br/>kustomize/overlays/dev| NsDev[namespace: dev]
+    AppStaging -->|sync<br/>kustomize/overlays/staging| NsStaging[namespace: staging]
+    AppProd -->|sync<br/>kustomize/overlays/prod| NsProd[namespace: prod]
+
+    classDef store fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef workload fill:#57606a,color:#fff,stroke:#57606a
+
+    class GHCR,Freight,Git store
+    class WH,Dev,Staging,Prod,AppDev,AppStaging,AppProd controller
+    class NsDev,NsStaging,NsProd workload
 ```
 
-A mismatch here won't error loudly — a `Warehouse` or `Promotion` will just silently never
-produce the result you expect.
+## Cluster Configuration
 
-## Step 1 — Install cert-manager (real prerequisite, easy to miss)
+`kind-config.yml` maps a NodePort for the Kargo dashboard, same pattern as the ArgoCD UI in
+[`docs/ArgoCD.md`](./ArgoCD.md). `30001` is already taken by ArgoCD, and `80`/`443` are
+occupied on the host by other services in this repo, so Kargo gets `30002`:
+
+```yaml
+# kind-config.yml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30001 # for ArgoCD UI
+        hostPort: 30001
+        protocol: TCP
+      - containerPort: 30002 # for Kargo UI
+        hostPort: 30002
+        protocol: TCP
+```
+
+## Step 1 — Install cert-manager
 
 Kargo's Helm chart requires cert-manager already running in the cluster — it provisions the
 TLS certs Kargo's own webhook servers need:
@@ -65,33 +101,45 @@ kubectl get pods -n kargo
 > This configuration is only suitable for trying Kargo locally, not for anything
 > internet-facing — see [Advanced Installation](https://docs.kargo.io/operator-guide/advanced-installation/advanced-with-helm) if that ever matters here.
 
-**Accessing the dashboard, for now:** unlike ArgoCD/Ingress, no NodePort/hostPort is mapped
-for Kargo in `kind-config.yml` — adding one would mean recreating the cluster, which isn't
-worth it just to reach a UI. `kubectl port-forward` is the right tool for exactly this
-temporary, local-only access case:
+**Accessing the dashboard:** the `kind-config.yml` above maps hostPort `30002` through to the
+node, same as ArgoCD's `30001` — patch the `kargo-api` Service to a matching NodePort rather
+than reaching for `kubectl port-forward`:
 
 ```bash
-kubectl port-forward svc/kargo-api -n kargo 8443:443
+# Check the existing service/ports first
+kubectl get svc kargo-api -n kargo -o yaml
+
+kubectl patch svc kargo-api -n kargo --type='json' -p='[
+  {"op": "replace", "path": "/spec/type", "value": "NodePort"},
+  {"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30002}
+]'
+
+kubectl get svc kargo-api -n kargo
 ```
 
-Open `https://localhost:8443` and log in with the admin password saved from Step 2. The
-`kargo-api` Service serves HTTPS on `443` with a self-signed/local cert — your browser will
-flag it as untrusted, same as the Let's Encrypt staging warnings elsewhere in this repo;
-accept and continue.
+Open `https://localhost:30002` and log in with the admin password saved from Step 2. The
+`kargo-api` Service serves HTTPS with a self-signed/local cert — your browser will flag it as
+untrusted, same as the Let's Encrypt staging warnings elsewhere in this repo; accept and
+continue.
 
-## Step 3 — Create the Project
+## Step 3 — Create the Project, and enable auto-promotion
+
+Auto-promotion is **not** automatic by default — without a `ProjectConfig` explicitly
+enabling it per Stage, Freight just sits there "available" and nothing ever creates a
+`Promotion` for it, even for `dev`'s `sources.direct: true`.
 
 ```bash
 kubectl apply -f kargo/project.yml
 kubectl get namespace book-store
 # should exist, created by the Project controller
+
+kubectl apply -f kargo/project-config.yml
 ```
 
 ## Step 4 — Authorize the ArgoCD Applications
 
 Already present as annotations on `argocd/application-{dev,staging,prod}.yml`
-(`kargo.akuity.io/authorized-stage: book-store:<stage>`) — re-apply them if you haven't
-since this was added:
+(`kargo.akuity.io/authorized-stage: book-store:<stage>`):
 
 ```bash
 kubectl apply -f argocd/application-dev.yml
@@ -99,22 +147,34 @@ kubectl apply -f argocd/application-staging.yml
 kubectl apply -f argocd/application-prod.yml
 ```
 
-Without this annotation, Kargo refuses to touch these `Application`s at all — a deliberate
-safety boundary, not a bug.
+## Step 5 — Git credentials for the promotion commits
 
-## Step 5 — Create the Warehouse, confirm Freight actually appears
+`promote-overlay`'s `git-push` step pushes to `https://github.com/...` — anonymous HTTPS has
+no way to authenticate that, so without this the Stage fails at `promote::step-4` with
+`could not read Username for 'https://github.com': No such device or address`. Kargo looks
+for a Secret labeled `kargo.akuity.io/cred-type: git` whose `repoURL` matches the repo, in
+the Project's namespace:
+
+```bash
+# classic PAT for <YOUR_GITHUB_USERNAME> scoped to `repo`, https://github.com/settings/tokens
+kubectl create secret generic git-repo-creds -n book-store \
+  --from-literal=repoURL=https://github.com/atkaridarshan04/cloudnative-devops-blueprint.git \
+  --from-literal=username=<YOUR_GITHUB_USERNAME> \
+  --from-literal=password=<your-github-pat>
+
+kubectl label secret git-repo-creds -n book-store kargo.akuity.io/cred-type=git
+```
+
+## Step 6 — Create the Warehouse, confirm Freight actually appears
 
 ```bash
 kubectl apply -f kargo/warehouse.yml
 kubectl get freight -n book-store -w
 ```
 
-**Stop here and confirm Freight shows up before continuing.** This is the step most likely
-to silently misbehave if something in the subscription config doesn't match reality — fix
-it here, in isolation, rather than debugging it later tangled up with Stage/Promotion issues
-too.
+**Stop here and confirm Freight shows up before continuing.**
 
-## Step 6 — Create the PromotionTask and the three Stages
+## Step 7 — Create the PromotionTask and the three Stages
 
 ```bash
 kubectl apply -f kargo/promotion-task.yml
@@ -125,14 +185,14 @@ kubectl apply -f kargo/stage-prod.yml
 kubectl get stages -n book-store
 ```
 
-`dev` should pick up the existing Freight and promote automatically (`sources.direct: true`
-means it takes any new Freight right away). Watch it happen:
+`dev` should pick up the existing Freight and _start_ a Promotion automatically
+(`sources.direct: true` means it takes any new Freight right away) — but `promote-overlay` now opens a PR instead of pushing straight to `vars.branch` (see `promotion-task.yml`), so the Promotion sits `Running`, parked on the `git-wait-for-pr` step, until that PR is merged on GitHub. Same gate for staging and prod — auto-started or not, nothing reaches ArgoCD without a merge. Watch it happen:
 
 ```bash
 kubectl get promotions -n book-store -w
 ```
 
-## Step 7 — Verify the full chain
+## Step 8 — Verify the full chain
 
 ```bash
 kubectl get stages -n book-store

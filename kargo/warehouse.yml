@@ -1,7 +1,6 @@
 # Watches both image repos for new tags and produces Freight when something new shows up.
-# No `constraint` set — defaults to the SemVer selection strategy, which picks the
-# semantically greatest valid tag with no range restriction. Verified against
-# https://docs.kargo.io/user-guide/how-to-guides/working-with-warehouses
+# `constraint` pins to 1.0.0 on purpose — with no constraint, a Warehouse always picks the
+# semantically greatest tag it finds, so if 1.0.0/2.0.0/3.0.0 are all already pushed it jumps
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
 metadata:
@@ -11,5 +10,7 @@ spec:
   subscriptions:
     - image:
         repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+        constraint: "1.0.0"
     - image:
         repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+        constraint: "1.0.0"

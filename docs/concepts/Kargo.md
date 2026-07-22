@@ -58,6 +58,21 @@ verified healthy* in `dev` — that's how `staging` and `prod` chain off their u
 neighbor. This chain, not anything explicit about ordering, is what actually enforces
 "nothing reaches prod without going through staging first."
 
+## Why `promote-overlay` opens a PR instead of pushing directly
+
+`autoPromotionEnabled` (in `ProjectConfig`) and the PR gate (in `promotion-task.yml`) answer
+two different questions. `autoPromotionEnabled` controls whether a `Promotion` *starts* the
+moment eligible Freight shows up — that's why `dev`/`staging` react instantly while `prod`
+waits for someone to trigger it by hand. It says nothing about what happens once a Promotion
+is running.
+
+The PR gate controls whether a *running* Promotion is allowed to finish. Instead of
+`git-push` landing straight on the branch each ArgoCD `Application` watches, `promote-overlay`
+pushes to a disposable branch, opens a PR into the watched branch, then blocks on
+`git-wait-for-pr` until that PR is merged (or closed). Same gate for all three Stages, since
+they share this one `PromotionTask` — an auto-started dev Promotion still can't reach ArgoCD
+without a human merging its PR first.
+
 ## Why `argocd-update` matters even with `selfHeal` already on
 
 The three ArgoCD `Application`s this repo already has enable `automated: {prune, selfHeal}`

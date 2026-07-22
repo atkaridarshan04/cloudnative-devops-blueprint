@@ -1,6 +1,3 @@
-# Reusable promotion steps, shared by all three Stages (dev/staging/prod) instead of
-# repeating the same sequence three times. Step names/fields verified against:
-# https://docs.kargo.io/user-guide/reference-docs/promotion-steps/{git-clone,kustomize-set-image,git-commit,git-push,argocd-update}
 apiVersion: kargo.akuity.io/v1alpha1
 kind: PromotionTask
 metadata:
@@ -11,16 +8,20 @@ spec:
     - name: overlayPath   # e.g. kustomize/overlays/dev
     - name: appName       # e.g. book-store-dev
     - name: branch        # e.g. kargo-promotion — the branch the ArgoCD Application watches
+    - name: repoURL       # same repo for all three Stages — default here so no Stage has to repeat it
+      value: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
 
   steps:
     - uses: git-clone
+      as: clone
       config:
-        repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+        repoURL: ${{ vars.repoURL }}
         checkout:
           - branch: ${{ vars.branch }}
             path: ./repo
 
     - uses: kustomize-set-image
+      as: set-image
       config:
         path: ./repo/${{ vars.overlayPath }}
         images:
@@ -33,17 +34,46 @@ spec:
       as: commit
       config:
         path: ./repo
-        message: "promote ${{ vars.appName }} to freight ${{ ctx.freight.name }}"
+        message: "promote ${{ vars.appName }} to freight ${{ ctx.targetFreight.name }}"
 
+    # Pushes to a fresh kargo/promotion/<promotionName> branch (generateTargetBranch)
+    # instead of straight to vars.branch — git-open-pr below turns that branch into a PR.
     - uses: git-push
+      as: push
       config:
         path: ./repo
+        generateTargetBranch: true
+
+    - uses: git-open-pr
+      as: open-pr
+      config:
+        repoURL: ${{ vars.repoURL }}
+        provider: github
+        sourceBranch: ${{ task.outputs.push.branch }}
         targetBranch: ${{ vars.branch }}
+        title: "chore(${{ ctx.stage }}): bump frontend to ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend').Tag }}, backend to ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend').Tag }}"
+        description: |
+          Automated promotion opened by Kargo — merging this deploys `${{ vars.appName }}`.
+
+          - **Stage:** ${{ ctx.stage }}
+          - **Freight:** ${{ ctx.targetFreight.name }}
+          - **Frontend tag:** ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend').Tag }}
+          - **Backend tag:** ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend').Tag }}
+
+    # Blocks here until the PR above is merged (or closed) on GitHub — the manual approval
+    # gate. Uses the same git-repo-creds Secret as git-clone/git-push, via the GitHub API.
+    - uses: git-wait-for-pr
+      as: wait-for-pr
+      config:
+        repoURL: ${{ vars.repoURL }}
+        provider: github
+        prNumber: ${{ task.outputs['open-pr'].pr.id }}
 
     # ArgoCD's own automated sync + selfHeal would eventually pick up this commit on its
     # own — this step also explicitly forces the sync now, and (more importantly) registers
     # the health check this Stage waits on before the Freight is considered verified here.
     - uses: argocd-update
+      as: sync
       config:
         apps:
           - name: ${{ vars.appName }}
