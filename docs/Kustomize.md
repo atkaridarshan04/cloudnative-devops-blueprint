@@ -14,17 +14,31 @@ We have configured the following environments with separate namespaces and ingre
 
 ### Environment Matrix
 
+> ⚠️ The Image Tag / Theme columns below are only accurate if you're following *this*
+> section's manual `kubectl apply -k` path standalone. Once Kargo is actively promoting
+> through these same overlays (see [`Kargo.md`](./Kargo.md)), each environment shows
+> whatever was most recently promoted into it, not a fixed version — the tags here will
+> drift out of sync with what's actually running.
+
 | Environment | Namespace | Host | Replicas | Image Tag | Theme |
 |-------------|-----------|------|----------|-----------|-------|
 | **Development** | `dev` | `dev.local` | 1 | `1.0.0` | 🔵 Blue |
 | **Staging** | `staging` | `staging.local` | 1 | `2.0.0` | 🔴 Red |
 | **Production** | `prod` | `prod.local` | 2 | `3.0.0` | 🟣 Purple |
 
-Before deploying, ensure the image tags are set correctly in each overlay file:
+**If you're working standalone** (this doc's manual `kubectl apply -k` path, no Kargo
+involved), manually edit the image tags in each overlay file before deploying, so each
+environment shows its own distinct version/theme:
 
 - [`kustomize/overlays/dev/kustomization.yml`](../kustomize/overlays/dev/kustomization.yml) → `newTag: 1.0.0`
 - [`kustomize/overlays/staging/kustomization.yml`](../kustomize/overlays/staging/kustomization.yml) → `newTag: 2.0.0`
 - [`kustomize/overlays/prod/kustomization.yml`](../kustomize/overlays/prod/kustomization.yml) → `newTag: 3.0.0`
+
+**If these files currently show something other than the values above** (e.g. all three set
+to the same tag), that's most likely because [`Kargo.md`](./Kargo.md)'s promotion pipeline
+has already been running against them, not a mistake — Kargo owns these tags once it's
+active, and manually editing them here works against what it's doing. Only hand-edit them
+if you're deliberately returning to this standalone, Kargo-free demo.
 
 
 ## Configuration Management
@@ -163,6 +177,10 @@ Open your browser and navigate to: `http://prod.local`
 
 
 ## Application Testing
+
+> ⚠️ Same caveat as the Environment Matrix above — accurate for the standalone manual path
+> only; drifts once Kargo is promoting through these overlays.
+
 | Environment | Frontend URL | API Endpoint | Expected Version |
 |-------------|--------------|--------------|-----------------|
 | Development | http://dev.local | http://dev.local/books | 🔵 Blue banner — v1.0.0 |

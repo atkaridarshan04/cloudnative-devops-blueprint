@@ -1,0 +1,49 @@
+# Reusable promotion steps, shared by all three Stages (dev/staging/prod) instead of
+# repeating the same sequence three times. Step names/fields verified against:
+# https://docs.kargo.io/user-guide/reference-docs/promotion-steps/{git-clone,kustomize-set-image,git-commit,git-push,argocd-update}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: promote-overlay
+  namespace: book-store
+spec:
+  vars:
+    - name: overlayPath   # e.g. kustomize/overlays/dev
+    - name: appName       # e.g. book-store-dev
+    - name: branch        # e.g. kargo-promotion — the branch the ArgoCD Application watches
+
+  steps:
+    - uses: git-clone
+      config:
+        repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+        checkout:
+          - branch: ${{ vars.branch }}
+            path: ./repo
+
+    - uses: kustomize-set-image
+      config:
+        path: ./repo/${{ vars.overlayPath }}
+        images:
+          - image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+            tag: ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend').Tag }}
+          - image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+            tag: ${{ imageFrom('ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend').Tag }}
+
+    - uses: git-commit
+      as: commit
+      config:
+        path: ./repo
+        message: "promote ${{ vars.appName }} to freight ${{ ctx.freight.name }}"
+
+    - uses: git-push
+      config:
+        path: ./repo
+        targetBranch: ${{ vars.branch }}
+
+    # ArgoCD's own automated sync + selfHeal would eventually pick up this commit on its
+    # own — this step also explicitly forces the sync now, and (more importantly) registers
+    # the health check this Stage waits on before the Freight is considered verified here.
+    - uses: argocd-update
+      config:
+        apps:
+          - name: ${{ vars.appName }}

@@ -5,6 +5,10 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # Required for Kargo's argocd-update promotion step — without this, Kargo refuses to
+    # manage this Application at all (security: prevents any Kargo Stage from touching an
+    # Application it wasn't explicitly given). Format: <kargo-project>:<stage-name>.
+    kargo.akuity.io/authorized-stage: book-store:dev
 spec:
   project: book-store
 

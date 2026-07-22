@@ -1,0 +1,15 @@
+# Watches both image repos for new tags and produces Freight when something new shows up.
+# No `constraint` set — defaults to the SemVer selection strategy, which picks the
+# semantically greatest valid tag with no range restriction. Verified against
+# https://docs.kargo.io/user-guide/how-to-guides/working-with-warehouses
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: book-store
+  namespace: book-store
+spec:
+  subscriptions:
+    - image:
+        repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+    - image:
+        repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend

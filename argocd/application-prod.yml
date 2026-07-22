@@ -5,6 +5,8 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # Required for Kargo's argocd-update promotion step — see application-dev.yml's comment.
+    kargo.akuity.io/authorized-stage: book-store:prod
 spec:
   project: book-store
 
