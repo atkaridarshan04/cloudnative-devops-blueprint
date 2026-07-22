@@ -1,45 +1,47 @@
-# This file defines ServiceMonitor resources for monitoring ArgoCD components with Prometheus Operator.
+# ServiceMonitors for ArgoCD's three metrics-emitting components (Prometheus Operator).
+# app.kubernetes.io/name below must match each metrics Service's label —
+# check with: kubectl get svc -n argocd
 
-apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
-kind: ServiceMonitor                 # Resource type
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
-  name: argocd-metrics               # Name of the ServiceMonitor
-  namespace: argocd                  # Namespace where ServiceMonitor is deployed
+  name: argocd-metrics
+  namespace: argocd
   labels:
-    release: monitoring  # Label to associate with Prometheus release
+    release: monitoring
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-metrics # Selects services with this label, must match with ArgoCD metrics service, check with: kubectl get svc -n argocd
+      app.kubernetes.io/name: argocd-metrics
   endpoints:
-  - port: http-metrics                # Monitors the 'http-metrics' port
-
----
-apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
-kind: ServiceMonitor                 # Resource type
-metadata:
-  name: argocd-server-metrics        # Name of the ServiceMonitor
-  namespace: argocd                  # Namespace where ServiceMonitor is deployed
-  labels:
-    release: monitoring   # Label to associate with Prometheus release
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: argocd-server-metrics # Selects services with this label, must match with ArgoCD server metrics service, check with: kubectl get svc -n argocd
-  endpoints:
-  - port: http-metrics                # Monitors the 'http-metrics' port
+  - port: http-metrics
 
 ---
-apiVersion: monitoring.coreos.com/v1 # API version for ServiceMonitor
-kind: ServiceMonitor                 # Resource type
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
-  name: argocd-repo-server-metrics   # Name of the ServiceMonitor
-  namespace: argocd                  # Namespace where ServiceMonitor is deployed
+  name: argocd-server-metrics
+  namespace: argocd
   labels:
-    release: monitoring   # Label to associate with Prometheus release
+    release: monitoring
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-repo-server-metrics # Selects services with this label, must match with ArgoCD repo server metrics service, check with: kubectl get svc -n argocd
+      app.kubernetes.io/name: argocd-server-metrics
   endpoints:
-  - port: http-metrics                # Monitors the 'http-metrics' port
+  - port: http-metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server-metrics
+  namespace: argocd
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server-metrics
+  endpoints:
+  - port: http-metrics

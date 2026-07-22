@@ -38,7 +38,7 @@ manually. The rest advance automatically after their `duration`.
 
 ## Part 1 — Argo Rollouts (install first)
 
-**1. Install the Argo Rollouts controller, with the dashboard enabled:**
+### 1. Install the Argo Rollouts controller, with the dashboard enabled
 
 ```bash
 helm repo add argo https://argoproj.github.io/argo-helm
@@ -51,8 +51,9 @@ helm install argo-rollouts argo/argo-rollouts \
 This creates the `argo-rollouts-dashboard` Service (port `3100`) that
 `argorollouts/httproute.yml` routes to.
 
-**2. Configure the Gateway API traffic-routing plugin** — not bundled by default, the
-controller needs to be told where to fetch it:
+### 2. Configure the Gateway API traffic-routing plugin
+
+Not bundled by default — the controller needs to be told where to fetch it:
 
 ```bash
 kubectl apply -n argo-rollouts -f - <<'EOF'
@@ -72,14 +73,16 @@ kubectl rollout restart deployment argo-rollouts -n argo-rollouts
 Pin `location` to a specific released version rather than `latest` once you've confirmed
 this works, so upgrades don't happen silently underneath you.
 
-**3. Install the `kubectl argo rollouts` CLI plugin** (for promoting/watching from your
-terminal — the dashboard also has promote/abort buttons if you'd rather not install it):
+### 3. Install the `kubectl argo rollouts` CLI plugin
+
+For promoting/watching from your terminal — the dashboard also has promote/abort buttons
+if you'd rather not install it:
 
 ```bash
 brew install argoproj/tap/kubectl-argo-rollouts
 ```
 
-**4. Route the dashboard:**
+### 4. Route the dashboard
 
 ```bash
 kubectl apply -f argorollouts/httproute.yml
@@ -97,7 +100,7 @@ cert), so routing plain HTTP to it would fail with a protocol mismatch. Installi
 here — the browser still only ever sees our real Let's Encrypt wildcard cert, terminated at
 the Gateway, exactly like the app.
 
-**5. Install ArgoCD:**
+### 5. Install ArgoCD
 
 ```bash
 helm install argocd argo/argo-cd \
@@ -123,10 +126,11 @@ kubectl get svc -n argocd | grep metrics
 # argocd-repo-server-metrics, argocd-server-metrics
 ```
 
-**6. Apply the routing + bootstrap manifests directly via `kubectl`** — not through ArgoCD
-itself, same reasoning as installing ArgoCD before it can manage anything (and same
-reasoning as Part 1 — the Rollouts CRDs from step 1 need to already exist for this sync to
-succeed):
+### 6. Apply the routing + bootstrap manifests directly via `kubectl`
+
+Not through ArgoCD itself — same reasoning as installing ArgoCD before it can manage
+anything (and same reasoning as Part 1 — the Rollouts CRDs from step 1 need to already
+exist for this sync to succeed):
 
 ```bash
 kubectl apply -f argocd/httproute.yml
@@ -153,6 +157,13 @@ kubectl get application -n argocd
 # SYNC STATUS should show Synced, HEALTH STATUS should show Healthy
 ```
 
+**The app's HTTPRoute exists:**
+
+```bash
+kubectl get httproute -n mern-devops
+```
+![get-app-http-route](./assets/app/get-app-http-route.png)
+
 **The rollout progresses and pauses:**
 
 ```bash
@@ -178,7 +189,7 @@ Same local-testing pattern as the app itself (`tls-setup-guide.md` Phase 6a):
 echo "127.0.0.1 argocd.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 echo "127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
-![bat-etc-host](./assets/bat-etc-hosts.png)
+![bat-etc-host](./assets/gitops/bat-etc-hosts.png)
 
 **ArgoCD** — get the initial admin password:
 
@@ -188,12 +199,12 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 Open `https://argocd.cndb.atkaridarshan.online/` — username `admin`, the password above.
 
-![agrocd-dashboard](./assets/argocd-dashboard.png)
+![agrocd-dashboard](./assets/gitops/argocd-dashboard.png)
 
 **Argo Rollouts dashboard** — open `https://argorollouts.cndb.atkaridarshan.online/`
 directly, no login required at this stage.
 
-![rollouts-dashboard](./assets/rollouts-dashboard.png)
+![rollouts-dashboard](./assets/gitops/rollouts-dashboard.png)
 
 Both show the same clean padlock as the app — same wildcard cert, same Gateway.
 

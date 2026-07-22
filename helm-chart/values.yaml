@@ -23,9 +23,6 @@ frontend:
     type: ClusterIP
     port: 80
 
-  config:
-    backendUrl: ""
-
 
 backend:
   replicas: 1

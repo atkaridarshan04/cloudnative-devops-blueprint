@@ -111,7 +111,13 @@ still declares its own exact hostname underneath that. `allowedRoutes.namespaces
 is what lets `HTTPRoute`s from *other* namespaces (like `argocd`) attach to this Gateway at
 all — by default a listener only accepts routes from its own namespace (`mern-devops`).
 
-## Architecture (current: local testing, no public exposure)
+## Architecture (TLS/Gateway layer, local testing, no public exposure)
+
+Scoped to just the app + ArgoCD routes — the two that existed when this doc was written.
+Argo Rollouts, Grafana, and Prometheus were added later and reuse this exact same
+Gateway/wildcard cert, just with their own `HTTPRoute` each — see
+[`../../README.md`](../../README.md)'s architecture diagrams for the full current picture
+including those.
 
 ```mermaid
 flowchart TD
@@ -151,6 +157,18 @@ flowchart TD
     CI --> Cert
     Cert -->|writes| Secret
     Secret -->|certificateRefs| GW
+
+    classDef gateway fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef certmgr fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef argocd fill:#8957e5,color:#fff,stroke:#8957e5
+    classDef app fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+
+    class Browser external
+    class NP,GW gateway
+    class AppRoute,FE,BE app
+    class ArgoRoute,ArgoSvc argocd
+    class CI,Cert,Secret certmgr
 ```
 
 Public access (Cloudflare Tunnel) is a separate, currently-unused path — see

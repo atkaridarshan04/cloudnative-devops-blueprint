@@ -59,6 +59,16 @@ flowchart TD
     CI --> Cert
     Cert -->|writes| Secret
     Secret -->|certificateRefs| GW
+
+    classDef gateway fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef certmgr fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef app fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+
+    class Browser,Edge,DNS external
+    class Tunnel,NP,GW,Route gateway
+    class FE,BE app
+    class CI,Cert,Secret certmgr
 ```
 
 **Where TLS terminates, twice:**

@@ -42,11 +42,11 @@ background noise — `cert-manager-service-monitor.yml`'s `CertManagerCertExpiri
 (the K8s-side source) remains meaningful locally regardless, since it doesn't depend on
 public reachability at all.
 
-## Install
+## 1. kube-prometheus-stack (Prometheus, Alertmanager, Grafana)
 
-**1. kube-prometheus-stack** (Prometheus, Alertmanager, Grafana) — release name
-**`monitoring`** matters, since every manifest below assumes it (Grafana's Service name,
-and the `release: monitoring` label the operator's default selectors match on):
+Release name **`monitoring`** matters, since every manifest below assumes it (Grafana's
+Service name, and the `release: monitoring` label the operator's default selectors match
+on):
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -56,7 +56,7 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
   -f monitoring/values.yaml
 ```
 
-**2. blackbox-exporter:**
+## 2. blackbox-exporter
 
 ```bash
 helm install blackbox-exporter prometheus-community/prometheus-blackbox-exporter \
@@ -70,7 +70,7 @@ Verify the Service name matches what `monitoring/blackbox-probe.yml` expects:
 kubectl get svc -n monitoring | grep blackbox
 ```
 
-**3. Apply the extra `ServiceMonitor`/`PodMonitor`/`Probe`/`PrometheusRule` manifests:**
+## 3. Apply the extra `ServiceMonitor`/`PodMonitor`/`Probe`/`PrometheusRule` manifests
 
 ```bash
 kubectl apply -f monitoring/cert-manager-service-monitor.yml
@@ -79,7 +79,7 @@ kubectl apply -f monitoring/blackbox-probe.yml
 kubectl apply -f monitoring/cert-expiry-alerts.yml
 ```
 
-**4. Route Grafana and Prometheus through the Gateway:**
+## 4. Route Grafana and Prometheus through the Gateway
 
 ```bash
 kubectl apply -f monitoring/grafana-httproute.yml
@@ -107,6 +107,7 @@ Same local-testing pattern as everything else (`tls-setup-guide.md` Phase 6a):
 echo "127.0.0.1 grafana.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 echo "127.0.0.1 prometheus.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
+![monitoring-etc-hosts](./assets/monitoring/monitoring-etc-hosts.png)
 
 **Grafana** — `https://grafana.cndb.atkaridarshan.online/`, login `admin` /
 `password` (from `monitoring/values.yaml` — this is break-glass only once GitHub SSO is set
@@ -115,11 +116,11 @@ two ArgoCD dashboards (`ArgoCD Monitoring` folder), and the Blackbox Exporter da
 (`TLS & Certificates` folder) — the last one graphs `probe_ssl_earliest_cert_expiry` and
 `probe_success` for all three probed hostnames.
 
-![grafana-dashboard](./assets/grafana-dashboard.png)
+![grafana-dashboard](./assets/monitoring/grafana-dashboard.png)
 
 **Prometheus** — `https://prometheus.cndb.atkaridarshan.online/`, no login by default.
 
-![prometheus](./assets/prometheus.png)
+![prometheus](./assets/monitoring/prometheus.png)
 
 Same clean padlock as everything else — same wildcard cert, same Gateway.
 

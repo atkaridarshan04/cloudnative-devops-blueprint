@@ -18,7 +18,7 @@ local NodePort/browser testing.
 ├── monitoring/         # kube-prometheus-stack + blackbox-exporter (incl. Grafana SSO)
 ├── docs/
 │   ├── concepts/       # learning notes — the "why" behind each piece
-│   └── assets/         # screenshots referenced by the docs
+│   └── assets/         # screenshots referenced by the docs, one subfolder per doc
 └── kind-config.yml     # local kind cluster config
 ```
 
@@ -104,6 +104,20 @@ flowchart TD
     DNSRec -.->|resolves to| LB
     CI -->|DNS-01 via provider API| TXT
     CI --> Cert --> Secret -->|certificateRefs| GW
+
+    classDef gateway fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef certmgr fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef argocd fill:#8957e5,color:#fff,stroke:#8957e5
+    classDef monitoring fill:#d29922,color:#000,stroke:#d29922
+    classDef app fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+
+    class Browser,DNSRec,TXT external
+    class LB,GW gateway
+    class AppRoute,FE,BE,DB app
+    class ArgoRoute,ArgoSvc,RolloutsRoute,RolloutsSvc argocd
+    class GrafanaRoute,PromRoute,GrafanaSvc,PromSvc monitoring
+    class CI,Cert,Secret certmgr
 ```
 
 ### Architecture — local (this repo, `kind`, current focus)
@@ -166,6 +180,20 @@ flowchart TD
     CI --> Cert
     Cert -->|writes| Secret
     Secret -->|certificateRefs| GW
+
+    classDef gateway fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef certmgr fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef argocd fill:#8957e5,color:#fff,stroke:#8957e5
+    classDef monitoring fill:#d29922,color:#000,stroke:#d29922
+    classDef app fill:#57606a,color:#fff,stroke:#57606a
+    classDef external fill:#8b949e,color:#000,stroke:#8b949e,stroke-dasharray: 3 3
+
+    class Browser external
+    class NP,GW gateway
+    class AppRoute,FE,BE,DB app
+    class ArgoRoute,ArgoSvc,RolloutsRoute,RolloutsSvc argocd
+    class GrafanaRoute,PromRoute,GrafanaSvc,PromSvc monitoring
+    class CI,Cert,Secret certmgr
 ```
 
 Public access (Cloudflare Tunnel) is a separate, currently-unused approach — see

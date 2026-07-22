@@ -23,7 +23,7 @@ GitHub → Settings → Developer settings → OAuth Apps → New OAuth App. One
 Note the Client ID and generate a Client Secret for each — you'll need all six values in
 the next step.
 
-![github-oauth-app](./assets/github-oauth-apps.png)
+![github-oauth-app](./assets/sso/github-oauth-apps.png)
 
 ## 2. Create the Secrets each tool reads (never commit these)
 
@@ -62,8 +62,10 @@ kubectl create secret generic argorollouts-oauth2-proxy -n argo-rollouts \
 
 ## 3. ArgoCD — fill in the RBAC placeholder, then upgrade
 
-Edit `argocd/values.yaml`, replace `REPLACE_WITH_YOUR_GITHUB_EMAIL` in `policy.csv` with
-the email your GitHub account uses (this is what Dex's `email` claim will contain):
+Edit `argocd/values.yaml` — the `policy.csv` line `g, <email>, role:admin` is set to the
+author's own GitHub email as a working example (see the `REPLACE_WITH_YOUR_GITHUB_EMAIL`
+comment above it); replace it with the email your GitHub account uses (this is what Dex's
+`email` claim will contain):
 
 ```bash
 helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml
@@ -100,10 +102,11 @@ kubectl exec -n argocd deploy/argocd-server -- argocd admin settings rbac can \
 
 ## 4. Grafana — upgrade to pick up the OAuth config
 
-Edit `monitoring/values.yaml`, replace `REPLACE_WITH_YOUR_GITHUB_USERNAME` in
-`role_attribute_path` with your actual GitHub username — without this, your GitHub login
-only gets the default Viewer role, same as anyone else; the local `admin`/`password`
-account would remain the only way to get real Admin access.
+Edit `monitoring/values.yaml` — `role_attribute_path` is set to the author's own GitHub
+username as a working example (see the `REPLACE_WITH_YOUR_GITHUB_USERNAME` comment above
+it); replace it with your actual GitHub username — without this, your GitHub login only
+gets the default Viewer role, same as anyone else; the local `admin`/`password` account
+would remain the only way to get real Admin access.
 
 ```bash
 helm upgrade monitoring prometheus-community/kube-prometheus-stack -n monitoring \
@@ -128,8 +131,9 @@ kubectl rollout restart deployment monitoring-grafana -n monitoring
 
 Unlike ArgoCD/Grafana, oauth2-proxy has no readonly/viewer role — anyone who passes its
 gate gets full dashboard access, including promote/abort. Edit
-`argorollouts/oauth2-proxy-values.yaml` first, replace `REPLACE_WITH_YOUR_GITHUB_USERNAME`
-in `extraArgs.github-user` with your actual GitHub username.
+`argorollouts/oauth2-proxy-values.yaml` first — `extraArgs.github-user` is set to the
+author's own GitHub username as a working example (see the `REPLACE_WITH_YOUR_GITHUB_USERNAME`
+comment above it); replace it with your actual GitHub username.
 
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
@@ -139,11 +143,11 @@ helm upgrade --install argorollouts-oauth2-proxy oauth2-proxy/oauth2-proxy \
   -f argorollouts/oauth2-proxy-values.yaml
 ```
 
-`--install` makes this safe to re-run after config changes (e.g. the `scope`/`upstream` fixes
-during initial setup) without hitting `cannot reuse a name that is still in use`.
+`--install` makes this safe to re-run after config changes without hitting
+`cannot reuse a name that is still in use`.
 
-Two real gotchas hit setting this up, both already fixed in `oauth2-proxy-values.yaml`,
-worth knowing if you touch this config again:
+One real gotcha hit setting this up, already fixed in `oauth2-proxy-values.yaml`, worth
+knowing if you touch this config again:
 
 - **`scope` needs `read:org`, even with `github-user` (not `github-org`/`team`)
   restriction** — oauth2-proxy's GitHub provider always tries to list orgs as part of
@@ -186,8 +190,8 @@ echo "127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
   page before showing anything — if it shows the dashboard with no redirect, oauth2-proxy
   isn't actually in front of it; recheck the `backendRefs` name in `httproute.yml`.
 
-![argocd-dash-oauth](./assets/argocd-dash-oauth.png)
+![argocd-dash-oauth](./assets/sso/argocd-dash-oauth.png)
 
-![grafana-dash-oauth](./assets/grafana-dash-oauth.png)
+![grafana-dash-oauth](./assets/sso/grafana-dash-oauth.png)
 
-![argorollouts-dash-oauth](./assets/argo-rollouts-dash-oauth.png)
+![argorollouts-dash-oauth](./assets/sso/argo-rollouts-dash-oauth.png)

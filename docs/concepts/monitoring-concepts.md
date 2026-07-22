@@ -174,6 +174,18 @@ flowchart TD
 
     Prom -->|rules fire| AM
     Prom -->|datasource| Graf
+
+    classDef gateway fill:#1f6feb,color:#fff,stroke:#1f6feb
+    classDef certmgr fill:#2ea043,color:#fff,stroke:#2ea043
+    classDef argocd fill:#8957e5,color:#fff,stroke:#8957e5
+    classDef monitoring fill:#d29922,color:#000,stroke:#d29922
+    classDef app fill:#57606a,color:#fff,stroke:#57606a
+
+    class SM,PM,PR,PB,BBE,Prom,AM,Graf monitoring
+    class CM certmgr
+    class EGC,EGP gateway
+    class T1 app
+    class T2,T3 argocd
 ```
 
 ## Related reading

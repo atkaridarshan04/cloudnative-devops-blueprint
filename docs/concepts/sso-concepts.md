@@ -91,31 +91,38 @@ general tool, not something specific to Argo Rollouts.
 
 ## Architecture
 
+A flowchart understates what's actually happening here — each login is an ordered sequence
+of redirects and callbacks, not a static pipeline. Laid out as a sequence instead, one block
+per tool since each is an independent login, not three steps of one flow:
+
 ```mermaid
-flowchart TD
-    Browser[Browser]
-    GH[GitHub OAuth<br/>3 separate OAuth Apps]
+sequenceDiagram
+    actor B as Browser
+    participant GH as GitHub OAuth<br/>(3 separate OAuth Apps)
+    participant Dex as argocd-dex-server<br/>(broker)
+    participant ArgoSrv as argocd-server
+    participant GrafSrv as Grafana<br/>(native auth.github)
+    participant Proxy as oauth2-proxy
+    participant Dash as argo-rollouts-dashboard<br/>(no auth of its own)
 
-    subgraph "ArgoCD"
-        Dex[argocd-dex-server<br/>broker]
-        ArgoSrv[argocd-server]
-        RBAC[argocd-rbac-cm<br/>identity → role]
-    end
+    Note over B,ArgoSrv: ArgoCD — Dex brokers, then argocd-rbac-cm maps identity → role
+    B->>GH: Login via GitHub
+    GH->>Dex: callback /api/dex/callback
+    Dex->>ArgoSrv: identity claims
+    ArgoSrv->>ArgoSrv: map claim → role (argocd-rbac-cm)
 
-    subgraph "Grafana"
-        GrafSrv[Grafana<br/>native auth.github]
-        GrafRole[role_attribute_path<br/>identity → role]
-    end
+    Note over B,GrafSrv: Grafana — no broker, talks to GitHub directly
+    B->>GH: Login via GitHub
+    GH->>GrafSrv: callback /login/github
+    GrafSrv->>GrafSrv: map claim → role (role_attribute_path)
 
-    subgraph "Argo Rollouts"
-        Proxy[oauth2-proxy<br/>does the OAuth dance itself]
-        Dash[argo-rollouts-dashboard<br/>no auth, trusts the proxy]
-    end
-
-    Browser -->|login| GH
-    GH -->|callback: /api/dex/callback| Dex --> ArgoSrv --> RBAC
-    GH -->|callback: /login/github| GrafSrv --> GrafRole
-    GH -->|callback: /oauth2/callback| Proxy --> Dash
+    Note over B,Dash: Argo Rollouts dashboard — oauth2-proxy does the whole dance in front of it
+    B->>GH: Login via GitHub
+    GH->>Proxy: callback /oauth2/callback
+    Proxy->>Proxy: set session cookie
+    B->>Proxy: request (session cookie attached)
+    Proxy->>Dash: forward request — dashboard never sees an unauthenticated one
+    Dash-->>B: response
 ```
 
 ## Related reading

@@ -9,11 +9,11 @@ spec:
   project: book-store
   source:
     repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-    targetRevision: domain-and-tls # Branch/tag/commit - use tags for production releases
-    path: helm-chart # Helm chart path - enables templating and values override
+    targetRevision: domain-and-tls    # Branch/tag/commit
+    path: helm-chart                  # Helm chart path
     helm:
       valueFiles:
-        - values.yaml # Default values - environment-specific overrides possible
+        - values.yaml # Default values
 
   destination:
     server: https://kubernetes.default.svc

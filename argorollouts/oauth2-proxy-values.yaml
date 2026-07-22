@@ -13,6 +13,8 @@ extraArgs:
   # Unlike ArgoCD/Grafana, oauth2-proxy has no readonly/viewer concept — anyone who
   # passes this gate gets full dashboard access, including promote/abort. Restrict to
   # specific GitHub username(s) rather than email-domain: "*" (which would allow anyone).
+  # REPLACE_WITH_YOUR_GITHUB_USERNAME — 'atkaridarshan04' below is the author's own
+  # username, kept as a working example; replace it with yours (see sso-deploy.md).
   github-user: atkaridarshan04
   upstream: http://argo-rollouts-dashboard.argo-rollouts.svc.cluster.local:3100
   redirect-url: https://argorollouts.cndb.atkaridarshan.online/oauth2/callback

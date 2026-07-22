@@ -37,6 +37,9 @@ configs:
       p, role:admin, projects, *, *, allow
       p, role:admin, accounts, *, *, allow
       p, role:admin, gpgkeys, *, *, allow
+      
+      # REPLACE_WITH_YOUR_GITHUB_EMAIL — below is the author's own GitHub email, kept as a
+      # working example; replace it with the email your GitHub account uses (see sso-deploy.md).
       g, atkaridarshan04@gmail.com, role:admin
 
 # Metrics — see monitoring-deploy.md / monitoring/argocd-service-monitor.yml

@@ -15,7 +15,7 @@ prometheus:
       matchLabels:
         release: monitoring
   service:
-    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly — see monitoring-deploy.md
 
 alertmanager:
   enabled: true
@@ -40,7 +40,7 @@ grafana:
   adminUser: admin
   adminPassword: password   # break-glass only once GitHub OAuth below is working — see sso-deploy.md
   service:
-    type: ClusterIP   # Exposed via NodePort patch after install (see Setup section)
+    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly — see monitoring-deploy.md
 
   # client-id/client-secret keys come from a Secret created via kubectl (see sso-deploy.md)
   # — never committed here. envValueFrom injects them as env vars, and grafana.ini
@@ -75,6 +75,8 @@ grafana:
       # Without this, every GitHub login (including yours) gets the default
       # auto_assign_org_role (Viewer) — only the local admin/password account would have
       # real admin rights. Maps your specific GitHub username to Admin, everyone else Viewer.
+      # REPLACE_WITH_YOUR_GITHUB_USERNAME — 'atkaridarshan04' below is the author's own
+      # username, kept as a working example; replace it with yours (see sso-deploy.md).
       role_attribute_path: login=='atkaridarshan04' && 'Admin' || 'Viewer'
 
   persistence:

@@ -62,9 +62,6 @@ spec:
                   key: password
             - name: MONGO_INITDB_DATABASE
               value: {{ .Values.mongodb.dbName }}
-          # volumeMounts:
-          #   - name: mongodb-vol
-          #     mountPath: /data/db
           livenessProbe:
             tcpSocket:
               port: 27017
@@ -87,12 +84,3 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
-  # volumeClaimTemplates:
-  #   - metadata:
-  #       name: mongodb-vol
-  #     spec:
-  #       accessModes: [ "ReadWriteOnce" ]
-  #       resources:
-  #         requests:
-  #           storage: 5Gi
-  #       storageClassName: {{ .Release.Name }}-ebs-sc
