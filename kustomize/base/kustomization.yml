@@ -5,7 +5,7 @@ namespace: mern-devops
 
 resources:
   - mongodb.yml
-  - ingress.yaml
+  - httproute.yml
   - backend.yml
   - frontend.yml
   # - volume.yml

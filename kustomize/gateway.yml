@@ -1,0 +1,31 @@
+# Applied once, standalone — NOT part of any overlay's Kustomization (unlike ingress.yaml/
+# httproute.yml below, which are per-environment). One shared Gateway avoids duplicating
+# TLS/listener config three times; `allowedRoutes.namespaces.from: All` is what lets each
+# overlay's HTTPRoute (in dev/staging/prod) attach to this Gateway despite living in a
+# different namespace — Gateway API blocks cross-namespace route attachment by default,
+# unlike Ingress which never had a separate listener object to guard in the first place.
+#
+# kubectl apply -f kustomize/gateway.yml
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gatewayclass
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy-gatewayclass
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All

@@ -3,10 +3,10 @@
 > 📘 See [concepts/HelmVsKustomize.md](./concepts/HelmVsKustomize.md) for how Kustomize compares to Helm and when to reach for each.
 
 ## Overview
-Kustomize simplifies Kubernetes configurations by allowing environment-specific customizations without modifying the base YAML files. This part demonstrates how to manage multiple environments using Kustomize with ingress-based routing, enabling you to deploy and access different versions of your MERN application through distinct hostnames.
+Kustomize simplifies Kubernetes configurations by allowing environment-specific customizations without modifying the base YAML files. This part demonstrates how to manage multiple environments using Kustomize with Gateway API hostname-based routing (see [concepts/IngressVsGatewayAPI.md](./concepts/IngressVsGatewayAPI.md) for why Gateway API over Ingress — plain Ingress is still demoed on the `begineer` branch), enabling you to deploy and access different versions of your MERN application through distinct hostnames.
 
 ## Environment Stages
-We have configured the following environments with separate namespaces and ingress hosts:
+We have configured the following environments with separate namespaces and hosts:
 
 - **Development (`overlays/dev`)** - Accessible via `dev.local`
 - **Staging (`overlays/staging`)** - Accessible via `staging.local`
@@ -46,47 +46,63 @@ We use `configMapGenerator` and `secretGenerator` in Kustomize to manage ConfigM
 
 ## Prerequisites
 
-### 1. Create kind Cluster with Port 80 Exposed
+### 1. Create the kind Cluster
 
-Ingress requires port 80 to be mapped from the host. Create the cluster with this config:
+If you're running this demo standalone (its own dedicated cluster, not the shared one used
+alongside the Kargo/ArgoCD docs), a `kind-config.yml` mapping host port `80` straight to the
+Gateway's NodePort is enough — host `80` is free unless something else is using it. This is
+just a local file you create yourself for this demo; it isn't something this repo commits:
 
-```bash
-cat <<EOF | kind create cluster --config=-
+```yaml
+# kind-config.yml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 80
+      - containerPort: 30080 # for gateway api
         hostPort: 80
         protocol: TCP
-EOF
 ```
-
-### 2. Install Nginx Ingress Controller
-Before deploying any environment, ensure the Nginx Ingress Controller is installed:
 
 ```bash
-kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
+kind create cluster --config kind-config.yml
 ```
 
-Wait for the ingress controller to be ready:
+### 2. Install the Gateway API Controller
+
+Same Envoy Gateway controller as [`Kubernetes.md`](./Kubernetes.md#5️⃣-application-traffic-routing-ingress--gateway-api),
+plus the one shared `Gateway`/`GatewayClass` in [`kustomize/gateway.yml`](../kustomize/gateway.yml)
+— applied once, standalone, **not** part of any overlay (`dev`/`staging`/`prod` each attach
+their own `HTTPRoute` to this same `Gateway` cross-namespace, instead of each getting their
+own listener):
 
 ```bash
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+helm install eg oci://docker.io/envoyproxy/gateway-helm --version v0.0.0-latest \
+  -n envoy-gateway-system --create-namespace
+
+kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
+
+kubectl apply -f kustomize/gateway.yml
 ```
+
+Kind has no `LoadBalancer` support, so patch the Envoy-managed Service to `NodePort` on the
+port already mapped in `kind-config.yml`:
+
+```bash
+kubectl get svc -n envoy-gateway-system   # find the envoy-<gateway-ns>-envoy-gateway-* Service
+
+kubectl patch svc <service-name> -n envoy-gateway-system \
+  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":10080,"protocol":"TCP","nodePort":30080}]}}'
+```
+
+Access is via port `80` for all three environments — e.g. `http://dev.local` — since they
+all share this one Gateway/listener.
 
 ### 3. Configure /etc/hosts
 To access the applications via their respective hostnames, add the following entries to your `/etc/hosts` file:
 
 ```bash
-# Get your cluster's ingress IP (usually localhost for kind clusters)
-kubectl get service -n ingress-nginx ingress-nginx-controller
-
-# Add these entries to /etc/hosts
 sudo tee -a /etc/hosts << EOF
 127.0.0.1 dev.local
 127.0.0.1 staging.local
@@ -94,7 +110,7 @@ sudo tee -a /etc/hosts << EOF
 EOF
 ```
 
-**Note:** The kind cluster setup and port mapping above is only required for local development. If you are using a cloud cluster (EKS, GKE, AKS), skip the kind step — the ingress controller gets a real public IP/hostname automatically
+**Note:** The kind cluster setup and port mapping above is only required for local development. If you are using a cloud cluster (EKS, GKE, AKS), skip the kind step — the controller gets a real public IP/hostname automatically, and you'd point real DNS at it instead of `/etc/hosts`.
 
 ## Step-by-Step Deployment Guide
 
@@ -121,7 +137,7 @@ kubectl apply -k kustomize/overlays/dev
 # Verify deployment
 kubectl get pods -n dev
 kubectl get svc -n dev
-kubectl get ingress -n dev
+kubectl get httproute -n dev
 ```
 
 Wait for all pods to be running:
@@ -131,7 +147,7 @@ kubectl wait --for=condition=ready pod --all -n dev --timeout=300s
 ```
 
 **Access Development Application:**
-Open your browser and navigate to: `http://dev.local`
+`http://dev.local`
 
 ### Step 3: Deploy Staging Environment
 
@@ -142,7 +158,7 @@ kubectl apply -k kustomize/overlays/staging
 # Verify deployment
 kubectl get pods -n staging
 kubectl get svc -n staging
-kubectl get ingress -n staging
+kubectl get httproute -n staging
 ```
 
 Wait for all pods to be running:
@@ -152,7 +168,7 @@ kubectl wait --for=condition=ready pod --all -n staging --timeout=300s
 ```
 
 **Access Staging Application:**
-Open your browser and navigate to: `http://staging.local`
+`http://staging.local`
 
 ### Step 4: Deploy Production Environment
 
@@ -163,7 +179,7 @@ kubectl apply -k kustomize/overlays/prod
 # Verify deployment
 kubectl get pods -n prod
 kubectl get svc -n prod
-kubectl get ingress -n prod
+kubectl get httproute -n prod
 ```
 
 Wait for all pods to be running:
@@ -173,7 +189,7 @@ kubectl wait --for=condition=ready pod --all -n prod --timeout=300s
 ```
 
 **Access Production Application:**
-Open your browser and navigate to: `http://prod.local`
+`http://prod.local`
 
 
 ## Application Testing
@@ -205,10 +221,10 @@ kubectl get namespaces
 # Check pods across all environments
 kubectl get pods --all-namespaces | grep -E "(dev|staging|prod)"
 
-# Check ingress configurations
-kubectl get ingress --all-namespaces
+# Check routing configuration
+kubectl get httproute --all-namespaces
 ```
-![kustomize-overview](./assets/kustomize/kustomize-overview.png)
+![kustomize-get-http-route](./assets/kustomize/kustomize-get-http-route.png)
 
 ## Cleanup
 
@@ -228,6 +244,13 @@ kubectl delete -k kustomize/overlays/prod
 ```bash
 # Delete all application namespaces
 kubectl delete namespace dev staging prod
+```
+
+`kustomize/gateway.yml` isn't part of any overlay (deliberately, so it isn't torn down by the
+commands above) — remove it separately if you're done with it entirely:
+
+```bash
+kubectl delete -f kustomize/gateway.yml
 ```
 
 ### Remove /etc/hosts Entries
@@ -258,5 +281,8 @@ Verify all three synced:
 kubectl get application -n argocd
 # SYNC STATUS should show Synced, HEALTH STATUS should show Healthy for all three
 ```
+
+`kustomize/gateway.yml` still needs its own one-time `kubectl apply` — it's deliberately
+outside `kustomize/overlays/*`, so none of these three `Application`s ever sync it.
 
 ---

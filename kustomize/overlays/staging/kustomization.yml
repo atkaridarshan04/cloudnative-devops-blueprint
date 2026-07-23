@@ -7,7 +7,7 @@ resources:
 - namespace.yml
 patches:
 - path: app-patches.yml
-- path: ingress-patch.yml
+- path: httproute-patch.yml
 images:
 - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
   newTag: 3.0.0

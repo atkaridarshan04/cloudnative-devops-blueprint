@@ -41,10 +41,11 @@ flowchart TD
 
 ## Cluster Configuration
 
-`kind-config.yml` needs three mappings: `80` for the Ingress that serves `dev.local`/
-`staging.local`/`prod.local` (see [`docs/Kustomize.md`](./Kustomize.md)) —
-plus a NodePort each for the ArgoCD and Kargo dashboards, same pattern as
-[`docs/ArgoCD.md`](./ArgoCD.md). `30001` is already taken by ArgoCD, so Kargo gets `30002`:
+`kind-config.yml` needs a mapping for Gateway API — what actually serves `dev.local`/
+`staging.local`/`prod.local` now (see [`docs/Kustomize.md`](./Kustomize.md); plain Ingress
+is retired there) — plus a NodePort each for the ArgoCD and Kargo dashboards, same pattern
+as [`docs/ArgoCD.md`](./ArgoCD.md). `30001` is already taken by ArgoCD, so Kargo gets
+`30002`:
 
 ```yaml
 # kind-config.yml
@@ -53,8 +54,8 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 80    # for nginx ingress
-        hostPort: 80
+      - containerPort: 30080 # for gateway api
+        hostPort: 30080
         protocol: TCP
       - containerPort: 30001 # for ArgoCD UI
         hostPort: 30001
