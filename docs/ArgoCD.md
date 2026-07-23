@@ -296,4 +296,14 @@ kubectl apply -f argocd/application-prod.yml
 See [`docs/Kustomize.md`](./Kustomize.md#gitops-deployment-via-argocd-multi-environment)
 for the full context.
 
+**Two ways to run this path.** Standalone, as described above: manually edit
+`kustomize/overlays/{dev,staging,prod}/kustomization.yml` yourself and let these three
+`Application`s sync whatever you commit — no approval step, no cross-environment ordering.
+Or let [`Kargo.md`](./Kargo.md) drive it: Kargo watches the image registries, decides what's
+allowed to move from `dev` → `staging` → `prod` (and only once the upstream environment is
+actually healthy, not just synced), and opens a PR for each bump instead of you editing
+overlays by hand. Both modes point at the exact same three `Application`s here — Kargo just
+adds a promotion/approval layer in front of the Git commits ArgoCD reacts to; it doesn't
+replace or duplicate anything in this section.
+
 ---

@@ -11,6 +11,10 @@ Someone (or something) still has to decide "is this build ready to go from `dev`
 it automates *promotion* — moving a specific, verified build through `dev` → `staging` →
 `prod` — while still leaving ArgoCD to do the actual syncing.
 
+Kargo isn't tied to ArgoCD specifically, though — `argocd-update` is just one of several
+promotion step types it supports (there's also `kubernetes-apply`, `http`, Helm-related
+steps, etc.); this repo just chooses to pair the two.
+
 ## The object model
 
 - **`Project`** — a Kargo wrapper around a Kubernetes Namespace. Creates the namespace

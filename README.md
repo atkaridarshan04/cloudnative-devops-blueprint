@@ -111,7 +111,7 @@ Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD 
 | Kubernetes cluster | `kind` + Ingress | `kind` + Ingress/Gateway API | `kind` + Gateway API | Real AWS EKS |
 | Infra as Code | — | ✅ Terraform (optional path) | — | ✅ Terraform (EKS, VPC, ECR) |
 | CI/CD | ✅ Jenkins | ✅ Jenkins + Trivy + SonarQube | — | ✅ Jenkins + Trivy + SonarQube |
-| GitOps | ✅ ArgoCD | ✅ ArgoCD | ✅ ArgoCD | ✅ ArgoCD |
+| GitOps | ✅ ArgoCD | ✅ ArgoCD + Kargo (promotion) | ✅ ArgoCD | ✅ ArgoCD |
 | Progressive Delivery | — | ✅ Argo Rollouts (canary + blue-green) | ✅ Argo Rollouts (canary) | ✅ Argo Rollouts (canary) |
 | Config management | Helm + Kustomize | Helm + Kustomize | Helm | Helm |
 | Service Mesh | — | ✅ Istio | — | — |
