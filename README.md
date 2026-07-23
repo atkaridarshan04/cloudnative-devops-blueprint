@@ -6,6 +6,7 @@
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Jenkins](https://img.shields.io/badge/Jenkins-D24939?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
+[![Kargo](https://img.shields.io/badge/Kargo-EF7B4D)](https://docs.kargo.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
 [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Kustomize](https://img.shields.io/badge/Kustomize-326CE5?logo=kubernetes&logoColor=white)](https://kustomize.io/)
@@ -158,6 +159,9 @@ flowchart TD
     CD -->|git commit + push| Git[(Git repo<br/>manifests / Helm values)]
     Git -.->|watched by| ArgoApp[ArgoCD Application]
 
+    CI -.->|image published| Kargo[Kargo Warehouse<br/>watches image tags]
+    Kargo -->|promotes dev→staging→prod<br/>opens PR, human merges| Git
+
     subgraph "AWS EKS cluster (provisioned by Terraform)"
         ArgoApp -->|sync| Kyverno[Kyverno<br/>admission policies]
         Kyverno -->|allowed| Rollout[Argo Rollouts<br/>canary / blue-green]
@@ -185,7 +189,7 @@ flowchart TD
     classDef observability fill:#d29922,color:#000,stroke:#d29922
 
     class Dev external
-    class CI,CD,ArgoApp,Kyverno,Rollout,ESO controller
+    class CI,CD,ArgoApp,Kyverno,Rollout,ESO,Kargo controller
     class Git,Vault store
     class FE,BE,DB,Secret workload
     class Prom,Fluent,Loki observability
@@ -203,7 +207,7 @@ flowchart TD
 </tr>
 <tr>
 <td valign="top">• Terraform<br>• AWS EKS<br>• Docker<br>• Docker Bake<br>• Ingress / Gateway API</td>
-<td valign="top">• Jenkins<br>• ArgoCD<br>• Argo Rollouts<br>• SonarQube<br>• Trivy</td>
+<td valign="top">• Jenkins<br>• ArgoCD<br>• Kargo<br>• Argo Rollouts<br>• SonarQube<br>• Trivy</td>
 <td valign="top">• Kubernetes<br>• Helm<br>• Kustomize<br>• Istio<br>• Kyverno<br>• HPA / Locust</td>
 <td valign="top">• HashiCorp Vault<br>• External Secrets Operator</td>
 <td valign="top">• Prometheus<br>• Grafana<br>• Fluent Bit<br>• Loki</td>
@@ -401,6 +405,28 @@ flowchart TD
 <td width="60%" style="border: 2px solid #c9772bff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
 
 <img src="./docs/assets/argocd/argocd-5.png" alt="ArgoCD Dashboard" width="100%">
+
+</td>
+</tr>
+</table>
+
+### 🚚 **Continuous Promotion**
+
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #c9772bff;">
+<tr>
+<td width="30%" style="border: 2px solid #c9772bff; padding: 20px ; vertical-align: top;">
+
+**[Kargo.md](./docs/Kargo.md)**  
+*Verified, PR-gated promotion of builds across dev → staging → prod*
+- Warehouse-driven Freight from image tags
+- Health-gated Stage chaining (dev → staging → prod)
+- PR-gated promotions, reviewed on GitHub before ArgoCD syncs
+- Multi-environment Kustomize overlays
+
+</td>
+<td width="60%" style="border: 2px solid #c9772bff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
+
+<img src="./docs/assets/kargo/karogo-ui-3_0.png" alt="Kargo Dashboard" width="100%">
 
 </td>
 </tr>
