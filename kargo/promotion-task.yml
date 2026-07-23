@@ -7,7 +7,7 @@ spec:
   vars:
     - name: overlayPath   # e.g. kustomize/overlays/dev
     - name: appName       # e.g. book-store-dev
-    - name: branch        # e.g. kargo-promotion — the branch the ArgoCD Application watches
+    - name: branch        # e.g. main — the branch the ArgoCD Application watches
     - name: repoURL       # same repo for all three Stages — default here so no Stage has to repeat it
       value: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
 

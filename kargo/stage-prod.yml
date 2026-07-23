@@ -21,7 +21,7 @@ spec:
         - name: appName
           value: book-store-prod
         - name: branch
-          value: kargo-promotion # switch to main once this merges
+          value: main
       steps:
         - task:
             name: promote-overlay

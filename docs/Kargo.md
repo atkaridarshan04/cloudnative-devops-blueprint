@@ -18,7 +18,7 @@ flowchart TD
     Dev -->|verified healthy| Staging[Stage: staging]
     Staging -->|verified healthy| Prod[Stage: prod]
 
-    Dev -->|opens PR, human merges| Git[(GitHub repo<br/>kargo-promotion branch)]
+    Dev -->|opens PR, human merges| Git[(GitHub repo<br/>main branch)]
     Staging -->|opens PR, human merges| Git
     Prod -->|opens PR, human merges| Git
 
