@@ -167,10 +167,23 @@ kubectl label secret git-repo-creds -n book-store kargo.akuity.io/cred-type=git
 
 ## Step 6 — Create the Warehouse, confirm Freight actually appears
 
+`1.0.0`/`2.0.0`/`3.0.0` all already exist in the registry (built upfront for the Kustomize
+theme-color demo, not pushed incrementally like a real pipeline), so with `constraint:
+">=1.0.0"` the Warehouse resolves to whatever's semantically greatest on every reconcile —
+it'll go straight to `3.0.0`, skipping `2.0.0` entirely. That's expected: same as a real
+registry where a newer version just showed up and the Warehouse detects it and proposes it,
+whichever version that happens to be. Pin the constraint to an exact version instead (e.g.
+`constraint: "2.0.0"`) if you ever want to force a specific one.
+
 ```bash
 kubectl apply -f kargo/warehouse.yml
 kubectl get freight -n book-store -w
 ```
+
+![apply-warehoue](./assets/kargo/apply-warehoue.png)
+
+On kargo Ui
+![kargo-ui-warehouse](./assets/kargo/kargo-ui-warehouse.png)
 
 **Stop here and confirm Freight shows up before continuing.**
 
@@ -192,6 +205,8 @@ kubectl get stages -n book-store
 kubectl get promotions -n book-store -w
 ```
 
+![k-get-promotions](./assets/kargo/kubectl-get-promotion.png)
+
 ## Step 8 — Verify the full chain
 
 ```bash
@@ -203,6 +218,84 @@ kubectl get application -n argocd -w
 
 If a build makes it all the way to `prod` and the app's theme color visibly changes at each
 stage in sequence, that's the whole pipeline confirmed working end to end.
+
+## Example run: 1.0.0 → 3.0.0
+
+A full walkthrough from a real run, start to finish — useful as a reference for what
+"working" actually looks like at each step.
+
+**Starting point.** `bookstore-frontend`/`bookstore-backend` already have `1.0.0`, `2.0.0`,
+and `3.0.0` published in GHCR, and the three ArgoCD `Application`s are `Synced`/`Healthy`
+before Kargo touches anything:
+
+![ArgoCD before Kargo](./assets/kargo/argocd-primary.png)
+
+**First promotion, constraint pinned to `1.0.0`.** With the Warehouse's `constraint` set to
+the exact version already deployed, `kustomize-set-image` has nothing to change — the
+`git-commit` and `git-open-pr` steps both report `Skipped` rather than erroring, and
+`git-wait-for-pr`'s `if: ${{ status('open-pr') != 'Skipped' }}` guard (see
+`promotion-task.yml`) correctly skips itself in turn instead of crashing looking for a PR
+that was never opened:
+
+![first dev promotion, no diff to promote](./assets/kargo/first-promotion-dev.png)
+
+`argocd-update` still runs regardless, confirming health — so the Promotion completes
+`Succeeded` and all three Stages end up `Healthy` on `1.0.0`:
+
+![all three Stages healthy on 1.0.0](./assets/kargo/karog-ui-1_0.png)
+
+**Widening the constraint.** Changing `kargo/warehouse.yml`'s `constraint` to `">=1.0.0"`
+and re-applying, the Warehouse resolves to the semantically greatest tag on its next
+reconcile — `3.0.0` — skipping `2.0.0` entirely, same as a real registry where a newer
+version just showed up:
+
+![Warehouse detects 3.0.0 after widening the constraint](./assets/kargo/kargo-ui-warehouse-update.png)
+
+**`dev` promotes.** `dev` and `staging` have `autoPromotionEnabled: true`
+(`project-config.yml`), so `dev` starts a Promotion immediately — this time there's a real
+diff, so `git-open-pr` actually opens a PR and the Promotion parks on `git-wait-for-pr`:
+
+![dev Promotion waiting on its PR to merge](./assets/kargo/kargo-ui-dev-promote-pr-wait.png)
+![the opened PR on GitHub](./assets/kargo/gh-dev-promote-pr-review.png)
+![PR diff: image tags bumped 1.0.0 → 3.0.0](./assets/kargo/gh-dev-pr-changes.png)
+
+Merging the PR unblocks `git-wait-for-pr`, `argocd-update` runs, and `dev` goes `Healthy` —
+at which point `staging` (upstream: `dev`) becomes eligible and starts its own Promotion:
+
+![PR merged](./assets/kargo/gh-dev-pr-merge.png)
+![dev Healthy, staging now starting](./assets/kargo/kargo-ui-dev-promote-healthy.png)
+![ArgoCD synced for dev](./assets/kargo/argocd-ui-dev-update.png)
+![dev.local now purple (3.0.0), was blue (1.0.0)](./assets/kargo/dev-local-web-updated.png)
+
+**`staging` promotes.** Same PR gate, same pattern:
+
+![staging Promotion waiting on its PR](./assets/kargo/kargo-ui-stage-promote.png)
+![staging's PR on GitHub, same 1.0.0 → 3.0.0 diff](./assets/kargo/Ggh-stage-promote-pr-review.png)
+
+After merging, `staging` goes `Healthy` and ArgoCD syncs it — `staging.local` shows the same
+color change to purple:
+
+![staging Healthy after merge](./assets/kargo/kargo-ui-stage-promote-complete.png)
+![ArgoCD synced for staging](./assets/kargo/argocd-ui-stage-update.png)
+
+**`prod` promotes — manually.** `prod` has `autoPromotionEnabled: false`, so unlike `dev`/
+`staging` it doesn't start on its own — trigger it from the Kargo dashboard (Freight →
+Promote):
+
+![manually starting the prod Promotion](./assets/kargo/kargo-ui-prod-promote.png)
+![prod's PR on GitHub](./assets/kargo/gh-prod-promote-pr-review.png)
+
+Same merge-and-verify sequence, and `prod.local` picks up the same color change once
+ArgoCD syncs:
+
+![prod Healthy after merge](./assets/kargo/kargo-ui-prod-update.png)
+![ArgoCD synced across all three environments](./assets/kargo/argocd-all-updated.png)
+
+**End state.** All three Stages on `3.0.0`, end to end:
+
+![Kargo dashboard: everything on 3.0.0](./assets/kargo/karogo-ui-3_0.png)
+![docker images in GHCR](./assets/kargo/karog-ui-docker-images.png)
+
 
 ## Related reading
 

@@ -62,8 +62,13 @@ spec:
 
     # Blocks here until the PR above is merged (or closed) on GitHub — the manual approval
     # gate. Uses the same git-repo-creds Secret as git-clone/git-push, via the GitHub API.
+    # git-open-pr skips (no error) when source/target branches have no diff — happens when
+    # this Freight is re-promoted to a Stage that's already at that exact state (nothing for
+    # kustomize-set-image/git-commit to change). Without this guard, wait-for-pr would still
+    # try to read a PR id that was never created and error with "cannot fetch id from <nil>".
     - uses: git-wait-for-pr
       as: wait-for-pr
+      if: ${{ status('open-pr') != 'Skipped' }}
       config:
         repoURL: ${{ vars.repoURL }}
         provider: github
