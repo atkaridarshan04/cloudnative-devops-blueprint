@@ -34,6 +34,12 @@
 
 This project demonstrates a **production-ready DevOps pipeline** for deploying a MERN (MongoDB, Express, React, Node.js) application using modern cloud-native technologies and best practices. From local development to cloud deployment, this blueprint covers the entire application lifecycle.
 
+**Quick navigation:** [Explore Other Branches](#-explore-other-branches) ·
+[Application Versions](#-application-versions) ·
+[Project Deployment Flow](#-project-deployment-flow) ·
+[Technology Stack](#️-technology-stack) ·
+[Documentation Hub](#-documentation-hub)
+
 ## 🌿 Explore Other Branches
 
 This repository is organized as a set of branches. `main` (this one) is the broadest,
@@ -150,7 +156,11 @@ guides ([Kyverno.md](./docs/Kyverno.md), [Istio.md](./docs/Istio.md),
 [ArgoRollouts.md](./docs/ArgoRollouts.md), etc.) demo their slice **standalone**, each with
 its own `kind` cluster, not wired to the others. This is the *composite* architecture — how
 they compose if you ran them together, not a claim that this exact end-to-end chain runs in
-any single guide today:
+any single guide today. Note the two independent CI entry points feeding the same cluster:
+Jenkins (Docker Hub, the primary GitOps path) and [GitHub Actions](./docs/GitHubActions.md)
+(GHCR, signed images that Kyverno verifies at admission) — see
+[concepts/SupplyChainSecurity.md](./docs/concepts/SupplyChainSecurity.md) for why that second
+path exists:
 
 ```mermaid
 flowchart TD
@@ -162,8 +172,12 @@ flowchart TD
     CI -.->|image published| Kargo[Kargo Warehouse<br/>watches image tags]
     Kargo -->|promotes dev→staging→prod<br/>opens PR, human merges| Git
 
+    Dev -.->|parallel pipeline| GHA[GitHub Actions CI<br/>Trivy + Syft SBOM<br/>cosign sign, keyless]
+    GHA --> GHCR[(GHCR: signed images<br/>+ SBOM attestation)]
+
     subgraph "AWS EKS cluster (provisioned by Terraform)"
-        ArgoApp -->|sync| Kyverno[Kyverno<br/>admission policies]
+        ArgoApp -->|sync| Kyverno[Kyverno<br/>admission policies +<br/>signature verification]
+        GHCR -.->|verifyImages| Kyverno
         Kyverno -->|allowed| Rollout[Argo Rollouts<br/>canary / blue-green]
 
         subgraph "mern-devops namespace (Istio mesh)"
@@ -189,8 +203,8 @@ flowchart TD
     classDef observability fill:#d29922,color:#000,stroke:#d29922
 
     class Dev external
-    class CI,CD,ArgoApp,Kyverno,Rollout,ESO,Kargo controller
-    class Git,Vault store
+    class CI,CD,ArgoApp,Kyverno,Rollout,ESO,Kargo,GHA controller
+    class Git,Vault,GHCR store
     class FE,BE,DB,Secret workload
     class Prom,Fluent,Loki observability
 ```

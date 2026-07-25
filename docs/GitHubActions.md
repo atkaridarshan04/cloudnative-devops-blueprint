@@ -94,8 +94,11 @@ be pointed at those existing tags too.
 
 ## 1. Running the pipeline
 
-Trigger it manually from the **Actions** tab (`workflow_dispatch`), or by pushing a `v*` tag. Find
-the digest it actually pushed either way:
+Trigger it manually from the **Actions** tab (`workflow_dispatch`), or by pushing a `v*` tag.
+
+![workflow-run-overview](./assets/supply-chain-signing/workflow-run-overview.png)
+
+Find the digest it actually pushed either way:
 
 ```bash
 # per image, resolves the manifest digest for a given tag — copy the tag from the Actions run logs
