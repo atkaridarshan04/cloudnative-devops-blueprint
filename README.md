@@ -14,7 +14,7 @@
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)](https://grafana.com/)
 [![Fluent Bit](https://img.shields.io/badge/Fluent%20Bit-49BDA5?logo=fluentd&logoColor=white)](https://fluentbit.io/)
 [![Loki](https://img.shields.io/badge/Loki-F46800?logo=grafana&logoColor=white)](https://grafana.com/oss/loki/)
-[![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/rollouts/)  
+[![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/rollouts/)
 [![Istio](https://img.shields.io/badge/Istio-466BB0?logo=istio&logoColor=white)](https://istio.io/)
 [![HashiCorp Vault](https://img.shields.io/badge/HashiCorp%20Vault-FFEC13?logo=vault&logoColor=black)](https://www.vaultproject.io/)
 [![External Secrets Operator](https://img.shields.io/badge/External%20Secrets%20Operator-326CE5?logo=kubernetes&logoColor=white)](https://external-secrets.io/)
@@ -110,7 +110,7 @@ Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD 
 | Containerization | ✅ Docker Compose | ✅ Docker | ✅ Docker | ✅ Docker |
 | Kubernetes cluster | `kind` + Ingress | `kind` + Ingress/Gateway API | `kind` + Gateway API | Real AWS EKS |
 | Infra as Code | — | ✅ Terraform (optional path) | — | ✅ Terraform (EKS, VPC, ECR) |
-| CI/CD | ✅ Jenkins | ✅ Jenkins + Trivy + SonarQube | — | ✅ Jenkins + Trivy + SonarQube |
+| CI/CD | ✅ Jenkins | ✅ Jenkins + Trivy + SonarQube + GitHub Actions (GHCR, cosign, Kyverno signature enforcement) | — | ✅ Jenkins + Trivy + SonarQube |
 | GitOps | ✅ ArgoCD | ✅ ArgoCD + Kargo (promotion) | ✅ ArgoCD | ✅ ArgoCD |
 | Progressive Delivery | — | ✅ Argo Rollouts (canary + blue-green) | ✅ Argo Rollouts (canary) | ✅ Argo Rollouts (canary) |
 | Config management | Helm + Kustomize | Helm + Kustomize | Helm | Helm |
@@ -207,7 +207,7 @@ flowchart TD
 </tr>
 <tr>
 <td valign="top">• Terraform<br>• AWS EKS<br>• Docker<br>• Docker Bake<br>• Ingress / Gateway API</td>
-<td valign="top">• Jenkins<br>• ArgoCD<br>• Kargo<br>• Argo Rollouts<br>• SonarQube<br>• Trivy</td>
+<td valign="top">• Jenkins<br>• ArgoCD<br>• Kargo<br>• Argo Rollouts<br>• SonarQube<br>• Trivy<br>• GitHub Actions<br>• cosign<br>• Syft</td>
 <td valign="top">• Kubernetes<br>• Helm<br>• Kustomize<br>• Istio<br>• Kyverno<br>• HPA / Locust</td>
 <td valign="top">• HashiCorp Vault<br>• External Secrets Operator</td>
 <td valign="top">• Prometheus<br>• Grafana<br>• Fluent Bit<br>• Loki</td>
@@ -224,7 +224,7 @@ flowchart TD
 
 ### 🐳 **Containerization**
 
-**[Docker.md](./docs/Docker.md)**  
+**[Docker.md](./docs/Docker.md)**
 *Build and run containers with Docker Compose for multi-service applications*
 - Multi-stage Dockerfiles
 - Production optimizations
@@ -236,7 +236,7 @@ flowchart TD
 
 ### ☸️ **Kubernetes**
 
-**[Kubernetes.md](./docs/Kubernetes.md)**  
+**[Kubernetes.md](./docs/Kubernetes.md)**
 *Deploy on kind cluster with ingress*
 - Persistent storage setup
 - Deployments and Statefulsets
@@ -248,7 +248,7 @@ flowchart TD
 
 ### 🔥 **Stress Testing & HPA**
 
-**[StressTest.md](./docs/StressTest.md)**  
+**[StressTest.md](./docs/StressTest.md)**
 *Load test the backend with Locust to trigger HPA autoscaling*
 - Locust stress client (local & Kubernetes Job)
 - HPA autoscaling demonstration
@@ -265,7 +265,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #b84c09ff; padding: 20px ; vertical-align: top;">
 
-**[Jenkins.md](./docs/Jenkins.md)**  
+**[Jenkins.md](./docs/Jenkins.md)**
 *Automated build, test, and deployment*
 - Multi-stage pipeline
 - Sonar scanning
@@ -282,6 +282,23 @@ flowchart TD
 
 </td>
 </tr>
+<tr>
+<td width="30%" style="border: 2px solid #b84c09ff; padding: 20px ; vertical-align: top;">
+
+**[GitHubActions.md](./docs/GitHubActions.md)**  
+*Signed CI/CD pipeline to GHCR*
+- Multi-arch build via existing `docker-bake.hcl`
+- Trivy scan + Syft SBOM
+- cosign keyless signing (Sigstore)
+- Kyverno signature enforcement at admission
+
+</td>
+<td width="60%" style="border: 2px solid #b84c09ff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
+
+<img src="./docs/assets/supply-chain-signing/workflow-run-overview.png" alt="GitHub Actions Workflow run overview" width="100%">
+
+</td>
+</tr>
 </table>
 
 ### 📦 **Package, Configuration & Policy Management**
@@ -291,7 +308,7 @@ flowchart TD
 <td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
 #### 📦 **Helm Charts**
-**[Helm.md](./docs/Helm.md)**  
+**[Helm.md](./docs/Helm.md)**
 *Template-based Kubernetes deployments*
 - Chart customization
 - Values management
@@ -301,7 +318,7 @@ flowchart TD
 <td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
 #### 🔧 **Kustomize**
-**[Kustomize.md](./docs/Kustomize.md)**  
+**[Kustomize.md](./docs/Kustomize.md)**
 *Environment-specific configurations*
 - Base and overlay patterns
 - Patch management
@@ -312,7 +329,7 @@ flowchart TD
 <td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
 #### 🛡️**Kyverno**
-**[Kyverno.md](./docs/Kyverno.md)**  
+**[Kyverno.md](./docs/Kyverno.md)**
 *Policy management and governance*
 - Security policy enforcement
 - Resource validation rules
@@ -326,7 +343,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #6f42c1; padding: 20px ; vertical-align: top;">
 
-**[ExternalSecrets.md](./docs/ExternalSecrets.md)**  
+**[ExternalSecrets.md](./docs/ExternalSecrets.md)**
 *Secure secrets management with HashiCorp Vault integration*
 - External Secrets Operator
 - Vault secret synchronization
@@ -347,7 +364,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #bc2323ff; padding: 20px ; vertical-align: top;">
 
-**[Monitoring.md](./docs/Monitoring.md)**  
+**[Monitoring.md](./docs/Monitoring.md)**
 *Metrics observability with Prometheus & Grafana*
 - Metrics collection & storage
 - Kube Prometheus Stack Dashboards
@@ -370,7 +387,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #49BDA5; padding: 20px ; vertical-align: top;">
 
-**[Logging.md](./docs/Logging.md)**  
+**[Logging.md](./docs/Logging.md)**
 *Centralized log collection with Fluent Bit, Loki & Grafana*
 - Fluent Bit DaemonSet collection
 - Kubernetes metadata enrichment
@@ -393,11 +410,11 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #c9772bff; padding: 20px ; vertical-align: top;">
 
-**[ArgoCD.md](./docs/ArgoCD.md)**  
+**[ArgoCD.md](./docs/ArgoCD.md)**
 *Continuous deployment with Git sync and automated application lifecycle management*
 - Repository connection
 - Application management
-- Sync policies   
+- Sync policies
 - Multi-cluster deployment
 - RBAC integration
 
@@ -416,7 +433,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #c9772bff; padding: 20px ; vertical-align: top;">
 
-**[Kargo.md](./docs/Kargo.md)**  
+**[Kargo.md](./docs/Kargo.md)**
 *Verified, PR-gated promotion of builds across dev → staging → prod*
 - Warehouse-driven Freight from image tags
 - Health-gated Stage chaining (dev → staging → prod)
@@ -439,11 +456,11 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #c9772bff; padding: 20px ; vertical-align: top;">
 
-**[ArgoRollouts.md](./docs/ArgoRollouts.md)**  
+**[ArgoRollouts.md](./docs/ArgoRollouts.md)**
 *Canary and blue-green deployments with automated rollbacks*
 - Canary traffic splitting
 - Blue-green instant promotion
-- Rollback strategies  
+- Rollback strategies
 
 </td>
 <td width="60%" style="border: 2px solid #c9772bff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
@@ -454,18 +471,18 @@ flowchart TD
 </tr>
 </table>
 
-### 🕸️ **Service Mesh**  
+### 🕸️ **Service Mesh**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #4297ccff;">
 <tr>
 <td width="30%" style="border: 2px solid #42a4bcff; padding: 20px ; vertical-align: top;">
 
-**[Istio.md](./docs/Istio.md)**  
-*Advanced traffic management and security with service mesh capabilities*  
-- mTLS encryption  
-- Traffic splitting & canary  
-- Observability & tracing  
-- Policy enforcement   
+**[Istio.md](./docs/Istio.md)**
+*Advanced traffic management and security with service mesh capabilities*
+- mTLS encryption
+- Traffic splitting & canary
+- Observability & tracing
+- Policy enforcement
 
 </td>
 <td width="60%" style="border: 2px solid #42a4bcff; margin-left:20px ; padding: 15px; vertical-align: middle; text-align: center;">
@@ -483,11 +500,11 @@ flowchart TD
 <td width="30%" style="border: 2px solid #7B42BC; padding: 20px ; vertical-align: top;">
 
 #### 🏗️ **Cloud Infrastructure**
-**[Terraform.md](./docs/Terraform.md)**  
+**[Terraform.md](./docs/Terraform.md)**
 *Provision and Deploy on AWS EKS cluster with IaC*
 
 - VPC and networking setup
-- EKS cluster configuration  
+- EKS cluster configuration
 - Security groups and IAM
 - Add-ons installation
 
