@@ -12,7 +12,7 @@ is the technical breakdown of the workflow itself.
 ```yaml
 on:
   push:
-    branches: [main]
+    # branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 ```

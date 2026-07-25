@@ -94,6 +94,16 @@ The policy enforcement blocks the deployment:
 <img src="./assets/kyverno/kyverno-label-error.png" alt="Kyverno Label Error" width="100%">
 </div>
 
+### Image Signature Verification (Supply Chain Signing)
+
+Beyond tag/label validation, Kyverno can also enforce that only *signed* images are admitted —
+see [`kyverno/policies/verify-ghcr-image-signatures.yaml`](../kyverno/policies/verify-ghcr-image-signatures.yaml),
+which uses `verifyImages` to require a valid keyless Sigstore signature (cosign) before admitting
+any GHCR image into `mern-devops`. Full walkthrough — the signing pipeline that produces those
+signatures, and testing the signed/unsigned cases against this policy — in
+[GitHubActions.md](./GitHubActions.md), concept background in
+[concepts/SupplyChainSecurity.md](./concepts/SupplyChainSecurity.md).
+
 ## Policy Testing
 
 ```bash

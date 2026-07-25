@@ -64,6 +64,9 @@ couple of GitHub/GHCR settings need to be right before the first run will actual
 | OIDC (Sigstore keyless signing) | Nothing to configure | `id-token: write` in the workflow is the entire requirement. GitHub's OIDC issuer (`token.actions.githubusercontent.com`) is already trusted by Sigstore's Fulcio CA — no app registration, no secret, no key pair. |
 | Syft (SBOM generation) | Nothing to configure | Runs entirely inside the `anchore/sbom-action` step; no account, token, or external service. |
 
+![workflow-read-write-permission.png](./assets/supply-chain-signing/workflow-read-write-permission.png)
+![repository-connect-image](./assets/supply-chain-signing/repository-connect-image.png)
+
 For the **manual verification** steps further down, you'll also want these installed locally:
 `cosign`, `jq`, `docker buildx` (already needed for local builds), and `kubectl` pointed at a
 cluster with Kyverno installed (see [Kyverno.md](./Kyverno.md) if that's not set up yet).
@@ -79,6 +82,10 @@ cluster with Kyverno installed (see [Kyverno.md](./Kyverno.md) if that's not set
 Regardless of trigger, the pushed image is always tagged `signed-<short-sha>` — see
 [Running the pipeline](#1-running-the-pipeline) below.
 
+![ghcr-image-push-frontend](./assets/supply-chain-signing/ghcr-image-push-frontend.png)
+
+Same for the backend image.
+
 ## Note
 
 Every run pushes under its own `signed-<short-sha>` tag (e.g.
@@ -87,15 +94,21 @@ be pointed at those existing tags too.
 
 ## 1. Running the pipeline
 
-Trigger it either by pushing to `main` (or a `v*` tag), or manually from the **Actions** tab
-(`workflow_dispatch`). Find the digest it actually pushed
-either way:
+Trigger it manually from the **Actions** tab (`workflow_dispatch`), or by pushing a `v*` tag. Find
+the digest it actually pushed either way:
 
 ```bash
 # per image, resolves the manifest digest for a given tag — copy the tag from the Actions run logs
-docker buildx imagetools inspect ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:signed-<sha>
 docker buildx imagetools inspect ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:signed-<sha>
+docker buildx imagetools inspect ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:signed-<sha>
 ```
+
+![buildx-inspect-frontend](./assets/supply-chain-signing/buildx-inspect-frontend.png)
+
+> The output lists several manifests (one per platform, plus attestation manifests). The digest
+> you want is the **top-level `Digest:` line** (the `application/vnd.oci.image.index.v1+json`
+> one) — not any of the per-platform or `...-attestation-manifest` entries underneath it. That
+> top digest is what actually got signed.
 
 Or read it straight from the run: **Actions → the run → `build` job → "Extract pushed image
 digests"** step output.
@@ -109,54 +122,90 @@ transparency log:
 cosign verify \
   --certificate-identity "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/.github/workflows/ci.yml@refs/heads/main" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend@<digest>
+  ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend@<digest>
 ```
 
+> **`--certificate-identity`'s trailing `@refs/heads/<branch>` must match whichever branch
+> actually triggered the run that produced this digest.** The cert Sigstore issues encodes the
+> real ref the workflow ran on — use `@refs/heads/main` once this pipeline is running from `main`.
+> The screenshot below was captured while this was still being tested on the
+> `supply-chain-signing` branch, so it uses `@refs/heads/supply-chain-signing` instead — same
+> command, just matching whatever branch the run actually happened on at the time.
+
+![cosign-verify-frontend](./assets/supply-chain-signing/cosign-verify-frontend.png)
+
 A valid signature prints the Rekor log entry and the certificate identity that signed it. Pull the
-attached SBOM attestation the same way:
+attached SBOM attestation the same way (same branch-matching caveat applies to
+`--certificate-identity` here too):
 
 ```bash
 cosign verify-attestation \
   --type spdxjson \
   --certificate-identity "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/.github/workflows/ci.yml@refs/heads/main" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend@<digest> \
+  ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend@<digest> \
   | jq -r '.payload' | base64 -d | jq '.predicate.packages | length'
 ```
+
+![cosign-verify-assestation-frontend](./assets/supply-chain-signing/cosign-verify-assestation-frontend.png)
 
 That last `jq` just proves the attestation is a real SBOM by counting the packages listed in it.
 
 ## 3. Apply the Kyverno policy and test signed vs. unsigned
+
+> Same branch caveat as above: `kyverno/policies/verify-ghcr-image-signatures.yaml` hardcodes
+> `subject: .../ci.yml@refs/heads/main`. A genuinely signed image built from a feature branch will
+> **also** get rejected by Kyverno, for the same reason `cosign verify` did above — wrong branch
+> in the subject, not a broken signature. While this was being tested on the
+> `supply-chain-signing` branch, that line was temporarily pointed at
+> `@refs/heads/supply-chain-signing` to verify the positive/negative cases end-to-end (see the
+> screenshots below); it's back to `@refs/heads/main` now, matching the file as committed. If you
+> ever test again from a different branch before merging, repeat that same temporary swap and
+> revert it afterward.
+
+```yml
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/*"
+          attestors:
+            - entries:
+                - keyless:
+                    issuer: "https://token.actions.githubusercontent.com"
+                    subject: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/.github/workflows/ci.yml@refs/heads/main"
+                    rekor:
+                      url: https://rekor.sigstore.dev
+```
+
+> Note: install the Kyverno CRDs via Helm first if you haven't — see [Kyverno.md](./Kyverno.md).
 
 ```bash
 kubectl apply -f kyverno/policies/verify-ghcr-image-signatures.yaml
 kubectl get clusterpolicy verify-ghcr-image-signatures
 ```
 
+![apply-kyverno-policy](./assets/supply-chain-signing/apply-kyverno-policy.png)
+
 **Positive case** — a real image from this pipeline, referenced by digest, should be admitted:
 
 ```bash
 kubectl run test-signed -n mern-devops \
-  --image=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend@<real-digest>
+  --image=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend@<real-digest>
 
 kubectl get pod test-signed -n mern-devops   # Running / ContainerCreating, not blocked
 ```
 
-**Negative case** — the actual test that matters. Push *something* to the same GHCR path that
-never went through `cosign sign` in this workflow — e.g. retag and push an unrelated local image
-under the same repo path, or just reference a tag that predates this pipeline (unsigned):
+![test-sucessful-running](./assets/supply-chain-signing/test-sucessful-running.png)
+
+**Negative case** — the actual test that matters. Reference *something* on the same GHCR path that
+never went through `cosign sign` in this workflow — here, the existing `3.0.0` tag, which predates
+this pipeline and was never signed:
 
 ```bash
 kubectl run test-unsigned -n mern-devops \
-  --image=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:unsigned-test
+  --image=ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend:3.0.0
 ```
 
-Expected: the request never creates the Pod —
-
-```
-Error from server: admission webhook "validate.kyverno.svc-fail" denied the request:
-...failed to verify signature...
-```
+![unsigned-test-failure](./assets/supply-chain-signing/unsigned-test-failure.png)
 
 Inspect why, either way:
 
@@ -164,6 +213,8 @@ Inspect why, either way:
 kubectl describe clusterpolicy verify-ghcr-image-signatures
 kubectl get events -n mern-devops --field-selector reason=PolicyViolation
 ```
+
+![policy-viloation-event](./assets/supply-chain-signing/policy-viloation-event.png)
 
 If the unsigned Pod gets admitted instead of denied, the policy isn't actually enforcing — check
 `validationFailureAction: Enforce` (not `Audit`) and that `background: false` isn't silently
