@@ -80,16 +80,21 @@ env:
 
 Per matrix entry, in order:
 
-1. **Trivy image scan** (`aquasecurity/trivy-action`) — same tool as the Jenkinsfile, scanning
+1. `docker/login-action@v3` — logs into `ghcr.io` again, same as the `build` job. This job runs on
+   its **own runner**, so it doesn't inherit the `build` job's Docker credentials — without this,
+   `cosign sign`/`cosign attest` reach Sigstore fine (the Rekor log entry gets created) but then
+   fail pushing the signature *back* to GHCR with `UNAUTHORIZED: unauthenticated`.
+2. **Trivy image scan** (`aquasecurity/trivy-action`) — same tool as the Jenkinsfile, scanning
    `$REF@$DIGEST`. `exit-code: "0"` keeps it non-blocking for this pass, matching the current
    Jenkins pipeline's stance; making it fail the build is a later decision, not in scope for #14.
-2. **Syft SBOM** (`anchore/sbom-action`) — generates `spdx-json`, written to
+3. **Syft SBOM** (`anchore/sbom-action`) — generates `spdx-json`, written to
    `<image>-sbom.spdx.json`, keyed to the same digest.
-3. `sigstore/cosign-installer@v3` — installs the `cosign` CLI onto the runner.
-4. **Sign image (keyless)** — `cosign sign --yes "$REF@$DIGEST"`. No `--key` flag: cosign detects
+4. `sigstore/cosign-installer@v3` — installs the `cosign` CLI onto the runner.
+5. **Sign image (keyless)** — `cosign sign --yes "$REF@$DIGEST"`. No `--key` flag: cosign detects
    it's running in GitHub Actions with `id-token: write` and does the OIDC → Fulcio → ephemeral
-   cert → Rekor log flow automatically.
-5. **Attach SBOM attestation** — `cosign attest --yes --predicate <image>-sbom.spdx.json --type
+   cert → Rekor log flow automatically, then pushes the signature using the Docker credentials
+   from step 1.
+6. **Attach SBOM attestation** — `cosign attest --yes --predicate <image>-sbom.spdx.json --type
    spdxjson "$REF@$DIGEST"` — signs and attaches the SBOM itself the same way, so the SBOM inherits
    the same tamper-evident guarantee as the image.
 
