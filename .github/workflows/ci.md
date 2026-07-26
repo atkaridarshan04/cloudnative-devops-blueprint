@@ -41,10 +41,10 @@ repo's Security tab. No stored secrets or keys anywhere in this file.
 
 ## Job: `build`
 
-1. `actions/checkout@v4` — standard checkout.
-2. `docker/setup-qemu-action@v3` + `docker/setup-buildx-action@v3` — needed for the multi-arch
+1. `actions/checkout@v7` — standard checkout.
+2. `docker/setup-qemu-action@v4` + `docker/setup-buildx-action@v4` — needed for the multi-arch
    (`linux/amd64` + `linux/arm64`) build that `docker-bake.hcl` already declares.
-3. `docker/login-action@v3` — logs into `ghcr.io` using `github.actor` / `GITHUB_TOKEN` (the
+3. `docker/login-action@v4` — logs into `ghcr.io` using `github.actor` / `GITHUB_TOKEN` (the
    built-in token, not a personal access token).
 4. **Set image tag** — computes `signed-<short-sha>` (e.g. `signed-a3f9c2e`) from `GITHUB_SHA`.
    This is a separate tag created specifically for this signing/SBOM/Kyverno demo — deliberately
@@ -53,7 +53,7 @@ repo's Security tab. No stored secrets or keys anywhere in this file.
    means every run leaves a distinct, traceable artifact instead of overwriting the same tag on
    each push. The same signing/SBOM approach demoed here can later be pointed at those existing
    tags too.
-5. `docker/bake-action@v5` with `push: true` and a `set:` override — runs `docker-bake.hcl`'s
+5. `docker/bake-action@v7` with `push: true` and a `set:` override — runs `docker-bake.hcl`'s
    `default` group (`frontend` + `backend`) unmodified, just overriding the `tags` field for both
    targets at invocation time to the computed `signed-<sha>` tag. `docker-bake.hcl` itself is
    never edited — `--set` is a normal buildx bake capability for exactly this.
@@ -82,7 +82,7 @@ env:
 
 Per matrix entry, in order:
 
-1. `docker/login-action@v3` — logs into `ghcr.io` again, same as the `build` job. This job runs on
+1. `docker/login-action@v4` — logs into `ghcr.io` again, same as the `build` job. This job runs on
    its **own runner**, so it doesn't inherit the `build` job's Docker credentials — without this,
    `cosign sign`/`cosign attest` reach Sigstore fine (the Rekor log entry gets created) but then
    fail pushing the signature *back* to GHCR with `UNAUTHORIZED: unauthenticated`.
