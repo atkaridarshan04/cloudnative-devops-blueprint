@@ -65,10 +65,19 @@ flowchart LR
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
 <tr>
-<td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
+<td width="33%" align="center" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
-### 🌱 **[`begineer`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/begineer)**
+### 🌱 begineer
 **Beginner-Friendly Core Flow**
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=flat-square)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white&style=flat-square)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?logo=jenkins&logoColor=white&style=flat-square)
+![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white&style=flat-square)
+![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white&style=flat-square)
+
+<div align="left">
 
 The starting point, before `main`'s more advanced pieces (service mesh, policy engines, secrets management, log aggregation).
 
@@ -79,11 +88,23 @@ The starting point, before `main`'s more advanced pieces (service mesh, policy e
 - Kustomize (dev/prod overlays)
 - Prometheus/Grafana observability
 
-</td>
-<td width="33%" style="border: 2px solid #0ea5e9; padding: 20px; vertical-align: top;">
+</div>
 
-### 🔐 **[`domain-and-tls`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/domain-and-tls)**
+[![View begineer branch](https://img.shields.io/badge/View_Branch-23ce26?style=for-the-badge&logo=github&logoColor=white)](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/begineer)
+
+</td>
+<td width="33%" align="center" style="border: 2px solid #0ea5e9; padding: 20px; vertical-align: top;">
+
+### 🔐 domain-and-tls
 **Domain, TLS & Platform**
+
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white&style=flat-square)
+![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![cert-manager](https://img.shields.io/badge/cert--manager-2C3E50?style=flat-square)
+![Let's Encrypt](https://img.shields.io/badge/Let's%20Encrypt-003A70?style=flat-square)
+
+<div align="left">
 
 A custom domain and TLS setup on Kubernetes, and everything that requires end-to-end.
 
@@ -92,11 +113,23 @@ A custom domain and TLS setup on Kubernetes, and everything that requires end-to
 - Prometheus/Grafana + blackbox-exporter TLS monitoring
 - GitHub OAuth SSO (Dex, native Grafana OAuth, oauth2-proxy)
 
-</td>
-<td width="33%" style="border: 2px solid #7B42BC; padding: 20px; vertical-align: top;">
+</div>
 
-### ☁️ **[`prod`](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/prod)**
+[![View domain-and-tls branch](https://img.shields.io/badge/View_Branch-0ea5e9?style=for-the-badge&logo=github&logoColor=white)](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/domain-and-tls)
+
+</td>
+<td width="33%" align="center" style="border: 2px solid #7B42BC; padding: 20px; vertical-align: top;">
+
+### ☁️ prod
 **Real AWS EKS Production Deployment**
+
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white&style=flat-square)
+![AWS EKS](https://img.shields.io/badge/AWS%20EKS-FF9900?logo=amazon-eks&logoColor=white&style=flat-square)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?logo=jenkins&logoColor=white&style=flat-square)
+![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+
+<div align="left">
 
 Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD pipeline.
 
@@ -104,6 +137,10 @@ Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD 
 - Envoy Gateway (Gateway API) + cert-manager
 - Jenkins + Trivy + SonarQube CI/CD pipeline
 - ArgoCD + Argo Rollouts canary, triggered by CI
+
+</div>
+
+[![View prod branch](https://img.shields.io/badge/View_Branch-7B42BC?style=for-the-badge&logo=github&logoColor=white)](https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/tree/prod)
 
 </td>
 </tr>
@@ -299,7 +336,7 @@ flowchart TD
 <tr>
 <td width="30%" style="border: 2px solid #b84c09ff; padding: 20px ; vertical-align: top;">
 
-**[GitHubActions.md](./docs/GitHubActions.md)**  
+**[GitHubActions.md](./docs/GitHubActions.md)**
 *Signed CI/CD pipeline to GHCR*
 - Multi-arch build via existing `docker-bake.hcl`
 - Trivy scan + Syft SBOM

@@ -31,11 +31,13 @@ permissions:
   contents: read
   packages: write # push to GHCR
   id-token: write # OIDC token for cosign keyless signing
+  security-events: write # upload Trivy SARIF to the Security tab
 ```
 
 `packages: write` lets `GITHUB_TOKEN` push to GHCR. `id-token: write` is what lets the job request
 a short-lived OIDC token from GitHub — that token is what Fulcio exchanges for a signing
-certificate. No stored secrets or keys anywhere in this file.
+certificate. `security-events: write` lets the `upload-sarif` step publish Trivy's findings to the
+repo's Security tab. No stored secrets or keys anywhere in this file.
 
 ## Job: `build`
 
@@ -85,23 +87,33 @@ Per matrix entry, in order:
    `cosign sign`/`cosign attest` reach Sigstore fine (the Rekor log entry gets created) but then
    fail pushing the signature *back* to GHCR with `UNAUTHORIZED: unauthenticated`.
 2. **Trivy image scan** (`aquasecurity/trivy-action`) — same tool as the Jenkinsfile, scanning
-   `$REF@$DIGEST`. `exit-code: "0"` keeps it non-blocking for this pass, matching the current
-   Jenkins pipeline's stance; making it fail the build is a later decision, not in scope for #14.
-3. **Syft SBOM** (`anchore/sbom-action`) — generates `spdx-json`, written to
+   `$REF@$DIGEST`. Output is `format: sarif` (instead of the human-readable `table`) so the results
+   can be uploaded, not just printed to the job log. `exit-code: "0"` keeps it non-blocking for
+   this pass, matching the current Jenkins pipeline's stance; making it fail the build is a later
+   decision, not in scope for #14.
+3. **Upload Trivy scan to Security tab** (`github/codeql-action/upload-sarif`) — publishes
+   `trivy-results.sarif` to the repo's Security → Code scanning alerts, giving each finding a
+   persistent record and a diff view across runs instead of a log line that scrolls away once the
+   job finishes. `category: trivy-${{ matrix.key }}` keeps the frontend and backend results as
+   separate alert sets — without it, the second matrix leg's upload would overwrite the first's.
+4. **Syft SBOM** (`anchore/sbom-action`) — generates `spdx-json`, written to
    `<image>-sbom.spdx.json`, keyed to the same digest.
-4. `sigstore/cosign-installer@v3` — installs the `cosign` CLI onto the runner.
-5. **Sign image (keyless)** — `cosign sign --yes "$REF@$DIGEST"`. No `--key` flag: cosign detects
+5. `sigstore/cosign-installer@v3` — installs the `cosign` CLI onto the runner.
+6. **Sign image (keyless)** — `cosign sign --yes "$REF@$DIGEST"`. No `--key` flag: cosign detects
    it's running in GitHub Actions with `id-token: write` and does the OIDC → Fulcio → ephemeral
    cert → Rekor log flow automatically, then pushes the signature using the Docker credentials
    from step 1.
-6. **Attach SBOM attestation** — `cosign attest --yes --predicate <image>-sbom.spdx.json --type
+7. **Attach SBOM attestation** — `cosign attest --yes --predicate <image>-sbom.spdx.json --type
    spdxjson "$REF@$DIGEST"` — signs and attaches the SBOM itself the same way, so the SBOM inherits
    the same tamper-evident guarantee as the image.
 
 ## Design notes
 
-- Matrix over copy-pasted steps: same 5 steps run twice, once per image, without duplicating the
+- Matrix over copy-pasted steps: same steps run twice, once per image, without duplicating the
   YAML.
+- Trivy results are persisted, not just logged: SARIF output + `upload-sarif` gives every scan a
+  permanent, queryable record in the Security tab (with history across runs) instead of console
+  output that scrolls away once the job finishes.
 - Everything after `build` addresses images strictly by digest (`$REF@$DIGEST`), never by tag —
   tags can move, digests can't.
 - `docker-bake.hcl` is untouched on disk; this workflow overrides the GHCR tag at invocation time

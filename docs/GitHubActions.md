@@ -11,7 +11,7 @@ stronger trust model:
 | | Jenkins (existing) | GitHub Actions (this guide) |
 |---|---|---|
 | Registry | Docker Hub | GHCR (`ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/...`) |
-| Scan | Trivy | Trivy (same tool, second lane) |
+| Scan | Trivy, printed to console only | Trivy, uploaded as SARIF to the Security tab (persistent, per-run history) |
 | SBOM | — | Syft, attached as a signed attestation |
 | Provenance | none — any image can carry the tag | cosign keyless signature (Sigstore/Fulcio/Rekor) |
 | Cluster admission | tag/label policies only | + Kyverno `verifyImages`, signature required |
@@ -21,6 +21,7 @@ flowchart TD
     Dev[Developer push / tag] --> CI[.github/workflows/ci.yml]
     CI --> Bake[docker buildx bake<br/>frontend + backend, multi-arch]
     Bake --> Trivy[Trivy image scan]
+    Trivy --> SARIF[Upload SARIF to<br/>Security tab]
     Bake --> Push[Push digests to GHCR]
     Push --> Syft[Syft: generate SBOM per image]
     Push --> Sign[cosign sign --yes<br/>keyless via GH OIDC]
@@ -39,7 +40,7 @@ flowchart TD
     classDef alert fill:#cf222e,color:#fff,stroke:#cf222e
 
     class Dev,Deploy external
-    class CI,Bake,Trivy,Syft,Sign,Attest,Kyverno controller
+    class CI,Bake,Trivy,SARIF,Syft,Sign,Attest,Kyverno controller
     class Registry,Etcd store
     class Deny alert
 ```
@@ -116,7 +117,16 @@ docker buildx imagetools inspect ghcr.io/atkaridarshan04/cloudnative-devops-blue
 Or read it straight from the run: **Actions → the run → `build` job → "Extract pushed image
 digests"** step output.
 
-## 2. Verify the signature and SBOM yourself (cosign CLI)
+## 2. Check the Trivy scan results
+
+Each matrix leg uploads its scan as SARIF instead of just printing a table to the job log, so
+results persist across runs: **repo → Security → Code scanning** → filter by category
+`trivy-frontend` / `trivy-backend`. This is what makes the scan useful after the run finishes —
+console output disappears once the job completes, but a Security tab alert sticks around, tracks
+whether a CVE is still present in the next build, and closes itself automatically once a fix
+lands.
+
+## 3. Verify the signature and SBOM yourself (cosign CLI)
 
 Anyone can verify a signed image, without any repo access — that's the point of a public
 transparency log:
@@ -154,7 +164,7 @@ cosign verify-attestation \
 
 That last `jq` just proves the attestation is a real SBOM by counting the packages listed in it.
 
-## 3. Apply the Kyverno policy and test signed vs. unsigned
+## 4. Apply the Kyverno policy and test signed vs. unsigned
 
 > Same branch caveat as above: `kyverno/policies/verify-ghcr-image-signatures.yaml` hardcodes
 > `subject: .../ci.yml@refs/heads/main`. A genuinely signed image built from a feature branch will

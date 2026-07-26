@@ -10,6 +10,7 @@ permissions:
   contents: read
   packages: write # push to GHCR
   id-token: write # OIDC token for cosign keyless signing
+  security-events: write # upload Trivy SARIF to the Security tab
 
 jobs:
   build:
@@ -72,8 +73,15 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REF }}@${{ env.DIGEST }}
-          format: table
+          format: sarif
+          output: trivy-results.sarif
           exit-code: "0"
+
+      - name: Upload Trivy scan to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-${{ matrix.key }}
 
       - name: Generate SBOM (Syft)
         uses: anchore/sbom-action@v0
