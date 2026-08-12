@@ -1,0 +1,18 @@
+{
+  "enabledManagers": ["helm-values", "kustomize", "argocd"],
+  "dockerfile": {
+    "enabled": false
+  },
+  "npm": {
+    "enabled": false
+  },
+  "github-actions": {
+    "enabled": false
+  },
+  "terraform": {
+    "enabled": false
+  },
+  "extends": [
+    "config:recommended"
+  ]
+}
