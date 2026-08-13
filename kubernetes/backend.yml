@@ -35,6 +35,8 @@ spec:
         runAsGroup: 3000  # Dedicated group for file system permissions
         fsGroup: 2000     # Ensures volume mounts have correct group ownership
         runAsNonRoot: true # Kubernetes validation - blocks root containers
+        seccompProfile:
+          type: RuntimeDefault # required by the "restricted" Pod Security Standard
       containers:
         - name: backend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0 # Pinned version - avoid 'latest' in production

@@ -39,10 +39,12 @@ kubectl get nodes
 
 ## 2️⃣ Create a Namespace
 
-Organize your resources by creating a dedicated namespace:
+Organize your resources by creating a dedicated namespace. It's labeled for
+[Pod Security Admission](./concepts/PodSecurityAdmission.md) — `baseline` enforced,
+`restricted` audited/warned:
 
 ```bash
-kubectl create namespace mern-devops
+kubectl apply -f kubernetes/namespace.yml
 ```
 
 Switch to your working directory containing the YAML configuration files:

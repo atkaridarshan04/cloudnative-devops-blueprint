@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mern-devops
+  labels:
+    # enforce blocks genuinely dangerous configs (privileged, host namespaces, hostPath, etc.)
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    # audit/warn at restricted surface exactly which workloads still run as root
+    # (frontend, mongodb) without blocking them — they have a real reason to
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

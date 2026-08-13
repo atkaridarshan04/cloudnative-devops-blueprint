@@ -20,10 +20,24 @@ spec:
         app: mongodb
         component: database
     spec:
+      # mongo:4.4's image ships a built-in "mongodb" user (UID/GID 999) —
+      # run as that directly instead of the image's default root+gosu drop-privilege dance
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999          # kubelet chowns the PVC to this GID on mount
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault # required by the "restricted" Pod Security Standard
       containers:
         - name: mongodb
           image: mongo:4.4
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 27017
               name: mongodb     # Named port for service discovery
