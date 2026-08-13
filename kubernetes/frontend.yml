@@ -14,7 +14,7 @@ metadata:
   namespace: mern-devops
   labels:
     app: frontend
-    version: v2 
+    version: v2
 spec:
   replicas: 1
   selector:
@@ -25,8 +25,9 @@ spec:
       name: frontend
       labels:
         app: frontend
-        version: v2 
+        version: v2
     spec:
+      hostUsers: false # maps container root to an unprivileged host UID (K8s 1.36+)
       serviceAccountName: frontend
       containers:
         - name: frontend
@@ -45,7 +46,7 @@ spec:
               path: /
               port: 80
             initialDelaySeconds: 30
-            periodSeconds: 15  
+            periodSeconds: 15
           resources:
             requests:
               memory: "64Mi"

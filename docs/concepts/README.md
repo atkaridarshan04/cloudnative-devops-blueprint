@@ -14,6 +14,7 @@ This folder is the **why** layer. Each note explains the underlying model or com
 | [HelmVsKustomize.md](./HelmVsKustomize.md) | Templating+packaging vs template-free overlays | [Helm.md](../Helm.md), [Kustomize.md](../Kustomize.md) |
 | [IngressVsGatewayAPI.md](./IngressVsGatewayAPI.md) | Why Gateway API is replacing Ingress | [Kubernetes.md](../Kubernetes.md) (Section 5) |
 | [SupplyChainSecurity.md](./SupplyChainSecurity.md) | SBOM, Sigstore keyless signing, Kyverno `verifyImages` | [Kyverno.md](../Kyverno.md), [GitHubActions.md](../GitHubActions.md) |
+| [PodSecurityHardening.md](./PodSecurityHardening.md) | `securityContext` vs. user namespaces — app-layer vs. kernel-layer pod hardening | [Kubernetes.md](../Kubernetes.md) (Section 4) |
 
 No entry here for Docker, Jenkins, Terraform, or Locust/HPA — those tools work the way their name suggests and the how-to guide already carries enough context. This folder only covers the spots where "how do I run this" and "why does this exist / why two tools for one job" are genuinely different questions.
 
