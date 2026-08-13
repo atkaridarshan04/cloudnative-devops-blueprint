@@ -10,12 +10,13 @@ metadata:
 spec:
   # StatefulSet configuration - ensures ordered deployment and stable network identities
   serviceName: mongodb-service-headless  # Headless service for stable DNS names
-  replicas: 1  
+  replicas: 1
   selector:
     matchLabels:
       app: mongodb
   template:
     metadata:
+      name: mongodb
       labels:
         app: mongodb
         component: database

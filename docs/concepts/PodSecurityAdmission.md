@@ -70,6 +70,57 @@ kubectl run privileged-test -n mern-devops --image=nginx --restart=Never \
 
 This must be **rejected outright** — `Error from server (Forbidden): ... violates PodSecurity "baseline:latest": privileged (container "privileged-test" must not set securityContext.privileged=true)`. No pod object gets created at all, unlike the mongodb/frontend warnings which still let the pod through.
 
+## Closing the `hostUsers` blind spot with Kyverno
+
+PSA's `restricted` level checks `runAsNonRoot`, `allowPrivilegeEscalation`, capabilities, and `seccompProfile` — but the [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/) have no concept of Linux user namespaces at all. A pod with `hostUsers` left at its default (`true`) and no other hardening gets zero signal from PSA about it, because `hostUsers` simply isn't one of the fields PSA looks at.
+
+[`kyverno/policies/require-userns-or-nonroot.yaml`](../../kyverno/policies/require-userns-or-nonroot.yaml) closes that specific gap — set to `validationFailureAction: Enforce` from the start, since every workload in this namespace already satisfies it (frontend via `hostUsers: false`, backend/mongodb via `runAsNonRoot: true`):
+
+```yaml
+validate:
+  anyPattern:
+    - spec:
+        hostUsers: false
+    - spec:
+        securityContext:
+          runAsNonRoot: true
+    - spec:
+        containers:
+          - securityContext:
+              runAsNonRoot: true
+```
+
+**Verified**: commenting out `hostUsers: false` in `frontend.yml` and re-applying produces both signals at once — PSA's non-blocking warning, and Kyverno's hard rejection:
+
+```
+serviceaccount/frontend created
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false
+(container "frontend" must set securityContext.allowPrivilegeEscalation=false), unrestricted
+capabilities (container "frontend" must set securityContext.capabilities.drop=["ALL"]),
+runAsNonRoot != true (pod or container "frontend" must set securityContext.runAsNonRoot=true),
+seccompProfile (pod or container "frontend" must set securityContext.seccompProfile.type to
+"RuntimeDefault" or "Localhost")
+service/frontend-service created
+Error from server: error when creating "kubernetes/frontend.yml": admission webhook
+"validate.kyverno.svc-fail" denied the request:
+
+resource Deployment/mern-devops/frontend-deployment was blocked due to the following policies
+
+require-userns-or-nonroot:
+  autogen-require-userns-or-nonroot: 'validation error: Pod must either set spec.hostUsers:
+    false ... or run as non-root ... rule autogen-require-userns-or-nonroot[0] failed at path
+    /spec/template/spec/hostUsers/ rule autogen-require-userns-or-nonroot[1] failed at path
+    /spec/template/spec/securityContext/runAsNonRoot/ rule autogen-require-userns-or-nonroot[2]
+    failed at path /spec/template/spec/containers/0/securityContext/'
+```
+
+Two things worth noting in that output:
+
+- **`ServiceAccount` and `Service` still got created** — only the `Deployment` was rejected. `kubectl apply` on a multi-document file applies each object independently; Kyverno's `match` only targets `Pod`/pod-controller kinds, so the other two objects in `frontend.yml` were never in scope to begin with.
+- **PSA's warning fired even though the request ultimately failed** — `warn`/`audit` evaluate and report regardless of what happens later in the admission chain; Kyverno's validating webhook is a separate, later stage that's the one actually blocking the write. They're not redundant: PSA flags it, Kyverno enforces it.
+
+The autogen rule names (`autogen-require-userns-or-nonroot[0..2]`) confirm Kyverno checked the `Deployment`'s embedded pod template directly (`/spec/template/spec/...`), the same auto-generation behavior PSA uses for controller resources — no separate policy needed for Pod vs. Deployment vs. StatefulSet.
+
 ## Architecture
 
 ```mermaid

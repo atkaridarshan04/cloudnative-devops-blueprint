@@ -1,0 +1,45 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-userns-or-nonroot
+  annotations:
+    policies.kyverno.io/title: Require User Namespace or Non-Root
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      Pod Security Admission has no concept of Linux user namespaces
+      (spec.hostUsers) — a pod that runs as root inside the container with
+      hostUsers left at its default (true) gets zero warning from PSA, even
+      though container root is real root on the node. This closes that blind
+      spot: every pod must either isolate root via hostUsers: false, or not
+      run as root at all (runAsNonRoot: true, pod or container level).
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-userns-or-nonroot
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - mern-devops
+      validate:
+        message: >-
+          Pod must either set spec.hostUsers: false (user namespace isolation)
+          or run as non-root (securityContext.runAsNonRoot: true, at the pod
+          or container level) — running as root with hostUsers left at its
+          default is real root on the node, not just root in the container.
+        anyPattern:
+          - spec:
+              hostUsers: false
+          - spec:
+              securityContext:
+                runAsNonRoot: true
+          - spec:
+              containers:
+                - securityContext:
+                    runAsNonRoot: true
