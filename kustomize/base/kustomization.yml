@@ -6,5 +6,6 @@ resources:
   - httproute.yml
   - backend.yml
   - frontend.yml
+  - network-policies.yml
 # mongodb creds come from the mongodb-credentials-external Secret (ExternalSecret, synced
 # from Vault) — each overlay's external-secret.yml, not a secretGenerator here.

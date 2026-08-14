@@ -1,0 +1,132 @@
+# Zero-trust baseline: every pod in this namespace starts with no ingress/egress, then
+# each workload below gets only the specific traffic it needs. No namePrefix-sensitive
+# names here (label selectors + static namespace names only), so this lives in base and
+# gets namespaced correctly per overlay automatically — unlike the Rollout's custom
+# fields elsewhere in this repo, nothing here needs an overlay patch.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Without this, every DNS lookup (including mongodb-service-headless resolution) breaks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# Every mesh-injected pod (istio-injection: enabled on this namespace) needs this to reach
+# istiod for xDS config sync and cert rotation on port 15012 — without it, default-deny-all
+# silently breaks the mesh itself, not just app traffic.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-istiod-egress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+      ports:
+        - protocol: TCP
+          port: 15012
+
+---
+# Frontend only serves static assets to the gateway — the browser calls backend directly
+# (see VITE_API_BACKEND_URL), so no frontend -> backend egress is needed. Ingress comes from
+# the one shared Gateway in mern-devops (gateway/gateway-api.yml) — same source namespace
+# for dev/staging/prod, since there's a single Gateway, not one per env.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-allow-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mern-devops
+      ports:
+        - protocol: TCP
+          port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-allow-ingress-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mern-devops
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+
+---
+# mongodb never initiates outbound connections, so it gets no egress rule at all
+# (allow-dns-egress/allow-istiod-egress above still apply, since podSelector: {} matches
+# every pod including this one).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-allow-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 27017
