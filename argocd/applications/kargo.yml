@@ -1,0 +1,51 @@
+# NOTE: chart version pinned to the latest akuity/kargo GitHub release tag (1.11.1) — GHCR
+# OCI pulls weren't reachable to independently confirm the chart version matches the app
+# version 1:1 the way every other chart in this repo was verified. Check
+# `helm show chart oci://ghcr.io/akuity/kargo-charts/kargo --version 1.11.1` before relying
+# on this pin.
+#
+# Admin credentials (api.adminAccount.passwordHash/tokenSigningKey) are NOT set here —
+# they're generated secrets, same category as the Cloudflare token / GitHub OAuth secrets /
+# Vault seeds elsewhere in this repo: created imperatively, never committed. Depends on
+# whichever mechanism the Kargo chart offers for referencing an existing Secret rather than
+# an inline value — verify against the chart's values schema before relying on this
+# Application to bootstrap a working admin login on its own.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: platform
+  sources:
+    - repoURL: ghcr.io/akuity/kargo-charts/kargo
+      targetRevision: "1.11.1"
+      helm:
+        valueFiles:
+          - $values/kargo/values.yaml
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      ref: values
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      path: kargo
+      directory:
+        exclude: 'values.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kargo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

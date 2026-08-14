@@ -1,37 +1,34 @@
+# gateway-api-crds.yaml is excluded — that's the separate wave-0 Application. This one
+# needs cert-manager + istio (wave 1) already up: the ClusterIssuer needs cert-manager's
+# CRDs, and the Gateway needs istiod to provision its backing proxy deployment.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: book-store-prod
+  name: gateway-platform
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
-    # Required for Kargo's argocd-update promotion step — see application-dev.yml's comment.
-    kargo.akuity.io/authorized-stage: book-store:prod
+    argocd.argoproj.io/sync-wave: "2"
 spec:
-  project: book-store
-
+  project: platform
   source:
     repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
     targetRevision: prod
-    path: kustomize/overlays/prod
-
+    path: gateway
+    directory:
+      exclude: 'gateway-api-crds.yaml'
   destination:
     server: https://kubernetes.default.svc
-    namespace: prod
-
+    namespace: mern-devops
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - PrunePropagationPolicy=foreground
-      - PruneLast=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
   revisionHistoryLimit: 10

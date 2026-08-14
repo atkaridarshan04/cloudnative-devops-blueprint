@@ -1,0 +1,29 @@
+# The one thing applied manually after ArgoCD's own bootstrap install + the AppProjects
+# (argocd/project.yml, argocd/platform-project.yml — see platform-project.yml's comment on
+# why AppProjects themselves stay outside GitOps). Everything under argocd/applications/
+# gets discovered and synced from here — platform tools and the book-store app alike.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+    targetRevision: prod
+    path: argocd/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

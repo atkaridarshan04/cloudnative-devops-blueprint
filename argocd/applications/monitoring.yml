@@ -1,0 +1,53 @@
+# values.yaml/blackbox-exporter-values.yaml excluded — Helm values for the two chart
+# sources below, not standalone manifests.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 88.3.0
+      helm:
+        # Explicit, not inferred — Grafana's Service name (monitoring-grafana) and the
+        # release: monitoring label the operator's default selectors match on both depend
+        # on this being exactly "monitoring".
+        releaseName: monitoring
+        valueFiles:
+          - $values/monitoring/values.yaml
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      targetRevision: 11.17.2
+      helm:
+        releaseName: blackbox-exporter
+        valueFiles:
+          - $values/monitoring/blackbox-exporter-values.yaml
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      ref: values
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      path: monitoring
+      directory:
+        exclude: '{values.yaml,blackbox-exporter-values.yaml}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

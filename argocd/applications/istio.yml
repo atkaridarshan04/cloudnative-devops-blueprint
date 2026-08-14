@@ -1,0 +1,39 @@
+# Base + istiod as two chart sources in one Application (both installed to istio-system) —
+# not a separate istio-ingress chart. Istio implements Gateway API natively: applying
+# gateway/gateway-api.yml's Gateway (the gateway-platform Application, wave 2, after this
+# one) is what makes istiod provision the actual proxy deployment.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://istio-release.storage.googleapis.com/charts
+      chart: base
+      targetRevision: 1.30.3
+    - repoURL: https://istio-release.storage.googleapis.com/charts
+      chart: istiod
+      targetRevision: 1.30.3
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      path: istio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

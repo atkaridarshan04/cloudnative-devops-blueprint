@@ -1,0 +1,43 @@
+# oauth2-proxy-values.yaml is excluded here — it's Helm values for the separate,
+# optional sso-oauth2-proxy Application (wave 5), not a standalone manifest.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      targetRevision: 2.41.1
+      helm:
+        # Explicit — the oauth2-proxy upstream config (argorollouts/oauth2-proxy-values.yaml)
+        # assumes exactly "argo-rollouts-dashboard".
+        releaseName: argo-rollouts
+        parameters:
+          - name: dashboard.enabled
+            value: "true"
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      path: argorollouts
+      directory:
+        exclude: 'oauth2-proxy-values.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

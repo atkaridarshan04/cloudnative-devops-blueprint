@@ -1,37 +1,33 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: book-store-staging
+  name: cert-manager
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"
-    # Required for Kargo's argocd-update promotion step — see application-dev.yml's comment.
-    kargo.akuity.io/authorized-stage: book-store:staging
 spec:
-  project: book-store
-
+  project: platform
   source:
-    repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-    targetRevision: prod
-    path: kustomize/overlays/staging
-
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.21.1
+    helm:
+      parameters:
+        - name: crds.enabled
+          value: "true"
   destination:
     server: https://kubernetes.default.svc
-    namespace: staging
-
+    namespace: cert-manager
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - PrunePropagationPolicy=foreground
-      - PruneLast=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
   revisionHistoryLimit: 10

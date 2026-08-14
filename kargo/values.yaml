@@ -1,0 +1,44 @@
+# Same pattern as argocd/values.yaml's server.insecure: true — the Gateway terminates TLS
+# and forwards plain HTTP downstream, so Kargo's own default self-signed TLS would
+# otherwise mismatch. terminatedUpstream: true matters separately from tls.enabled: false —
+# without it Kargo can't infer that the URLs it generates should be https://, since its own
+# server only ever speaks plain HTTP.
+api:
+  host: kargo.cndb.atkaridarshan.online
+  tls:
+    enabled: false
+    terminatedUpstream: true
+  ingress:
+    enabled: false   # routed via kargo/httproute.yml (Gateway API) instead, not the chart's own Ingress
+
+  # GitHub SSO via Kargo's own bundled Dex — same broker pattern as argocd/values.yaml,
+  # not oauth2-proxy (unlike the Rollouts dashboard, Kargo has real auth of its own).
+  # clientSecret is "$CLIENT_SECRET" (a literal placeholder Kargo's chart substitutes at
+  # runtime), not the actual value — the real value comes from kargo-github-oauth
+  # (external-secret.yml, sourced from Vault) via the env block below.
+  oidc:
+    enabled: true
+    dex:
+      enabled: true
+      connectors:
+        - id: github
+          name: GitHub
+          type: github
+          config:
+            clientID: REPLACE_WITH_YOUR_GITHUB_OAUTH_CLIENT_ID
+            clientSecret: "$CLIENT_SECRET"
+            redirectURI: https://kargo.cndb.atkaridarshan.online/dex/callback
+      env:
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kargo-github-oauth
+              key: client-secret
+    admins:
+      claims:
+        email:
+          - REPLACE_WITH_YOUR_GITHUB_EMAIL # see argocd/values.yaml's same placeholder
+  adminAccount:
+    enabled: true # kept as a break-glass fallback alongside OIDC, same reasoning as
+    # argocd/values.yaml's admin.enabled comment — see argocd/applications/kargo.yml for
+    # how passwordHash/tokenSigningKey get set (still flagged, unresolved there)

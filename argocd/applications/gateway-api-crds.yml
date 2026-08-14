@@ -1,0 +1,33 @@
+# Wave 0, ahead of Istio — istiod needs these CRDs present at its own startup to
+# auto-detect and enable Gateway API support. Vendored (gateway/gateway-api-crds.yaml)
+# rather than referenced by URL — an Application source must be git/Helm/OCI, not an
+# arbitrary release-asset URL.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-api-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+    targetRevision: prod
+    path: gateway
+    directory:
+      include: 'gateway-api-crds.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

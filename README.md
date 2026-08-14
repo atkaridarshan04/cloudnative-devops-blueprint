@@ -159,7 +159,10 @@ no concept of Linux user namespaces at all. That's the specific gap
 │   ├── base/           # frontend/backend Rollouts, mongodb, HTTPRoute, NetworkPolicies
 │   └── overlays/       # dev/staging/prod — namespace, image tags, per-env patches
 ├── kargo/              # promotion pipeline: Project, Warehouse, Stages, PromotionTask
-├── argocd/             # per-env Applications + AppProject, Dex GitHub SSO
+├── argocd/
+│   ├── project.yml, platform-project.yml   # AppProjects — manual bootstrap, not GitOps-synced
+│   ├── root-application.yml                # the one Application applied by hand
+│   └── applications/                       # everything else — platform tools + book-store, all app-of-apps children
 ├── argorollouts/       # Gateway API traffic-router plugin config, dashboard route + SSO
 ├── external-secrets/   # dev-mode Vault, ClusterSecretStore
 ├── kyverno/policies/    # admission policies (pod security, supply chain, best practices)
@@ -169,123 +172,78 @@ no concept of Linux user namespaces at all. That's the specific gap
 
 ## Setup
 
-Real dependency order — install phases strictly top to bottom; several later phases fail
-outright ("resource not found") if an earlier one is skipped.
+A fresh cluster needs almost no manual `kubectl apply`/`helm install` — ArgoCD reconstructs
+the platform *and* the app from git. What ArgoCD **installs** (cert-manager, Istio, External
+Secrets, Kyverno, Argo Rollouts, monitoring, Kargo — each as an Application combining its
+Helm chart with this repo's extra manifests for it) is separate from what it **manages after
+installing** (the same Applications, continuously reconciled). See
+`argocd/applications/*.yml` for the actual definitions; what follows is the bootstrap.
 
-### Prerequisites
+### What stays manual, and why
+
+Four things, all genuinely irreducible — everything else self-assembles from one
+`kubectl apply`:
+
+1. **The cluster itself** — ArgoCD needs somewhere to run.
+2. **ArgoCD itself** — install and every future upgrade (`argocd/values.yaml` changes, e.g.
+   enabling SSO) via `helm upgrade` by hand. Deliberately kept as a manual exception rather
+   than a self-referential Application — everything else here is GitOps-managed, ArgoCD's
+   own lifecycle isn't, for now.
+3. **The two `AppProject`s** (`argocd/project.yml`, `argocd/platform-project.yml`) —
+   deliberately kept outside GitOps. An Application creating/modifying its own `AppProject`
+   would let a compromised git repo grant itself broader RBAC; see
+   `argocd/platform-project.yml`'s comment.
+4. **Real secret material** — the Cloudflare DNS token, Vault's per-env mongodb credentials,
+   GitHub OAuth secrets, Kargo's admin credentials, and Kargo's git credential. None of this
+   can live in git by definition; each corresponding Application will sit
+   `Progressing`/`Degraded` until its secret exists — expected, not a sync failure to chase.
+
+### Bootstrap
 
 ```bash
 # Cluster — pick one:
 kind create cluster --config kind-config.yml     # local
 # or: point kubeconfig at an existing cluster
 
-kubectl create namespace mern-devops
-helm repo add jetstack https://charts.jetstack.io
-helm repo add istio https://istio-release.storage.googleapis.com/charts
 helm repo add argo https://argoproj.github.io/argo-helm
-helm repo add external-secrets https://charts.external-secrets.io
-helm repo add kyverno https://kyverno.github.io/kyverno/
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm repo update
+
+helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
+kubectl apply -f argocd/httproute.yml   # ArgoCD's own route — manual, since ArgoCD isn't self-managed
+
+kubectl apply -f argocd/project.yml
+kubectl apply -f argocd/platform-project.yml
+kubectl apply -f argocd/root-application.yml
+
+kubectl get application -n argocd
+# watch the waves land: gateway-api-crds (0) → cert-manager/istio/external-secrets/
+# kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring
+# (3) → kargo (4) → sso-oauth2-proxy (5, optional)
 ```
 
-### Phase 1 — Gateway API CRDs + cert-manager
+Sync-waves here are Application-level, gating on each child Application's own `Healthy`
+status before the next wave starts — same app-of-apps + sync-wave pattern as any other
+dependency graph in ArgoCD, just applied to platform tools instead of app resources.
 
-Istio needs the Gateway API CRDs present at startup to auto-enable Gateway API support;
-cert-manager backs both the TLS `ClusterIssuer`s below and Kargo's own webhook certs later.
+### Secrets: still-manual steps, once the corresponding wave is up
 
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-
-helm install cert-manager jetstack/cert-manager \
-  -n cert-manager --create-namespace --set crds.enabled=true
-
-kubectl get pods -n cert-manager
-```
-
-### Phase 2 — Istio
-
-Just the base + control plane — **not** a separately Helm-installed `istio-ingress`. Istio
-implements Gateway API natively: applying `gateway/gateway-api.yml`'s `Gateway` (next phase)
-is what makes istiod provision the actual proxy deployment, with no separate gateway chart.
-
-```bash
-kubectl create namespace istio-system
-helm install istio-base istio/base -n istio-system
-helm install istiod istio/istiod -n istio-system --wait
-
-kubectl get pods -n istio-system
-```
-
-Mesh-wide mTLS:
-
-```bash
-kubectl apply -f istio/peer-authentication.yml
-```
-
-### Phase 3 — TLS: Cloudflare token, ClusterIssuers, wildcard Gateway
+**Cloudflare DNS token** (unblocks `gateway-platform`'s `ClusterIssuer`s):
 
 ```bash
 kubectl create secret generic cloudflare-api-token-secret \
   -n cert-manager --from-literal=api-token='<your-cloudflare-dns-edit-token>'
-
-kubectl apply -f gateway/cluster-issuer.yml
-kubectl get clusterissuer   # both should show READY=True once the Secret above exists
-
-kubectl apply -f gateway/gateway-api.yml
-kubectl get gateway -n mern-devops
-# Programmed: Unknown/False until the wildcard-tls Secret exists below — expected
 ```
 
 Prove the cert on staging before touching Let's Encrypt's production rate limit — edit
-`gateway/certificate.yml`'s `issuerRef.name` to `letsencrypt-staging` first, apply, confirm
-`READY=True`, then switch it to `letsencrypt-prod` and re-apply (cert-manager detects the
-`issuerRef` change and re-requests automatically):
+`gateway/certificate.yml`'s `issuerRef.name` to `letsencrypt-staging` first, confirm
+`READY=True` (`kubectl describe certificate wildcard-tls -n mern-devops`), then switch to
+`letsencrypt-prod` and let selfHeal pick up the change.
 
-```bash
-kubectl apply -f gateway/certificate.yml
-kubectl describe certificate wildcard-tls -n mern-devops
-```
-
-### Phase 4 — Argo Rollouts
-
-Must exist before ArgoCD's first sync — the Kustomize overlays define `Rollout` resources,
-and ArgoCD's sync fails outright ("resource not found") for `argoproj.io/Rollout` if the CRD
-isn't registered yet.
-
-```bash
-helm install argo-rollouts argo/argo-rollouts \
-  -n argo-rollouts --create-namespace --set dashboard.enabled=true
-
-kubectl apply -f argorollouts/rollouts-plugin-config.yml
-kubectl rollout restart deployment argo-rollouts -n argo-rollouts
-
-kubectl apply -f argorollouts/httproute.yml   # dashboard route — SSO (oauth2-proxy) is Phase 10
-```
-
-### Phase 5 — External Secrets Operator + Vault
-
-Also must precede ArgoCD's first sync — the overlays define `ExternalSecret` resources.
-
-```bash
-helm install external-secrets external-secrets/external-secrets \
-  -n external-secrets --create-namespace
-
-kubectl apply -f external-secrets/vault-deployment.yml    # creates the vault namespace too
-kubectl apply -f external-secrets/vault-token-secret.yml
-kubectl apply -f external-secrets/cluster-secret-store.yml
-
-kubectl get pods -n vault
-kubectl get clustersecretstore vault-backend
-```
-
-Seed each environment's mongodb credentials into Vault — this is the one step that
-genuinely can't live in git:
+**mongodb credentials** (unblocks the `ExternalSecret` in each `book-store-*` Application):
 
 ```bash
 kubectl port-forward -n vault deploy/vault 8200:8200 &
-sleep 2   # let the port-forward establish before the first request
+sleep 2
 
 for env in dev staging prod; do
   kubectl exec -n vault deploy/vault -- \
@@ -294,99 +252,51 @@ for env in dev staging prod; do
 done
 ```
 
-### Phase 6 — Kyverno
-
-```bash
-helm install kyverno kyverno/kyverno -n kyverno --create-namespace
-kubectl get pods -n kyverno
-
-kubectl apply -f kyverno/policies/
-```
-
-### Phase 7 — ArgoCD
-
-`server.insecure: true` (already in `argocd/values.yaml`) is required — the Gateway
-terminates TLS and forwards plain HTTP downstream, so `argocd-server`'s default HTTPS-only
-listener would otherwise mismatch:
-
-```bash
-helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
-
-kubectl apply -f argocd/httproute.yml
-kubectl apply -f argocd/project.yml
-kubectl apply -f argocd/application-dev.yml
-kubectl apply -f argocd/application-staging.yml
-kubectl apply -f argocd/application-prod.yml
-
-kubectl get application -n argocd
-# all three: SYNC STATUS Synced, HEALTH STATUS Healthy
-```
-
-This is the phase where the bulk of the pipeline actually comes up: `dev`/`staging`/`prod`
-namespaces (with their PSA + `istio-injection` labels), NetworkPolicies, ExternalSecrets,
-mongodb, and the frontend/backend Rollouts all get created from the Kustomize overlays in
-one sync per environment.
-
-```bash
-for env in dev staging prod; do kubectl get pods -n $env; done
-kubectl argo rollouts get rollout dev-backend-rollout -n dev --watch
-```
-
-### Phase 8 — Kargo
-
-Depends on Phase 7's three Applications already being `Synced`/`Healthy` — Kargo's
-`argocd-update` promotion step targets them by name.
+**Kargo admin credentials** — needed before the `kargo` Application's chart source will
+produce a working login; see `argocd/applications/kargo.yml`'s comment on why this isn't
+inlined as a Helm value:
 
 ```bash
 pass=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 hashed_pass=$(htpasswd -bnBC 10 "" "$pass" | tr -d ':\n')
 signing_key=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 echo "Kargo admin password: $pass"   # save this
-
-helm install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
-  -n kargo --create-namespace \
-  --set api.adminAccount.passwordHash="$hashed_pass" \
-  --set api.adminAccount.tokenSigningKey="$signing_key" \
-  --wait
-
-kubectl apply -f kargo/project.yml
-kubectl apply -f kargo/project-config.yml
-kubectl apply -f kargo/warehouse.yml
-kubectl apply -f kargo/promotion-task.yml
-kubectl apply -f kargo/stage-dev.yml
-kubectl apply -f kargo/stage-staging.yml
-kubectl apply -f kargo/stage-prod.yml
-
-kubectl get stage -n book-store
+# create/reference a Secret with these — verify against the kargo chart's values schema
 ```
 
-Kargo also needs GitHub repo write access (for `git-push`/`git-open-pr`) and ArgoCD API
-access (for `argocd-update`) — both via credentials Secrets created imperatively, never
-committed.
-
-### Phase 9 — Monitoring
+**Kargo's git credential** — needed before `kargo/promotion-task.yml`'s `git-clone`/
+`git-push`/`git-open-pr` steps can do anything. Routed through Vault like mongodb's creds,
+not a raw `kubectl create secret` — `kargo/external-secret.yml` labels the Secret it
+creates with `kargo.akuity.io/cred-type: git` (how Kargo recognizes a repo credential at
+all) via its `target.template`, same mechanism as any other ExternalSecret here. A GitHub
+PAT with repo write access works as both the git password and the GitHub API token
+`git-open-pr`/`git-wait-for-pr` need:
 
 ```bash
-helm install monitoring prometheus-community/kube-prometheus-stack \
-  -n monitoring --create-namespace -f monitoring/values.yaml
-helm install blackbox-exporter prometheus-community/prometheus-blackbox-exporter \
-  -n monitoring -f monitoring/blackbox-exporter-values.yaml
-
-kubectl apply -f monitoring/cert-manager-service-monitor.yml
-kubectl apply -f monitoring/istio-monitors.yml
-kubectl apply -f monitoring/blackbox-probe.yml
-kubectl apply -f monitoring/cert-expiry-alerts.yml
-kubectl apply -f monitoring/argocd-service-monitor.yml
-kubectl apply -f monitoring/grafana-httproute.yml
-kubectl apply -f monitoring/prometheus-httproute.yml
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/kargo/git-creds \
+    repoURL='https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git' \
+    username='<your-github-username>' \
+    password='<a-github-pat-with-repo-write-access>'
 ```
 
-### Phase 10 — SSO (optional)
+Note there's no separate ArgoCD API credential to create — the `argocd-update` step
+authenticates via Kargo's own ServiceAccount RBAC (Kubernetes-native, not a token), gated
+per-Stage by the `kargo.akuity.io/authorized-stage` annotation already on each
+`book-store-*` Application.
 
-Gates ArgoCD, Grafana, and the Rollouts dashboard behind GitHub OAuth instead of local
-logins — three separate GitHub OAuth Apps (one per tool, classic OAuth Apps only support a
-single callback URL each), their secrets created imperatively, then `argocd/values.yaml`'s
-Dex config and `argorollouts/oauth2-proxy-values.yaml` wire them in:
+**GitHub OAuth (SSO, optional)** — four separate OAuth Apps (ArgoCD, Grafana, Rollouts
+dashboard, Kargo; classic OAuth Apps only support one callback URL each). Kargo bundles its
+own Dex broker (`kargo/values.yaml`'s `api.oidc.dex`) — same pattern as ArgoCD, real auth,
+unlike the Rollouts dashboard's bolted-on oauth2-proxy. Callback URLs: ArgoCD
+`/api/dex/callback`, Grafana `/login/github`, Rollouts `/oauth2/callback`, Kargo
+`/dex/callback`.
+
+ArgoCD/Grafana/Rollouts secrets are still raw `kubectl create secret` — Kargo's OAuth
+secret is the one routed through Vault (`kargo/external-secret.yml`), matching its git
+credential. Worth making these three consistent with that too at some point; flagging
+rather than doing it here.
 
 ```bash
 kubectl patch secret argocd-secret -n argocd --type merge -p '{
@@ -395,7 +305,6 @@ kubectl patch secret argocd-secret -n argocd --type merge -p '{
     "dex.github.clientSecret": "<argocd-oauth-app-client-secret>"
   }
 }'
-helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml
 
 kubectl create secret generic grafana-github-oauth -n monitoring \
   --from-literal=client-id='<grafana-oauth-app-client-id>' \
@@ -406,11 +315,33 @@ kubectl create secret generic argorollouts-oauth2-proxy -n argo-rollouts \
   --from-literal=client-id='<rollouts-oauth-app-client-id>' \
   --from-literal=client-secret='<rollouts-oauth-app-client-secret>' \
   --from-literal=cookie-secret="$COOKIE_SECRET"
-helm install argorollouts-oauth2-proxy oauth2-proxy/oauth2-proxy \
-  -n argo-rollouts -f argorollouts/oauth2-proxy-values.yaml
+
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/kargo/github-oauth clientSecret='<kargo-oauth-app-client-secret>'
 ```
 
-### DNS + verify
+Also fill in `kargo/values.yaml`'s `clientID` and `admins.claims.email` placeholders (same
+`REPLACE_WITH_...` pattern as `argocd/values.yaml`'s RBAC line) — the Client ID isn't
+secret, so it's a plain committed value, not something Vault needs to hold.
+
+ArgoCD's own upgrade is manual (ArgoCD isn't self-managed — see "What stays manual, and
+why") — re-apply the Dex config with:
+
+```bash
+helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml
+```
+
+Grafana and `sso-oauth2-proxy` pick up their secrets on their own next reconcile, no
+re-apply needed.
+
+### Verify + DNS
+
+```bash
+for env in dev staging prod; do kubectl get pods -n $env; done
+kubectl argo rollouts get rollout dev-backend-rollout -n dev --watch
+kubectl get stage -n book-store
+```
 
 On a cloud cluster, `kubectl get gateway istio-gateway -n mern-devops -o wide` populates an
 `ADDRESS` once Istio's provisioned load balancer is up — point a wildcard `A`/`CNAME` record
@@ -418,6 +349,10 @@ at it (`CNAME` on EKS, since ALB/NLB DNS names can rotate the underlying IP; usu
 AKS/GKE). On `kind`, there's no LB controller to hand out a real address — inspect
 `kubectl get svc -n mern-devops` for the Gateway's actual backing Service and either install
 a LoadBalancer controller (e.g. MetalLB) or patch it to `NodePort` for local testing.
+
+**Kargo dashboard** — `https://kargo.cndb.atkaridarshan.online/`, same wildcard cert and
+Gateway as everything else, no separate NodePort. Log in with the admin password saved
+during bootstrap.
 
 ```bash
 curl -v https://app.cndb.atkaridarshan.online/

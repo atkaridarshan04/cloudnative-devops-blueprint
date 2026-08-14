@@ -1,0 +1,39 @@
+# Optional — gates the Rollouts dashboard behind GitHub OAuth (it has no auth of its own).
+# Depends on a GitHub OAuth App + its client-id/secret/cookie-secret Secret existing first
+# (created imperatively, never committed) — this Application will sit Progressing/Degraded
+# until that Secret exists, same as gateway-platform's ClusterIssuer until the Cloudflare
+# token Secret exists. That's expected, not a sync failure to chase.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sso-oauth2-proxy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://oauth2-proxy.github.io/manifests
+      chart: oauth2-proxy
+      targetRevision: 10.7.0
+      helm:
+        releaseName: argorollouts-oauth2-proxy
+        valueFiles:
+          - $values/argorollouts/oauth2-proxy-values.yaml
+    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+      targetRevision: prod
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

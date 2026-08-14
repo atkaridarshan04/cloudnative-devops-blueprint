@@ -4,7 +4,7 @@ metadata:
   name: book-store-dev
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "3"
     # Required for Kargo's argocd-update promotion step — without this, Kargo refuses to
     # manage this Application at all (security: prevents any Kargo Stage from touching an
     # Application it wasn't explicitly given). Format: <kargo-project>:<stage-name>.

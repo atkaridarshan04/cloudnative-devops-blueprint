@@ -1,0 +1,36 @@
+# Deliberately applied manually alongside the ArgoCD bootstrap, NOT synced via the root
+# app-of-apps Application — an Application creating/modifying its own AppProject would let
+# a compromised git repo grant itself broader RBAC. AppProjects are the trust boundary;
+# everything below them (the Applications) is what's GitOps-managed.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: >-
+    Platform tooling — operators, CRDs, mesh, secrets backend. Broader RBAC than the
+    book-store project since these install cluster-scoped CRDs/webhooks/ClusterRoles.
+
+  sourceRepos:
+    - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
+    - 'https://charts.jetstack.io'
+    - 'https://istio-release.storage.googleapis.com/charts'
+    - 'https://charts.external-secrets.io'
+    - 'https://kyverno.github.io/kyverno/'
+    - 'https://argoproj.github.io/argo-helm'
+    - 'https://prometheus-community.github.io/helm-charts'
+    - 'https://oauth2-proxy.github.io/manifests'
+    - 'ghcr.io/akuity/kargo-charts/*'
+
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

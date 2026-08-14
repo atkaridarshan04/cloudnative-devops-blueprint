@@ -1,0 +1,24 @@
+# Verify the actual kargo-api Service port with `kubectl get svc kargo-api -n kargo -o yaml`
+# once api.tls.enabled is false (values.yaml) — the chart docs don't state explicitly
+# whether the Service listens on a fixed port regardless of TLS mode, or switches port on
+# tls.enabled. Port 80 here is a best guess by convention (matches every other plain-HTTP
+# Service in this repo), not independently confirmed against this specific chart.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kargo-route
+  namespace: kargo
+spec:
+  parentRefs:
+    - name: istio-gateway
+      namespace: mern-devops
+  hostnames:
+    - kargo.cndb.atkaridarshan.online
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: kargo-api
+          port: 80

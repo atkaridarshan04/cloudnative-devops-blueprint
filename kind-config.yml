@@ -12,9 +12,7 @@ nodes:
       - containerPort: 30443   # Istio Gateway HTTPS :443 (TLS)
         hostPort: 443
         protocol: TCP
-      # Kargo's dashboard serves its own self-signed HTTPS directly — unlike ArgoCD/Grafana/
-      # Prometheus/Rollouts, it's not routed through the shared Gateway (no HTTPRoute for it
-      # in this repo), so it needs its own NodePort rather than a hostname.
-      - containerPort: 30002   # Kargo dashboard (kargo-api Service, patched to this NodePort)
-        hostPort: 30002
-        protocol: TCP
+      # No separate NodePort for Kargo (or anything else) — it routes through this same
+      # Gateway via hostname (kargo.cndb.atkaridarshan.online, kargo/httproute.yml), same as
+      # ArgoCD/Grafana/Prometheus/Rollouts. Kargo's own TLS is disabled (kargo/values.yaml)
+      # so the Gateway can terminate it, same pattern as ArgoCD's server.insecure: true.
