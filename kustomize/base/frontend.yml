@@ -1,4 +1,12 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service-stable
@@ -59,6 +67,12 @@ spec:
       labels:
         app: frontend
     spec:
+      # nginx needs root to bind/serve — hostUsers: false maps that container root to an
+      # unprivileged host UID (K8s 1.36+) instead of running non-root, unlike backend/mongodb.
+      # NOTE: not yet verified alongside Istio sidecar injection on a real cluster — istio-cni
+      # (or the sidecar's iptables redirect, if not using istio-cni) may need re-checking here.
+      hostUsers: false
+      serviceAccountName: frontend
       containers:
         - name: frontend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
@@ -77,3 +91,10 @@ spec:
               port: 80
             initialDelaySeconds: 30
             periodSeconds: 15
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"

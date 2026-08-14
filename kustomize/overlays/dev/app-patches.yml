@@ -14,6 +14,9 @@ spec:
             httpRoute: dev-mern-route
   template:
     spec:
+      # Not auto-rewritten by Kustomize's namePrefix either (only object names/labels/
+      # selectors it recognizes get rewritten) — same reason as canaryService above.
+      serviceAccountName: dev-backend
       containers:
         - name: backend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend # Tag managed by Kustomize images
@@ -35,6 +38,7 @@ spec:
             httpRoute: dev-mern-route
   template:
     spec:
+      serviceAccountName: dev-frontend
       containers:
         - name: frontend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images

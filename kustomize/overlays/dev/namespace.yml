@@ -6,3 +6,13 @@ metadata:
     environment: dev
     app: mern-stack
     istio-injection: enabled
+    # enforce blocks genuinely dangerous configs (privileged, host namespaces, hostPath).
+    # audit/warn at restricted surface frontend running as root without blocking it — PSA
+    # has no concept of hostUsers, so it can't see that frontend's isolation strategy at all;
+    # that's the blind spot kyverno/policies/require-userns-or-nonroot.yaml closes.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

@@ -1,0 +1,37 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-ghcr-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify GHCR Image Signatures
+    policies.kyverno.io/category: Software Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      Requires images from ghcr.io/atkaridarshan04/cloudnative-devops-blueprint to carry a valid
+      keyless Sigstore signature from the ci.yml GitHub Actions workflow before admission into
+      the dev/staging/prod namespaces.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: verify-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - dev
+                - staging
+                - prod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/*"
+          attestors:
+            - entries:
+                - keyless:
+                    issuer: "https://token.actions.githubusercontent.com"
+                    subject: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/.github/workflows/ci.yml@refs/heads/main"
+                    rekor:
+                      url: https://rekor.sigstore.dev

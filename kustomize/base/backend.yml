@@ -1,4 +1,12 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend
+  labels:
+    app: backend
+
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: backend-service-stable
@@ -62,12 +70,23 @@ spec:
       labels:
         app: backend
     spec:
+      serviceAccountName: backend
+      # Pod-level: enforces non-root execution for the whole pod (satisfies Kyverno's
+      # require-userns-or-nonroot and PSA's restricted level).
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
+              name: http
           env:
             - name: PORT
               valueFrom:
@@ -91,3 +110,18 @@ spec:
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 15
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

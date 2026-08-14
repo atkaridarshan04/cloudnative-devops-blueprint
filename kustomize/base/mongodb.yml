@@ -32,6 +32,15 @@ spec:
       labels:
         app: mongodb
     spec:
+      # mongo:4.4's image ships a built-in "mongodb" user (UID/GID 999) — run as that
+      # directly instead of the image's default root+gosu drop-privilege dance.
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: mongodb
           image: mongo:4.4
@@ -51,3 +60,31 @@ spec:
                   key: MONGODB_PASSWORD
             - name: MONGO_INITDB_DATABASE
               value: "db"
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - mongo
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

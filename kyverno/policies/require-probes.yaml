@@ -1,0 +1,62 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-pod-probes
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: DaemonSet,Deployment,StatefulSet
+    policies.kyverno.io/title: Require Pod Probes
+    policies.kyverno.io/category: Best Practices, EKS Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Liveness and readiness probes need to be configured to correctly manage a Pod's
+      lifecycle during deployments, restarts, and upgrades. For each Pod, a periodic
+      `livenessProbe` is performed by the kubelet to determine if the Pod's containers
+      are running or need to be restarted. A `readinessProbe` is used by Services
+      and Deployments to determine if the Pod is ready to receive network traffic.
+      This policy validates that all containers have one of livenessProbe, readinessProbe,
+      or startupProbe defined.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  # Rule: Validate health check probes - ensures proper container lifecycle management
+  - name: validate-probes
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod  # Applies to all pods (including those created by controllers)
+    # Preconditions - only validate during resource creation and updates
+    preconditions:
+      all:
+      - key: "{{request.operation || 'BACKGROUND'}}"
+        operator: AnyIn
+        value:
+        - CREATE  # New pod creation
+        - UPDATE  # Pod specification updates
+    validate:
+      message: "Liveness, readiness, or startup probes are required for all containers."
+      # Iterate through all containers in the pod specification
+      foreach:
+      - list: request.object.spec.containers[]
+        # Deny condition - fails if container lacks required probes
+        deny:
+          conditions:
+            all:
+            # Check if livenessProbe is missing from container specification
+            - key: livenessProbe
+              operator: AllNotIn
+              value: "{{ element.keys(@)[] }}"  # Container's configuration keys
+            # Startup probe validation
+            # - key: startupProbe
+            #   operator: AllNotIn
+            #   value: "{{ element.keys(@)[] }}"
+            # Check if readinessProbe is missing from container specification
+            - key: readinessProbe
+              operator: AllNotIn
+              value: "{{ element.keys(@)[] }}"
+
+            # Logic: Container fails validation if BOTH liveness AND readiness probes are missing
+            # Having either probe satisfies the policy requirement
+            # Ensures containers have health check mechanisms for proper lifecycle management
