@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
+  labels:
+    environment: prod
+    app: mern-stack

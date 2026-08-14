@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend # Tag managed by Kustomize images
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images

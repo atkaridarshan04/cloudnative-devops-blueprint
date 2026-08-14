@@ -9,7 +9,11 @@ spec:
     - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
 
   destinations:
-    - namespace: mern-devops
+    - namespace: dev
+      server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: prod
       server: https://kubernetes.default.svc
 
 # Included resource kinds that can be created cluster-wide

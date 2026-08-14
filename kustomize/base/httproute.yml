@@ -1,0 +1,27 @@
+# Generic base route — each overlay's httproute-patch.yml sets `hostnames` and the
+# namespaced backend service names. parentRef points at the wildcard Gateway defined in
+# gateway/gateway-api.yml (namespace mern-devops, allowedRoutes.namespaces.from: All) —
+# that's what lets this route attach from dev/staging/prod despite living elsewhere.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mern-route
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: mern-devops
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-service
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /books
+      backendRefs:
+        - name: backend-service
+          port: 8000

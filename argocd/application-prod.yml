@@ -1,23 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: book-store
+  name: book-store-prod
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # Required for Kargo's argocd-update promotion step — see application-dev.yml's comment.
+    kargo.akuity.io/authorized-stage: book-store:prod
 spec:
   project: book-store
+
   source:
     repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-    targetRevision: domain-and-tls    # Branch/tag/commit
-    path: helm-chart                  # Helm chart path
-    helm:
-      valueFiles:
-        - values.yaml # Default values
+    targetRevision: prod
+    path: kustomize/overlays/prod
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: mern-devops
+    namespace: prod
 
   syncPolicy:
     automated:
@@ -27,7 +27,6 @@ spec:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
-
     retry:
       limit: 5
       backoff:
