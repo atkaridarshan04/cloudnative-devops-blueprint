@@ -1,9 +1,17 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: backend-deployment
+  name: backend-rollout
 spec:
   replicas: 1
+  strategy:
+    canary:
+      canaryService: dev-backend-service-canary
+      stableService: dev-backend-service-stable
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: dev-mern-route
   template:
     spec:
       containers:
@@ -11,14 +19,22 @@ spec:
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend # Tag managed by Kustomize images
 
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: frontend-deployment
+  name: frontend-rollout
 spec:
   replicas: 1
+  strategy:
+    canary:
+      canaryService: dev-frontend-service-canary
+      stableService: dev-frontend-service-stable
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: dev-mern-route
   template:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend  # Tag managed by Kustomize images
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images

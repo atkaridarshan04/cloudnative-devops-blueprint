@@ -1,11 +1,55 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-  name: frontend-deployment
+  name: frontend-service-stable
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service-canary
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend-rollout
   labels:
     app: frontend
 spec:
   replicas: 1
+  strategy:
+    canary:
+      canaryService: frontend-service-canary
+      stableService: frontend-service-stable
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: mern-route
+      steps:
+        - setWeight: 20
+        - pause: {}
+        - setWeight: 60
+        - pause: { duration: 10s }
+        - setWeight: 100
+        - pause: { duration: 10s }
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: frontend
@@ -33,22 +77,3 @@ spec:
               port: 80
             initialDelaySeconds: 30
             periodSeconds: 15
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-service
-spec:
-  selector:
-    app: frontend
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      protocol: TCP
