@@ -8,7 +8,7 @@ metadata:
   name: mern-route
 spec:
   parentRefs:
-    - name: envoy-gateway
+    - name: istio-gateway
       namespace: mern-devops
   rules:
     - matches:

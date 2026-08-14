@@ -8,7 +8,7 @@ metadata:
   namespace: monitoring
 spec:
   parentRefs:
-    - name: envoy-gateway
+    - name: istio-gateway
       namespace: mern-devops
   hostnames:
     - grafana.cndb.atkaridarshan.online

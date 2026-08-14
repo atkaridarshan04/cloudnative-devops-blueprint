@@ -1,19 +1,14 @@
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: envoy-gatewayclass
-spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
-
----
+# No GatewayClass authored here — istiod auto-creates one named "istio" the moment it's
+# running (controllerName: istio.io/gateway-controller), and istiod also owns/reconciles
+# the Deployment+Service that actually implements this Gateway. Unlike the standalone
+# Envoy Gateway setup this replaces, there's no separate proxy install step.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: envoy-gateway
+  name: istio-gateway
   namespace: mern-devops
 spec:
-  gatewayClassName: envoy-gatewayclass
+  gatewayClassName: istio
   listeners:
     - name: http
       protocol: HTTP

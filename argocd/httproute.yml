@@ -5,7 +5,7 @@ metadata:
   namespace: argocd
 spec:
   parentRefs:
-    - name: envoy-gateway
+    - name: istio-gateway
       namespace: mern-devops
   hostnames:
     - argocd.cndb.atkaridarshan.online

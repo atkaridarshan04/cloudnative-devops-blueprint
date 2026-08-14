@@ -5,7 +5,7 @@ metadata:
   namespace: argo-rollouts
 spec:
   parentRefs:
-    - name: envoy-gateway
+    - name: istio-gateway
       namespace: mern-devops
   hostnames:
     - argorollouts.cndb.atkaridarshan.online

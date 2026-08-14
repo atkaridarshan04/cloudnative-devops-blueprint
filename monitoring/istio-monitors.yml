@@ -1,0 +1,37 @@
+---
+# Istio control plane (istiod) — config distribution/xDS push metrics.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod-metrics
+  namespace: istio-system
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      istio: pilot
+  endpoints:
+    - port: http-monitoring
+
+---
+# The injected istio-proxy sidecar in every mesh pod (actual app traffic — request
+# rate/latency/error rate). Port 15020 is the sidecar's fixed merged-metrics port across
+# every proxy, regardless of which namespace/app it's injected into — no per-pod annotation
+# relabeling needed, unlike some other Istio PodMonitor examples.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: istio-proxy-metrics
+  namespace: istio-system
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector: {}
+  selector:
+    matchExpressions:
+      - key: security.istio.io/tlsMode
+        operator: Exists
+  podMetricsEndpoints:
+    - port: http-envoy-prom
+      path: /stats/prometheus

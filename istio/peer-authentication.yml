@@ -1,0 +1,11 @@
+# Mesh-wide default in istio-system applies to every namespace with sidecar injection
+# enabled — STRICT rejects any plaintext traffic to a sidecar-injected pod, forcing mTLS
+# between mesh workloads.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT

@@ -5,3 +5,4 @@ metadata:
   labels:
     environment: prod
     app: mern-stack
+    istio-injection: enabled
