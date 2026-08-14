@@ -5,6 +5,7 @@ namePrefix: staging-
 resources:
 - ../../base
 - namespace.yml
+- external-secret.yml
 patches:
 - path: app-patches.yml
 - path: httproute-patch.yml
@@ -17,4 +18,3 @@ configMapGenerator:
 - name: backend-config
   literals:
   - PORT=8000
-  - mongoDBURL=mongodb://admin:password123@staging-mongodb-deployment-0.staging-mongodb-service-headless.staging.svc.cluster.local:27017/db?authSource=admin

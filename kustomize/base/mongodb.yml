@@ -42,12 +42,12 @@ spec:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: mongo-secret
-                  key: username
+                  name: mongodb-credentials-external
+                  key: MONGODB_USER
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mongo-secret
-                  key: password
+                  name: mongodb-credentials-external
+                  key: MONGODB_PASSWORD
             - name: MONGO_INITDB_DATABASE
               value: "db"

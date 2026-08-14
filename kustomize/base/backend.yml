@@ -76,9 +76,9 @@ spec:
                   key: PORT
             - name: mongoDBURL
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: mongoDBURL
+                secretKeyRef:
+                  name: mongodb-credentials-external
+                  key: MONGODB_URL
           livenessProbe:
             httpGet:
               path: /books

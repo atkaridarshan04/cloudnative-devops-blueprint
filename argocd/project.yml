@@ -61,3 +61,5 @@ spec:
       kind: HTTPRoute
     - group: 'argoproj.io'
       kind: Rollout
+    - group: 'external-secrets.io'
+      kind: ExternalSecret
