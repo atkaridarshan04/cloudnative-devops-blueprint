@@ -1,0 +1,17 @@
+# Watches both image repos for new tags and produces Freight when something new shows up.
+# `constraint: ">=1.0.0"` — 1.0.0/2.0.0/3.0.0 all already exist in the registry, so this
+# resolves to the semantically greatest match (3.0.0) directly, skipping 2.0.0 — expected,
+# not a bug.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: book-store
+  namespace: book-store
+spec:
+  subscriptions:
+    - image:
+        repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+        constraint: ">=1.0.0"
+    - image:
+        repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+        constraint: ">=1.0.0"

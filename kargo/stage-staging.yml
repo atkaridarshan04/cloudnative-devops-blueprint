@@ -1,0 +1,28 @@
+# staging only requests Freight that's already been verified (promoted successfully) in dev.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: staging
+  namespace: book-store
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: book-store
+      sources:
+        stages:
+          - dev
+
+  promotionTemplate:
+    spec:
+      vars:
+        - name: overlayPath
+          value: kustomize/overlays/staging
+        - name: appName
+          value: book-store-staging
+        - name: branch
+          value: prod
+      steps:
+        - task:
+            name: promote-overlay
+          as: promote

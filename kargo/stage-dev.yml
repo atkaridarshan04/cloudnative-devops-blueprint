@@ -1,0 +1,27 @@
+# dev takes new Freight directly from the Warehouse — no upstream Stage required.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: book-store
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: book-store
+      sources:
+        direct: true
+
+  promotionTemplate:
+    spec:
+      vars:
+        - name: overlayPath
+          value: kustomize/overlays/dev
+        - name: appName
+          value: book-store-dev
+        - name: branch
+          value: prod
+      steps:
+        - task:
+            name: promote-overlay
+          as: promote
