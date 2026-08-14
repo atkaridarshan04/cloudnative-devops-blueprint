@@ -3,9 +3,18 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 30080   # for gateway api
+      # istiod provisions the Gateway's backing Service as type: LoadBalancer — kind has no
+      # LB controller, so it sits <pending> forever. Patch that Service to NodePort with
+      # these exact ports (README's "DNS + verify" step) to reach it locally.
+      - containerPort: 30080   # Istio Gateway HTTP :80
         hostPort: 80
         protocol: TCP
-      - containerPort: 30443   # for gateway api HTTPS (TLS)
+      - containerPort: 30443   # Istio Gateway HTTPS :443 (TLS)
         hostPort: 443
+        protocol: TCP
+      # Kargo's dashboard serves its own self-signed HTTPS directly — unlike ArgoCD/Grafana/
+      # Prometheus/Rollouts, it's not routed through the shared Gateway (no HTTPRoute for it
+      # in this repo), so it needs its own NodePort rather than a hostname.
+      - containerPort: 30002   # Kargo dashboard (kargo-api Service, patched to this NodePort)
+        hostPort: 30002
         protocol: TCP
