@@ -20,8 +20,7 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: oci://ghcr.io/akuity/kargo-charts
-      chart: kargo
+    - repoURL: oci://ghcr.io/akuity/kargo-charts/kargo
       targetRevision: "1.11.1"
       helm:
         valueFiles:
