@@ -329,9 +329,23 @@ per-Stage by the `kargo.akuity.io/authorized-stage` annotation already on each
 **GitHub OAuth (SSO, optional)** — four separate OAuth Apps (ArgoCD, Grafana, Rollouts
 dashboard, Kargo; classic OAuth Apps only support one callback URL each). Kargo bundles its
 own Dex broker (`kargo/values.yaml`'s `api.oidc.dex`) — same pattern as ArgoCD, real auth,
-unlike the Rollouts dashboard's bolted-on oauth2-proxy. Callback URLs: ArgoCD
-`/api/dex/callback`, Grafana `/login/github`, Rollouts `/oauth2/callback`, Kargo
-`/dex/callback`.
+unlike the Rollouts dashboard's bolted-on oauth2-proxy.
+
+**Creating each OAuth App** — github.com → Settings → Developer settings → OAuth Apps →
+New OAuth App, once per row below:
+
+| App | Homepage URL | Authorization callback URL |
+|---|---|---|
+| ArgoCD | `https://argocd.cndb.atkaridarshan.online` | `https://argocd.cndb.atkaridarshan.online/api/dex/callback` |
+| Grafana | `https://grafana.cndb.atkaridarshan.online` | `https://grafana.cndb.atkaridarshan.online/login/github` |
+| Rollouts dashboard | `https://argorollouts.cndb.atkaridarshan.online` | `https://argorollouts.cndb.atkaridarshan.online/oauth2/callback` |
+| Kargo | `https://kargo.cndb.atkaridarshan.online` | `https://kargo.cndb.atkaridarshan.online/dex/callback` |
+
+The callback URL must match protocol, host, and path *exactly* (`https`, not `http`; no
+trailing slash; Kargo's is `/dex/callback`, not ArgoCD's `/api/dex/callback` — easy to mix
+up). A mismatch surfaces as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo
+error. After creating each App, note its **Client ID** (shown immediately, not secret) and
+click **Generate a new client secret** (shown once — copy it now).
 
 All four OAuth secrets are sourced from Vault (`external-secrets/sso-secrets.yml` for
 ArgoCD/Grafana/Rollouts, `kargo/external-secret.yml` for Kargo) — seed them once:
@@ -428,10 +442,8 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 | `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
 | `https://prometheus.cndb.atkaridarshan.online/` | no auth |
 
-GitHub OAuth Apps are unforgiving about the callback URL — it must match protocol, host,
-and path *exactly* (`https`, not `http`; `/api/dex/callback` for ArgoCD, not `/dex/callback` —
-that one's Kargo's). A mismatch surfaces as GitHub's own "Invalid redirect URL" page, not an
-ArgoCD/Kargo error.
+See "GitHub OAuth (SSO, optional)" above for exact callback URLs — a mismatch there surfaces
+as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
 
 ```bash
 curl -v https://app.cndb.atkaridarshan.online/

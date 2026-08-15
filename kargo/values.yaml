@@ -25,7 +25,7 @@ api:
           name: GitHub
           type: github
           config:
-            clientID: REPLACE_WITH_YOUR_GITHUB_OAUTH_CLIENT_ID
+            clientID: Ov23li762pyy20AtPuXQ   # REPLACE_WITH_YOUR_GITHUB_OAUTH_CLIENT_ID
             clientSecret: "$CLIENT_SECRET"
             redirectURI: https://kargo.cndb.atkaridarshan.online/dex/callback
       env:
