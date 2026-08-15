@@ -113,6 +113,14 @@ grafana:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/tls
+      - name: 'istio'
+        orgId: 1
+        folder: 'Istio'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/istio
 
   dashboards:
     default:
@@ -132,5 +140,19 @@ grafana:
     tls:
       blackbox-exporter:
         gnetId: 7587
+        revision: 1
+        datasource: Prometheus
+
+    istio:
+      istio-mesh:
+        gnetId: 7639
+        revision: 1
+        datasource: Prometheus
+      istio-control-plane:
+        gnetId: 7645
+        revision: 1
+        datasource: Prometheus
+      istio-service:
+        gnetId: 7636
         revision: 1
         datasource: Prometheus
