@@ -35,7 +35,7 @@ spec:
             - name: PORT
               valueFrom:
                 configMapKeyRef:
-                  name: backend-config
+                  name: staging-backend-config
                   key: PORT
             - name: mongoDBURL
               valueFrom:
