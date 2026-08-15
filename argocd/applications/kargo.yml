@@ -6,10 +6,11 @@
 #
 # Admin credentials (api.adminAccount.passwordHash/tokenSigningKey) are NOT set here —
 # they're generated secrets, same category as the Cloudflare token / GitHub OAuth secrets /
-# Vault seeds elsewhere in this repo: created imperatively, never committed. Depends on
-# whichever mechanism the Kargo chart offers for referencing an existing Secret rather than
-# an inline value — verify against the chart's values schema before relying on this
-# Application to bootstrap a working admin login on its own.
+# Vault seeds elsewhere in this repo: created imperatively, never committed.
+# kargo/values.yaml's api.secret.name points the chart at kargo-admin
+# (kargo/external-secret.yml, sourced from Vault) instead — confirmed against the chart's
+# own templates/api/secret.yaml: setting api.secret.name skips that template's Secret
+# creation (and its passwordHash/tokenSigningKey `fail` guards) entirely.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

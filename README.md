@@ -288,9 +288,21 @@ inlined as a Helm value:
 pass=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 hashed_pass=$(htpasswd -bnBC 10 "" "$pass" | tr -d ':\n')
 signing_key=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
-echo "Kargo admin password: $pass"   # save this
-# create/reference a Secret with these — verify against the kargo chart's values schema
+echo "Kargo admin password: $pass"   # save this — hashed_pass can't be reversed back to it
+
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/kargo/admin \
+    passwordHash="$hashed_pass" \
+    tokenSigningKey="$signing_key"
 ```
+
+Routed through `kargo/external-secret.yml`'s `kargo-admin` ExternalSecret, same pattern as
+everything else here. `kargo/values.yaml`'s `api.secret.name: kargo-admin` points the chart
+at it instead of letting the chart create its own `kargo-api` Secret — confirmed against the
+chart's own `templates/api/secret.yaml`: setting `api.secret.name` skips that Secret's
+creation (and its `passwordHash`/`tokenSigningKey` `fail` guards) entirely, so nothing here
+ever needs to be a plain Helm value in git.
 
 **Kargo's git credential** — needed before `kargo/promotion-task.yml`'s `git-clone`/
 `git-push`/`git-open-pr` steps can do anything. Routed through Vault like mongodb's creds,
