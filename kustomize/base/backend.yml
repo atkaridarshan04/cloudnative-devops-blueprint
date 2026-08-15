@@ -65,7 +65,7 @@ spec:
 ---
 # virtualService.name/destinationRule.name are literal string refs Kustomize's namePrefix
 # won't rewrite (same class of issue as the old gatewayAPI plugin's httpRoute field) — each
-# overlay's app-patches.yml sets the prefixed names explicitly.
+# overlay's kustomization.yml JSON6902-patches the prefixed names in explicitly.
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:

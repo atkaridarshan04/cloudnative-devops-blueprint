@@ -6,8 +6,98 @@ resources:
 - ../../base
 - namespace.yml
 - external-secret.yml
+# JSON6902, not strategic-merge: base already has the full canonical Rollout/
+# DestinationRule/VirtualService spec, so these only need to touch the handful of literal
+# fields that actually vary per environment (replicas, and the name-prefixed references
+# Kustomize's namePrefix doesn't auto-rewrite inside these CRDs).
 patches:
-- path: app-patches.yml
+- target:
+    group: argoproj.io
+    version: v1alpha1
+    kind: Rollout
+    name: backend-rollout
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/virtualService/name
+      value: prod-backend-virtualservice
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/destinationRule/name
+      value: prod-backend-destinationrule
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: prod-backend
+    - op: replace
+      path: /spec/template/spec/containers/0/env/0/valueFrom/configMapKeyRef/name
+      value: prod-backend-config
+- target:
+    group: argoproj.io
+    version: v1alpha1
+    kind: Rollout
+    name: frontend-rollout
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/virtualService/name
+      value: prod-frontend-virtualservice
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/destinationRule/name
+      value: prod-frontend-destinationrule
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: prod-frontend
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: DestinationRule
+    name: backend-destinationrule
+  patch: |-
+    - op: replace
+      path: /spec/host
+      value: prod-backend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: DestinationRule
+    name: frontend-destinationrule
+  patch: |-
+    - op: replace
+      path: /spec/host
+      value: prod-frontend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: VirtualService
+    name: backend-virtualservice
+  patch: |-
+    - op: replace
+      path: /spec/hosts/0
+      value: prod-backend-service
+    - op: replace
+      path: /spec/http/0/route/0/destination/host
+      value: prod-backend-service
+    - op: replace
+      path: /spec/http/0/route/1/destination/host
+      value: prod-backend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: VirtualService
+    name: frontend-virtualservice
+  patch: |-
+    - op: replace
+      path: /spec/hosts/0
+      value: prod-frontend-service
+    - op: replace
+      path: /spec/http/0/route/0/destination/host
+      value: prod-frontend-service
+    - op: replace
+      path: /spec/http/0/route/1/destination/host
+      value: prod-frontend-service
 - path: httproute-patch.yml
 images:
 - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend

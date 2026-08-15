@@ -6,8 +6,98 @@ resources:
 - ../../base
 - namespace.yml
 - external-secret.yml
+# JSON6902, not strategic-merge: base already has the full canonical Rollout/
+# DestinationRule/VirtualService spec, so these only need to touch the handful of literal
+# fields that actually vary per environment (replicas, and the name-prefixed references
+# Kustomize's namePrefix doesn't auto-rewrite inside these CRDs).
 patches:
-- path: app-patches.yml
+- target:
+    group: argoproj.io
+    version: v1alpha1
+    kind: Rollout
+    name: backend-rollout
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 1
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/virtualService/name
+      value: dev-backend-virtualservice
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/destinationRule/name
+      value: dev-backend-destinationrule
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: dev-backend
+    - op: replace
+      path: /spec/template/spec/containers/0/env/0/valueFrom/configMapKeyRef/name
+      value: dev-backend-config
+- target:
+    group: argoproj.io
+    version: v1alpha1
+    kind: Rollout
+    name: frontend-rollout
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 1
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/virtualService/name
+      value: dev-frontend-virtualservice
+    - op: replace
+      path: /spec/strategy/canary/trafficRouting/istio/destinationRule/name
+      value: dev-frontend-destinationrule
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: dev-frontend
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: DestinationRule
+    name: backend-destinationrule
+  patch: |-
+    - op: replace
+      path: /spec/host
+      value: dev-backend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: DestinationRule
+    name: frontend-destinationrule
+  patch: |-
+    - op: replace
+      path: /spec/host
+      value: dev-frontend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: VirtualService
+    name: backend-virtualservice
+  patch: |-
+    - op: replace
+      path: /spec/hosts/0
+      value: dev-backend-service
+    - op: replace
+      path: /spec/http/0/route/0/destination/host
+      value: dev-backend-service
+    - op: replace
+      path: /spec/http/0/route/1/destination/host
+      value: dev-backend-service
+- target:
+    group: networking.istio.io
+    version: v1
+    kind: VirtualService
+    name: frontend-virtualservice
+  patch: |-
+    - op: replace
+      path: /spec/hosts/0
+      value: dev-frontend-service
+    - op: replace
+      path: /spec/http/0/route/0/destination/host
+      value: dev-frontend-service
+    - op: replace
+      path: /spec/http/0/route/1/destination/host
+      value: dev-frontend-service
 - path: httproute-patch.yml
 images:
 - name: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
@@ -21,6 +111,6 @@ configMapGenerator:
   options:
     # Kustomize doesn't know the Rollout CRD's env[].valueFrom.configMapKeyRef.name path,
     # so it can't auto-rewrite references to this generator's hashed output name — same
-    # blind spot as containers[] above. Disabling the hash keeps the name deterministic
-    # (dev-backend-config) so app-patches.yml can reference it by its literal prefixed name.
+    # blind spot the JSON6902 patches above work around. Disabling the hash keeps the name
+    # deterministic (dev-backend-config) so the patch above can reference it literally.
     disableNameSuffixHash: true
