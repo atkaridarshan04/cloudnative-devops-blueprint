@@ -17,11 +17,6 @@ spec:
     - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
       targetRevision: prod
       ref: values
-    - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
-      targetRevision: prod
-      path: kiali
-      directory:
-        exclude: 'values.yaml'
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system

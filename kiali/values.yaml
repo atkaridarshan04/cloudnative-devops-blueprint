@@ -1,5 +1,5 @@
-# Read-only mesh observability, same tier as Prometheus — no login gate (see Prometheus's
-# own httproute for the same reasoning).
+# Not exposed via the Gateway at all (kubectl port-forward only, same as Prometheus) — no
+# login gate needed since it's never reachable outside the cluster.
 auth:
   strategy: anonymous
 

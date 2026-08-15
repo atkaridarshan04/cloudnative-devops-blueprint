@@ -187,7 +187,7 @@ thing blocking real-root pods.
 .
 ├── gateway/            # GatewayClass (implicit via Istio), Gateway, ClusterIssuers, Certificate
 ├── istio/              # mesh-wide policy — PeerAuthentication (STRICT mTLS)
-├── kiali/              # mesh observability dashboard, no auth (read-only, same tier as Prometheus)
+├── kiali/              # mesh observability dashboard, port-forward only, no public route
 ├── kustomize/
 │   ├── base/           # frontend/backend Rollouts, VirtualService/DestinationRule subsets,
 │   │                   # mongodb, HTTPRoute, NetworkPolicies
@@ -447,9 +447,7 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 127.0.0.1 argocd.cndb.atkaridarshan.online
 127.0.0.1 kargo.cndb.atkaridarshan.online
 127.0.0.1 grafana.cndb.atkaridarshan.online
-127.0.0.1 prometheus.cndb.atkaridarshan.online
 127.0.0.1 argorollouts.cndb.atkaridarshan.online
-127.0.0.1 kiali.cndb.atkaridarshan.online
 127.0.0.1 vault.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
 
@@ -464,12 +462,21 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 | `https://kargo.cndb.atkaridarshan.online/` | GitHub SSO (Kargo's own bundled Dex), or the admin password saved during bootstrap |
 | `https://grafana.cndb.atkaridarshan.online/` | GitHub SSO once `monitoring/grafana-oauth` is seeded |
 | `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
-| `https://prometheus.cndb.atkaridarshan.online/` | no auth |
-| `https://kiali.cndb.atkaridarshan.online/` | no auth (read-only mesh observability, same tier as Prometheus) |
 | `https://vault.cndb.atkaridarshan.online/` | Token method, value `root` — dev-mode only; see the Vault UI section below |
 
 See "GitHub OAuth (SSO, optional)" above for exact callback URLs — a mismatch there surfaces
 as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
+
+**Prometheus and Kiali are `kubectl port-forward` only, no public route** — matches real
+production practice for internal-only observability tooling: no login page to expose at
+all, and access is already gated by whoever has valid cluster credentials:
+
+```bash
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+kubectl port-forward -n istio-system svc/kiali 20001:20001
+```
+
+Open `http://127.0.0.1:9090` / `http://127.0.0.1:20001` — no login for either.
 
 ```bash
 curl -v https://app.cndb.atkaridarshan.online/
