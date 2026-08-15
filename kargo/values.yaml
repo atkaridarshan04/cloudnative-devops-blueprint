@@ -1,6 +1,6 @@
-# Same pattern as argocd/values.yaml's server.insecure: true — the Gateway terminates TLS
-# and forwards plain HTTP downstream, so Kargo's own default self-signed TLS would
-# otherwise mismatch. terminatedUpstream: true matters separately from tls.enabled: false —
+# The Gateway terminates TLS and forwards plain HTTP downstream, so Kargo's own default
+# self-signed TLS would otherwise mismatch. terminatedUpstream: true matters separately
+# from tls.enabled: false —
 # without it Kargo can't infer that the URLs it generates should be https://, since its own
 # server only ever speaks plain HTTP.
 api:
@@ -11,11 +11,10 @@ api:
   ingress:
     enabled: false   # routed via kargo/httproute.yml (Gateway API) instead, not the chart's own Ingress
 
-  # GitHub SSO via Kargo's own bundled Dex — same broker pattern as argocd/values.yaml,
-  # not oauth2-proxy (unlike the Rollouts dashboard, Kargo has real auth of its own).
-  # clientSecret is "$CLIENT_SECRET" (a literal placeholder Kargo's chart substitutes at
-  # runtime), not the actual value — the real value comes from kargo-github-oauth
-  # (external-secret.yml, sourced from Vault) via the env block below.
+  # GitHub SSO via Kargo's own bundled Dex, not oauth2-proxy (unlike the Rollouts
+  # dashboard, Kargo has real auth of its own). clientSecret is "$CLIENT_SECRET" (a literal
+  # placeholder Kargo's chart substitutes at runtime), not the actual value — the real
+  # value comes from Vault via the env block below.
   oidc:
     enabled: true
     dex:
@@ -38,12 +37,10 @@ api:
       claims:
         email:
           - atkaridarshan04@gmail.com
-  # Points the chart at kargo-admin (kargo/external-secret.yml, sourced from Vault)
-  # instead of letting it create its own kargo-api Secret — the chart skips that
-  # template entirely once api.secret.name is set, so passwordHash/tokenSigningKey
-  # never need to be plain Helm values here.
+  # Points the chart at kargo-admin (sourced from Vault) instead of letting it create its
+  # own kargo-api Secret — the chart skips that template entirely once api.secret.name is
+  # set, so passwordHash/tokenSigningKey never need to be plain Helm values here.
   secret:
     name: kargo-admin
   adminAccount:
-    enabled: true # kept as a break-glass fallback alongside OIDC, same reasoning as
-    # argocd/values.yaml's admin.enabled comment
+    enabled: true # kept as a break-glass fallback alongside OIDC login

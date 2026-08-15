@@ -45,7 +45,6 @@ configs:
       p, role:admin, gpgkeys, *, *, allow
       g, atkaridarshan04@gmail.com, role:admin
 
-# Scraped by monitoring/argocd-service-monitor.yml
 controller:
   metrics:
     enabled: true

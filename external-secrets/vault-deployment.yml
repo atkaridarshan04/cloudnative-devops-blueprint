@@ -1,8 +1,7 @@
 # Dev-mode Vault — root token hardcoded below, not a real secret (dev mode always seeds
 # the same root token; that's the point, this is a demo backend, not production Vault).
-# Applied manually alongside the rest of the platform bootstrap (gateway/, monitoring/) —
-# not part of any ArgoCD Application, so (unlike mern-devops/dev/staging/prod) nothing
-# else creates this namespace for us.
+# Synced via the external-secrets Application's directory source (path: external-secrets),
+# same as everything else in this directory — the Namespace here is what creates `vault`.
 apiVersion: v1
 kind: Namespace
 metadata:

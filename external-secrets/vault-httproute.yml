@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: vault-route
+  namespace: vault
+spec:
+  parentRefs:
+    - name: istio-gateway
+      namespace: mern-devops
+  hostnames:
+    - vault.cndb.atkaridarshan.online
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: vault
+          port: 8200

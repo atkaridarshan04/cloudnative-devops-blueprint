@@ -40,8 +40,8 @@ spec:
 
 ---
 # Mesh-internal only (gateways omitted -> defaults to ["mesh"]) — external/gateway-attached
-# routing stays on Gateway API HTTPRoute (kustomize/base/httproute.yml), per Istio's own
-# recommendation against attaching VirtualService directly to a Gateway API Gateway.
+# routing stays on Gateway API HTTPRoute, per Istio's own recommendation against attaching
+# VirtualService directly to a Gateway API Gateway.
 # Rollouts mutates the two weight fields below as the canary progresses.
 apiVersion: networking.istio.io/v1
 kind: VirtualService

@@ -1,0 +1,10 @@
+# Read-only mesh observability, same tier as Prometheus — no login gate (see Prometheus's
+# own httproute for the same reasoning).
+auth:
+  strategy: anonymous
+
+external_services:
+  istio:
+    root_namespace: istio-system
+  prometheus:
+    url: http://monitoring-kube-prometheus-prometheus.monitoring:9090

@@ -1,7 +1,7 @@
 # The one thing applied manually after ArgoCD's own bootstrap install + the AppProjects
-# (argocd/project.yml, argocd/platform-project.yml — see platform-project.yml's comment on
-# why AppProjects themselves stay outside GitOps). Everything under argocd/applications/
-# gets discovered and synced from here — platform tools and the book-store app alike.
+# (also applied manually, deliberately kept outside GitOps). Everything under
+# argocd/applications/ gets discovered and synced from here — platform tools and the
+# book-store app alike.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

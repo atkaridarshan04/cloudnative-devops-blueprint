@@ -15,7 +15,7 @@ prometheus:
       matchLabels:
         release: monitoring
   service:
-    type: ClusterIP   # Reached via Gateway API HTTPRoute (monitoring/prometheus-httproute.yml), not exposed directly
+    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly
 
 alertmanager:
   enabled: true
@@ -37,15 +37,16 @@ prometheusOperator:
 # ---------------------------------------------------------------------------------
 grafana:
   enabled: true
-  adminUser: admin
-  adminPassword: password   # break-glass only once GitHub OAuth below is working
+  # break-glass admin login, only needed if GitHub OAuth below ever breaks — from Vault,
+  # never committed here.
+  admin:
+    existingSecret: grafana-admin
   service:
-    type: ClusterIP   # Reached via Gateway API HTTPRoute (monitoring/grafana-httproute.yml), not exposed directly
+    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly
 
-  # client-id/client-secret keys come from Vault via the grafana-github-oauth-external-secret
-  # ExternalSecret (external-secrets/sso-secrets.yml), never committed here. envValueFrom
-  # injects them as env vars, and grafana.ini references them via $__env{} so the
-  # plaintext secret never touches values.yaml/git.
+  # client-id/client-secret keys come from Vault, never committed here. envValueFrom injects
+  # them as env vars, and grafana.ini references them via $__env{} so the plaintext secret
+  # never touches values.yaml/git.
   envValueFrom:
     GF_AUTH_GITHUB_CLIENT_ID:
       secretKeyRef:

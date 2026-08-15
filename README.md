@@ -187,6 +187,7 @@ thing blocking real-root pods.
 .
 ├── gateway/            # GatewayClass (implicit via Istio), Gateway, ClusterIssuers, Certificate
 ├── istio/              # mesh-wide policy — PeerAuthentication (STRICT mTLS)
+├── kiali/              # mesh observability dashboard, no auth (read-only, same tier as Prometheus)
 ├── kustomize/
 │   ├── base/           # frontend/backend Rollouts, VirtualService/DestinationRule subsets,
 │   │                   # mongodb, HTTPRoute, NetworkPolicies
@@ -258,8 +259,8 @@ kubectl apply -f argocd/root-application.yml
 
 kubectl get application -n argocd
 # watch the waves land: gateway-api-crds (0) → cert-manager/istio/external-secrets/
-# kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring
-# (3) → kargo (4) → sso-oauth2-proxy (5, optional)
+# kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring/
+# kiali (3) → kargo (4) → sso-oauth2-proxy (5, optional)
 ```
 
 Sync-waves here are Application-level, gating on each child Application's own `Healthy`
@@ -291,6 +292,14 @@ for env in dev staging prod; do
     env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
     vault kv put secret/${env}/mern-backend/mongodb username=admin password=<pick-a-real-password-per-env>
 done
+```
+
+**Grafana admin credentials** (break-glass fallback, unblocks `monitoring/grafana-admin-secret.yml`'s `ExternalSecret` — Grafana otherwise stays `CreateContainerConfigError` until this exists):
+
+```bash
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/monitoring/grafana-admin username=admin password=<pick-a-real-password>
 ```
 
 **Kargo admin credentials** — needed before the `kargo` Application's chart source will
@@ -439,7 +448,9 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 127.0.0.1 kargo.cndb.atkaridarshan.online
 127.0.0.1 grafana.cndb.atkaridarshan.online
 127.0.0.1 prometheus.cndb.atkaridarshan.online
-127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
+127.0.0.1 argorollouts.cndb.atkaridarshan.online
+127.0.0.1 kiali.cndb.atkaridarshan.online
+127.0.0.1 vault.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
 
 **Browser access** — all on the same wildcard cert and Gateway, no separate NodePorts:
@@ -454,6 +465,8 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 | `https://grafana.cndb.atkaridarshan.online/` | GitHub SSO once `monitoring/grafana-oauth` is seeded |
 | `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
 | `https://prometheus.cndb.atkaridarshan.online/` | no auth |
+| `https://kiali.cndb.atkaridarshan.online/` | no auth (read-only mesh observability, same tier as Prometheus) |
+| `https://vault.cndb.atkaridarshan.online/` | Token method, value `root` — dev-mode only; see the Vault UI section below |
 
 See "GitHub OAuth (SSO, optional)" above for exact callback URLs — a mismatch there surfaces
 as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
@@ -462,13 +475,19 @@ as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
 curl -v https://app.cndb.atkaridarshan.online/
 ```
 
-**Vault UI** — this repo runs Vault in dev mode, which means a fixed root token:
+**Vault UI** — this repo runs Vault in dev mode, which means a fixed root token. Reach it
+directly at `https://vault.cndb.atkaridarshan.online/ui` (Gateway-terminated TLS, same as
+every other UI here), method **Token**, value `root`. This is dev-mode-only and has no
+login gate beyond that token — fine while the only path in is `kubectl port-forward`, but
+worth knowing that token is now reachable at a public-looking hostname too, not just from
+inside the cluster.
+
+For the `vault kv`/`vault exec` commands used throughout this doc, port-forward still works
+the same as before:
 
 ```bash
 kubectl port-forward -n vault deploy/vault 8200:8200
 ```
-
-Open `http://127.0.0.1:8200/ui`, method **Token**, value `root`.
 
 **Promoting a paused canary** — each Rollout's `pause: {}` step (no duration) waits for a
 human:

@@ -14,8 +14,7 @@ spec:
       chart: argo-rollouts
       targetRevision: 2.41.1
       helm:
-        # Explicit — the oauth2-proxy upstream config (argorollouts/oauth2-proxy-values.yaml)
-        # assumes exactly "argo-rollouts-dashboard".
+        # Explicit — the oauth2-proxy upstream config assumes exactly "argo-rollouts-dashboard".
         releaseName: argo-rollouts
         parameters:
           - name: dashboard.enabled

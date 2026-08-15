@@ -58,8 +58,8 @@ spec:
 ---
 # Frontend only serves static assets to the gateway — the browser calls backend directly
 # (see VITE_API_BACKEND_URL), so no frontend -> backend egress is needed. Ingress comes from
-# the one shared Gateway in mern-devops (gateway/gateway-api.yml) — same source namespace
-# for dev/staging/prod, since there's a single Gateway, not one per env.
+# the one shared Gateway in mern-devops — same source namespace for dev/staging/prod, since
+# there's a single Gateway, not one per env.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

@@ -13,6 +13,5 @@ nodes:
         hostPort: 443
         protocol: TCP
       # No separate NodePort for Kargo (or anything else) — it routes through this same
-      # Gateway via hostname (kargo.cndb.atkaridarshan.online, kargo/httproute.yml), same as
-      # ArgoCD/Grafana/Prometheus/Rollouts. Kargo's own TLS is disabled (kargo/values.yaml)
-      # so the Gateway can terminate it, same pattern as ArgoCD's server.insecure: true.
+      # Gateway via hostname, same as ArgoCD/Grafana/Prometheus/Rollouts. Kargo's own TLS is
+      # disabled so the Gateway can terminate it, same pattern as ArgoCD's server.insecure: true.

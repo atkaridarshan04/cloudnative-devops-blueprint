@@ -15,8 +15,8 @@ spec:
             type: PathPrefix
             value: "/"
       backendRefs:
-        # Routes through oauth2-proxy (see oauth2-proxy-values.yaml) since
-        # argo-rollouts-dashboard has no built-in auth — verify the actual Service name
+        # Routes through oauth2-proxy since argo-rollouts-dashboard has no built-in
+        # auth of its own — verify the actual Service name
         # with `kubectl get svc -n argo-rollouts` after installing (Helm fullname
         # templating; release name "argorollouts-oauth2-proxy" should produce this name).
         - name: argorollouts-oauth2-proxy

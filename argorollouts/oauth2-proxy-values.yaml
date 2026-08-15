@@ -1,7 +1,6 @@
 # oauth2-proxy in front of argo-rollouts-dashboard, which has no auth of its own.
-# client-id/client-secret/cookie-secret come from Vault via the
-# argorollouts-oauth2-proxy-external-secret ExternalSecret (external-secrets/sso-secrets.yml),
-# referenced here via config.existingSecret — never committed in plaintext.
+# client-id/client-secret/cookie-secret come from Vault, referenced here via
+# config.existingSecret — never committed in plaintext.
 config:
   existingSecret: argorollouts-oauth2-proxy
 
