@@ -1,10 +1,11 @@
-# ArgoCD Helm values. See docs/sso-deploy.md for the GitHub OAuth App setup and the
-# `argocd-secret` keys this Dex config expects ($dex.github.clientId/clientSecret) —
-# those are created via kubectl, never committed here.
+# ArgoCD Helm values. The `argocd-secret` keys this Dex config expects
+# ($dex.github.clientId/clientSecret) come from Vault via
+# external-secrets/sso-secrets.yml's argocd-dex-external-secret (creationPolicy: Merge —
+# merges into this Secret without owning it), never committed here.
 
 configs:
   params:
-    server.insecure: true   # Gateway terminates TLS; see tls-concepts.md/gitops-deploy.md
+    server.insecure: true   # Gateway terminates TLS, forwards plain HTTP downstream
 
   cm:
     # Required for Dex to correctly build the redirect_uri it sends to GitHub — without
@@ -39,10 +40,10 @@ configs:
       p, role:admin, gpgkeys, *, *, allow
       
       # REPLACE_WITH_YOUR_GITHUB_EMAIL — below is the author's own GitHub email, kept as a
-      # working example; replace it with the email your GitHub account uses (see sso-deploy.md).
+      # working example; replace it with the email your GitHub account uses.
       g, atkaridarshan04@gmail.com, role:admin
 
-# Metrics — see monitoring-deploy.md / monitoring/argocd-service-monitor.yml
+# Scraped by monitoring/argocd-service-monitor.yml
 controller:
   metrics:
     enabled: true

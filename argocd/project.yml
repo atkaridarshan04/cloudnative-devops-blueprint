@@ -65,3 +65,7 @@ spec:
       kind: Rollout
     - group: 'external-secrets.io'
       kind: ExternalSecret
+    - group: 'networking.istio.io'
+      kind: DestinationRule
+    - group: 'networking.istio.io'
+      kind: VirtualService

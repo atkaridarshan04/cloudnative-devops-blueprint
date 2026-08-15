@@ -6,16 +6,16 @@ spec:
   replicas: 1
   strategy:
     canary:
-      canaryService: dev-backend-service-canary
-      stableService: dev-backend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: dev-mern-route
+        istio:
+          virtualService:
+            name: dev-backend-virtualservice
+          destinationRule:
+            name: dev-backend-destinationrule
   template:
     spec:
       # Not auto-rewritten by Kustomize's namePrefix either (only object names/labels/
-      # selectors it recognizes get rewritten) — same reason as canaryService above.
+      # selectors it recognizes get rewritten) — same reason as the istio names above.
       serviceAccountName: dev-backend
       containers:
         - name: backend
@@ -30,15 +30,89 @@ spec:
   replicas: 1
   strategy:
     canary:
-      canaryService: dev-frontend-service-canary
-      stableService: dev-frontend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: dev-mern-route
+        istio:
+          virtualService:
+            name: dev-frontend-virtualservice
+          destinationRule:
+            name: dev-frontend-destinationrule
   template:
     spec:
       serviceAccountName: dev-frontend
       containers:
         - name: frontend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images
+
+---
+# host/hosts/destination.host are literal string refs to the Service, same reason they
+# need explicit prefixed names as everything else Kustomize's namePrefix won't rewrite for
+# custom CRDs. http[]/subsets[] are lists — Kustomize's generic CRD patch merge replaces
+# lists wholesale rather than merging by key, so these are restated in full, not partial.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: backend-destinationrule
+spec:
+  host: dev-backend-service
+  subsets:
+    - name: stable
+      labels:
+        app: backend
+    - name: canary
+      labels:
+        app: backend
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend-destinationrule
+spec:
+  host: dev-frontend-service
+  subsets:
+    - name: stable
+      labels:
+        app: frontend
+    - name: canary
+      labels:
+        app: frontend
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-virtualservice
+spec:
+  hosts:
+    - dev-backend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: dev-backend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: dev-backend-service
+            subset: canary
+          weight: 0
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: frontend-virtualservice
+spec:
+  hosts:
+    - dev-frontend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: dev-frontend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: dev-frontend-service
+            subset: canary
+          weight: 0

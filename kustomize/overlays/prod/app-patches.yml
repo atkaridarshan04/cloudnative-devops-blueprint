@@ -6,12 +6,12 @@ spec:
   replicas: 2
   strategy:
     canary:
-      canaryService: prod-backend-service-canary
-      stableService: prod-backend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: prod-mern-route
+        istio:
+          virtualService:
+            name: prod-backend-virtualservice
+          destinationRule:
+            name: prod-backend-destinationrule
   template:
     spec:
       serviceAccountName: prod-backend
@@ -28,15 +28,85 @@ spec:
   replicas: 2
   strategy:
     canary:
-      canaryService: prod-frontend-service-canary
-      stableService: prod-frontend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: prod-mern-route
+        istio:
+          virtualService:
+            name: prod-frontend-virtualservice
+          destinationRule:
+            name: prod-frontend-destinationrule
   template:
     spec:
       serviceAccountName: prod-frontend
       containers:
         - name: frontend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: backend-destinationrule
+spec:
+  host: prod-backend-service
+  subsets:
+    - name: stable
+      labels:
+        app: backend
+    - name: canary
+      labels:
+        app: backend
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend-destinationrule
+spec:
+  host: prod-frontend-service
+  subsets:
+    - name: stable
+      labels:
+        app: frontend
+    - name: canary
+      labels:
+        app: frontend
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-virtualservice
+spec:
+  hosts:
+    - prod-backend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: prod-backend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: prod-backend-service
+            subset: canary
+          weight: 0
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: frontend-virtualservice
+spec:
+  hosts:
+    - prod-frontend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: prod-frontend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: prod-frontend-service
+            subset: canary
+          weight: 0

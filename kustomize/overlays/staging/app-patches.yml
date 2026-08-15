@@ -6,12 +6,12 @@ spec:
   replicas: 1
   strategy:
     canary:
-      canaryService: staging-backend-service-canary
-      stableService: staging-backend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: staging-mern-route
+        istio:
+          virtualService:
+            name: staging-backend-virtualservice
+          destinationRule:
+            name: staging-backend-destinationrule
   template:
     spec:
       serviceAccountName: staging-backend
@@ -28,15 +28,85 @@ spec:
   replicas: 1
   strategy:
     canary:
-      canaryService: staging-frontend-service-canary
-      stableService: staging-frontend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: staging-mern-route
+        istio:
+          virtualService:
+            name: staging-frontend-virtualservice
+          destinationRule:
+            name: staging-frontend-destinationrule
   template:
     spec:
       serviceAccountName: staging-frontend
       containers:
         - name: frontend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend # Tag managed by Kustomize images
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: backend-destinationrule
+spec:
+  host: staging-backend-service
+  subsets:
+    - name: stable
+      labels:
+        app: backend
+    - name: canary
+      labels:
+        app: backend
+
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend-destinationrule
+spec:
+  host: staging-frontend-service
+  subsets:
+    - name: stable
+      labels:
+        app: frontend
+    - name: canary
+      labels:
+        app: frontend
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-virtualservice
+spec:
+  hosts:
+    - staging-backend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: staging-backend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: staging-backend-service
+            subset: canary
+          weight: 0
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: frontend-virtualservice
+spec:
+  hosts:
+    - staging-frontend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: staging-frontend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: staging-frontend-service
+            subset: canary
+          weight: 0

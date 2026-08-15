@@ -40,9 +40,13 @@ flowchart TD
     end
 
     subgraph ENV["env namespace: dev / staging / prod<br/>PSA enforce=baseline, istio-injection=enabled"]
-        Route["HTTPRoute: mern-route"]
-        FES["frontend-service-stable / -canary"]
-        BES["backend-service-stable / -canary"]
+        Route["HTTPRoute: mern-route<br/>(plain 100%, no weight split here)"]
+        FESvc["frontend-service (single)"]
+        BESvc["backend-service (single)"]
+        FEDR["frontend DestinationRule<br/>subsets: stable / canary"]
+        BEDR["backend DestinationRule<br/>subsets: stable / canary"]
+        FEVS["frontend VirtualService<br/>weighted stable/canary (mesh-only)"]
+        BEVS["backend VirtualService<br/>weighted stable/canary (mesh-only)"]
         FE["frontend Rollout<br/>+ istio-proxy sidecar"]
         BE["backend Rollout<br/>+ istio-proxy sidecar"]
         DB[("mongodb StatefulSet<br/>+ istio-proxy sidecar")]
@@ -64,8 +68,10 @@ flowchart TD
     CI -->|"certificateRefs: wildcard-tls"| GW
 
     GW --> Route
-    Route -->|"weighted, path /"| FES --> FE
-    Route -->|"weighted, path /books"| BES --> BE
+    Route -->|"path /"| FESvc
+    Route -->|"path /books"| BESvc
+    FESvc -.->|"VirtualService intercepts<br/>at the sidecar"| FEVS -->|"routes via subset"| FEDR --> FE
+    BESvc -.->|"VirtualService intercepts<br/>at the sidecar"| BEVS -->|"routes via subset"| BEDR --> BE
     BE -->|"mTLS, NetworkPolicy allows :27017"| DB
     BE -.->|"env from"| Sec
     DB -.->|"env from"| Sec
@@ -83,9 +89,16 @@ flowchart TD
     class GW gateway
     class Istiod,PA mesh
     class CI certmgr
-    class Route,FES,BES,FE,BE,DB,NP app
+    class Route,FESvc,BESvc,FEDR,BEDR,FEVS,BEVS,FE,BE,DB,NP app
     class ES,Sec,CSS,Vault secret
 ```
+
+Rollouts shifts canary traffic entirely at the mesh layer, using its native Istio
+integration: the `VirtualService`'s weighted `stable`/`canary` subsets, patched by the
+`DestinationRule`'s `rollouts-pod-template-hash` labels as a rollout progresses.
+`HTTPRoute` only handles the external Gateway attachment, at a constant 100% to the single
+Service — Istio's own guidance is against attaching `VirtualService` directly to a Gateway
+API `Gateway` (relies on internal implementation details, not a stable API contract).
 
 ### GitOps promotion pipeline
 
@@ -293,40 +306,44 @@ unlike the Rollouts dashboard's bolted-on oauth2-proxy. Callback URLs: ArgoCD
 `/api/dex/callback`, Grafana `/login/github`, Rollouts `/oauth2/callback`, Kargo
 `/dex/callback`.
 
-ArgoCD/Grafana/Rollouts secrets are still raw `kubectl create secret` — Kargo's OAuth
-secret is the one routed through Vault (`kargo/external-secret.yml`), matching its git
-credential. Worth making these three consistent with that too at some point; flagging
-rather than doing it here.
+All four OAuth secrets are sourced from Vault (`external-secrets/sso-secrets.yml` for
+ArgoCD/Grafana/Rollouts, `kargo/external-secret.yml` for Kargo) — seed them once:
 
 ```bash
-kubectl patch secret argocd-secret -n argocd --type merge -p '{
-  "stringData": {
-    "dex.github.clientId": "<argocd-oauth-app-client-id>",
-    "dex.github.clientSecret": "<argocd-oauth-app-client-secret>"
-  }
-}'
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/argocd/dex \
+    clientId='<argocd-oauth-app-client-id>' \
+    clientSecret='<argocd-oauth-app-client-secret>'
 
-kubectl create secret generic grafana-github-oauth -n monitoring \
-  --from-literal=client-id='<grafana-oauth-app-client-id>' \
-  --from-literal=client-secret='<grafana-oauth-app-client-secret>'
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/monitoring/grafana-oauth \
+    clientId='<grafana-oauth-app-client-id>' \
+    clientSecret='<grafana-oauth-app-client-secret>'
 
 COOKIE_SECRET=$(python3 -c 'import secrets,base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())')
-kubectl create secret generic argorollouts-oauth2-proxy -n argo-rollouts \
-  --from-literal=client-id='<rollouts-oauth-app-client-id>' \
-  --from-literal=client-secret='<rollouts-oauth-app-client-secret>' \
-  --from-literal=cookie-secret="$COOKIE_SECRET"
+kubectl exec -n vault deploy/vault -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  vault kv put secret/argo-rollouts/oauth2-proxy \
+    clientId='<rollouts-oauth-app-client-id>' \
+    clientSecret='<rollouts-oauth-app-client-secret>' \
+    cookieSecret="$COOKIE_SECRET"
 
 kubectl exec -n vault deploy/vault -- \
   env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
   vault kv put secret/kargo/github-oauth clientSecret='<kargo-oauth-app-client-secret>'
 ```
 
+`argocd-dex-external-secret` merges its two keys into the `argocd-secret` ArgoCD's own
+chart already created, rather than owning a separate Secret — `creationPolicy: Merge`.
+
 Also fill in `kargo/values.yaml`'s `clientID` and `admins.claims.email` placeholders (same
 `REPLACE_WITH_...` pattern as `argocd/values.yaml`'s RBAC line) — the Client ID isn't
 secret, so it's a plain committed value, not something Vault needs to hold.
 
 ArgoCD's own upgrade is manual (ArgoCD isn't self-managed — see "What stays manual, and
-why") — re-apply the Dex config with:
+why") — re-apply the Dex connector config with:
 
 ```bash
 helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml

@@ -24,6 +24,12 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      # This bundle's embedded OpenAPI schemas are large enough that client-side apply's
+      # kubectl.kubernetes.io/last-applied-configuration annotation would exceed
+      # Kubernetes' 256KB annotation limit. Server-side apply avoids that annotation
+      # entirely — a well-known requirement for CRD bundles this size, not optional here.
+      - ServerSideApply=true
     retry:
       limit: 5
       backoff:

@@ -6,10 +6,12 @@ metadata:
     app: backend
 
 ---
+# Single Service — Rollouts shifts traffic via the DestinationRule's subset labels below,
+# not by moving pods between separate stable/canary Services.
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service-stable
+  name: backend-service
 spec:
   selector:
     app: backend
@@ -19,22 +21,51 @@ spec:
       protocol: TCP
 
 ---
-apiVersion: v1
-kind: Service
+# Rollouts patches subsets[].labels to add rollouts-pod-template-hash as it progresses —
+# the `app: backend` seeded here is just a valid starting point, not what actually
+# distinguishes stable from canary at runtime.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
 metadata:
-  name: backend-service-canary
+  name: backend-destinationrule
 spec:
-  selector:
-    app: backend
-  ports:
-    - port: 8000
-      targetPort: 8000
-      protocol: TCP
+  host: backend-service
+  subsets:
+    - name: stable
+      labels:
+        app: backend
+    - name: canary
+      labels:
+        app: backend
 
 ---
-# canaryService/stableService and trafficRouting.plugins.*.httpRoute are literal string
-# refs Kustomize's namePrefix won't rewrite (unlike Service/Deployment refs it recognizes
-# natively) — each overlay's app-patches.yml sets the prefixed names explicitly.
+# Mesh-internal only (gateways omitted -> defaults to ["mesh"]) — external/gateway-attached
+# routing stays on Gateway API HTTPRoute (kustomize/base/httproute.yml), per Istio's own
+# recommendation against attaching VirtualService directly to a Gateway API Gateway.
+# Rollouts mutates the two weight fields below as the canary progresses.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-virtualservice
+spec:
+  hosts:
+    - backend-service
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: backend-service
+            subset: stable
+          weight: 100
+        - destination:
+            host: backend-service
+            subset: canary
+          weight: 0
+
+---
+# virtualService.name/destinationRule.name are literal string refs Kustomize's namePrefix
+# won't rewrite (same class of issue as the old gatewayAPI plugin's httpRoute field) — each
+# overlay's app-patches.yml sets the prefixed names explicitly.
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -45,14 +76,16 @@ spec:
   replicas: 1
   strategy:
     canary:
-      canaryService: backend-service-canary
-      stableService: backend-service-stable
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: mern-route
-            # namespace omitted — defaults to the Rollout's own namespace, which Kustomize's
-            # namespace transformer already sets correctly per overlay.
+        istio:
+          virtualService:
+            name: backend-virtualservice
+            routes:
+              - primary
+          destinationRule:
+            name: backend-destinationrule
+            canarySubsetName: canary
+            stableSubsetName: stable
       steps:
         - setWeight: 20
         - pause: {}

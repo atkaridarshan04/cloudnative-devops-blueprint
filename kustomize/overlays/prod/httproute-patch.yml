@@ -11,20 +11,12 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: prod-frontend-service-stable
+        - name: prod-frontend-service
           port: 80
-          weight: 100
-        - name: prod-frontend-service-canary
-          port: 80
-          weight: 0
     - matches:
         - path:
             type: PathPrefix
             value: /books
       backendRefs:
-        - name: prod-backend-service-stable
+        - name: prod-backend-service
           port: 8000
-          weight: 100
-        - name: prod-backend-service-canary
-          port: 8000
-          weight: 0
