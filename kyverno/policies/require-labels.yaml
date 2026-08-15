@@ -28,9 +28,14 @@ spec:
           kinds:
           - Pod
     validate:
-      message: "The label `app.kubernetes.io/name` is required."
-      pattern:
-        metadata:
-          name: "?*"
-          labels:
-            app: "?*"           # Requires 'app' label with any non-empty value
+      # anyPattern, not pattern: book-store's own Rollouts only carry the legacy `app`
+      # label, while every third-party Helm chart here (external-secrets, kyverno, etc.)
+      # only carries `app.kubernetes.io/name` — require whichever one identifies the app.
+      message: "A label identifying the app (`app` or `app.kubernetes.io/name`) is required."
+      anyPattern:
+        - metadata:
+            labels:
+              app: "?*"
+        - metadata:
+            labels:
+              app.kubernetes.io/name: "?*"

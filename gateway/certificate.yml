@@ -9,6 +9,6 @@ spec:
   dnsNames:
     - '*.cndb.atkaridarshan.online'
   issuerRef:
-    name: letsencrypt-staging # Use `letsencrypt-prod` for production
+    name: letsencrypt-prod
     kind: ClusterIssuer
     group: cert-manager.io
