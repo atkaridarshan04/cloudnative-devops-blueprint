@@ -11,6 +11,24 @@ spec:
     - repoURL: https://kyverno.github.io/kyverno/
       chart: kyverno
       targetRevision: 3.8.2
+      helm:
+        # kind's local-path-provisioner spawns unlabeled helper pods in
+        # local-path-storage to provision each PV — same trust tier as kube-system,
+        # which the chart already excludes by default; extend that exclusion here
+        # instead of chasing it policy-by-policy (require-labels, disallow-latest-tag,
+        # require-userns-or-nonroot are all Enforce and could each block it in turn).
+        # Restated in full (not a --set on the array index) — Helm's index-path
+        # parameters don't reliably merge against the chart's own default array element.
+        valuesObject:
+          config:
+            webhooks:
+              namespaceSelector:
+                matchExpressions:
+                  - key: kubernetes.io/metadata.name
+                    operator: NotIn
+                    values:
+                      - kube-system
+                      - local-path-storage
     - repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
       targetRevision: prod
       path: kyverno/policies

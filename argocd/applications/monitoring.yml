@@ -44,6 +44,10 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # kube-prometheus-stack's Prometheus/Alertmanager (+ siblings) CRDs exceed the
+      # 262144-byte last-applied-configuration annotation limit under client-side apply,
+      # same as kyverno's and external-secrets' CRDs.
+      - ServerSideApply=true
     retry:
       limit: 5
       backoff:

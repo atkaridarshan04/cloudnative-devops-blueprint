@@ -230,6 +230,13 @@ helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 
 helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
+
+# HTTPRoute is a Gateway API CRD — must exist before ArgoCD's own route below can be
+# created. Normally installed as the gateway-api-crds Application (wave 0), but that only
+# starts existing once root-application.yml is applied further down — a fresh cluster has
+# no HTTPRoute kind yet, so install it once by hand here. --server-side because the bundle's
+# embedded OpenAPI schemas are too large for client-side apply's annotation limit.
+kubectl apply --server-side -f gateway/gateway-api-crds.yaml
 kubectl apply -f argocd/httproute.yml   # ArgoCD's own route — manual, since ArgoCD isn't self-managed
 
 kubectl apply -f argocd/project.yml
@@ -371,14 +378,66 @@ kubectl get stage -n book-store
 On a cloud cluster, `kubectl get gateway istio-gateway -n mern-devops -o wide` populates an
 `ADDRESS` once Istio's provisioned load balancer is up — point a wildcard `A`/`CNAME` record
 at it (`CNAME` on EKS, since ALB/NLB DNS names can rotate the underlying IP; usually `A` on
-AKS/GKE). On `kind`, there's no LB controller to hand out a real address — inspect
-`kubectl get svc -n mern-devops` for the Gateway's actual backing Service and either install
-a LoadBalancer controller (e.g. MetalLB) or patch it to `NodePort` for local testing.
+AKS/GKE). On `kind`, there's no LB controller to hand out a real address, and the Gateway's
+backing Service lands on random `NodePort`s — pin them to the exact ports `kind-config.yml`'s
+`extraPortMappings` forwards from `localhost:80`/`443`:
 
-**Kargo dashboard** — `https://kargo.cndb.atkaridarshan.online/`, same wildcard cert and
-Gateway as everything else, no separate NodePort. Log in with the admin password saved
-during bootstrap.
+```bash
+kubectl patch svc istio-gateway-istio -n mern-devops --type=json -p '[
+  {"op":"replace","path":"/spec/ports/1/nodePort","value":30080},
+  {"op":"replace","path":"/spec/ports/2/nodePort","value":30443}
+]'
+```
+
+Then point every hostname at your own machine (real DNS/Cloudflare only matters for the
+Let's Encrypt DNS-01 challenge itself, not for reaching the Gateway locally):
+
+```bash
+echo "127.0.0.1 app.cndb.atkaridarshan.online
+127.0.0.1 dev.cndb.atkaridarshan.online
+127.0.0.1 staging.cndb.atkaridarshan.online
+127.0.0.1 argocd.cndb.atkaridarshan.online
+127.0.0.1 kargo.cndb.atkaridarshan.online
+127.0.0.1 grafana.cndb.atkaridarshan.online
+127.0.0.1 prometheus.cndb.atkaridarshan.online
+127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
+```
+
+**Browser access** — all on the same wildcard cert and Gateway, no separate NodePorts:
+
+| URL | Login |
+|---|---|
+| `https://app.cndb.atkaridarshan.online/` | prod app |
+| `https://staging.cndb.atkaridarshan.online/` | staging app |
+| `https://dev.cndb.atkaridarshan.online/` | dev app |
+| `https://argocd.cndb.atkaridarshan.online/` | GitHub SSO once seeded (see below), else `admin` + `argocd-initial-admin-secret` — only exists if `admin.enabled` was `"true"` at install/upgrade time |
+| `https://kargo.cndb.atkaridarshan.online/` | GitHub SSO (Kargo's own bundled Dex), or the admin password saved during bootstrap |
+| `https://grafana.cndb.atkaridarshan.online/` | GitHub SSO once `monitoring/grafana-oauth` is seeded |
+| `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
+| `https://prometheus.cndb.atkaridarshan.online/` | no auth |
+
+GitHub OAuth Apps are unforgiving about the callback URL — it must match protocol, host,
+and path *exactly* (`https`, not `http`; `/api/dex/callback` for ArgoCD, not `/dex/callback` —
+that one's Kargo's). A mismatch surfaces as GitHub's own "Invalid redirect URL" page, not an
+ArgoCD/Kargo error.
 
 ```bash
 curl -v https://app.cndb.atkaridarshan.online/
+```
+
+**Vault UI** — this repo runs Vault in dev mode, which means a fixed root token:
+
+```bash
+kubectl port-forward -n vault deploy/vault 8200:8200
+```
+
+Open `http://127.0.0.1:8200/ui`, method **Token**, value `root`.
+
+**Promoting a paused canary** — each Rollout's `pause: {}` step (no duration) waits for a
+human:
+
+```bash
+kubectl argo rollouts promote dev-backend-rollout -n dev
+kubectl argo rollouts promote dev-frontend-rollout -n dev
+# same for staging-*/prod-* once verified
 ```
