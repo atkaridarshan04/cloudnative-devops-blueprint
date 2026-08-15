@@ -487,8 +487,7 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 127.0.0.1 argocd.cndb.atkaridarshan.online
 127.0.0.1 kargo.cndb.atkaridarshan.online
 127.0.0.1 grafana.cndb.atkaridarshan.online
-127.0.0.1 argorollouts.cndb.atkaridarshan.online
-127.0.0.1 vault.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
+127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
 ```
 
 **Browser access** — all on the same wildcard cert and Gateway, no separate NodePorts:
@@ -502,40 +501,35 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 | `https://kargo.cndb.atkaridarshan.online/` | GitHub SSO (Kargo's own bundled Dex), or the admin password saved during bootstrap |
 | `https://grafana.cndb.atkaridarshan.online/` | GitHub SSO once `monitoring/grafana-oauth` is seeded |
 | `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
-| `https://vault.cndb.atkaridarshan.online/` | Token method, the `eso-read`-policy token from Vault initialization above (or the root token) — see the Vault UI section below |
 
 See "GitHub OAuth (SSO, optional)" above for exact callback URLs — a mismatch there surfaces
 as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
 
-**Prometheus and Kiali are `kubectl port-forward` only, no public route** — matches real
-production practice for internal-only observability tooling: no login page to expose at
-all, and access is already gated by whoever has valid cluster credentials:
+**Prometheus, Kiali, and Vault are `kubectl port-forward` only, no public route** — matches
+real production practice for internal-only tooling: no login page to expose at all for
+Prometheus/Kiali, and for Vault, one less network path to a real credential guarding real
+secrets. Access to all three is already gated by whoever has valid cluster credentials:
 
 ```bash
 kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
 kubectl port-forward -n istio-system svc/kiali 20001:20001
+kubectl port-forward -n vault vault-0 8200:8200
 ```
 
-Open `http://127.0.0.1:9090` / `http://127.0.0.1:20001` — no login for either.
+Open `http://127.0.0.1:9090` / `http://127.0.0.1:20001` — no login for either. Vault's UI is
+at `http://127.0.0.1:8200/ui`, method **Token**, any real Vault token (the `eso-read` one
+from initialization, or the root token). This only works because
+`external-secrets/vault-statefulset.yml`'s `vault-config` ConfigMap sets `ui = true` — Vault
+serves its API fine without it, but `/ui` 404s without that line, even when everything else
+is healthy.
 
 ```bash
 curl -v https://app.cndb.atkaridarshan.online/
 ```
 
-**Vault UI** — reach it directly at `https://vault.cndb.atkaridarshan.online/ui`
-(Gateway-terminated TLS, same as every other UI here), method **Token**, any real Vault
-token (the `eso-read` one from initialization, or the root token). Unlike dev mode's
-throwaway fixed token, this is now a real credential guarding real secrets with no login
-gate beyond it — worth revisiting whether `external-secrets/vault-httproute.yml` should stay
-publicly reachable at all, vs. `kubectl port-forward`-only like Prometheus/Kiali.
-
 Every `vault kv`/`vault operator` command in this doc runs via `kubectl exec` directly
-against the pod, so none of them need this — port-forward is only for reaching Vault from a
-local `vault` CLI or browser instead of the public route above:
-
-```bash
-kubectl port-forward -n vault vault-0 8200:8200
-```
+against the pod, so none of them need the port-forward above — that's only for reaching
+Vault from a local `vault` CLI or browser.
 
 **Promoting a paused canary** — each Rollout's `pause: {}` step (no duration) waits for a
 human:

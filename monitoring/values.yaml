@@ -8,7 +8,7 @@ prometheus:
           resources:
             requests:
               storage: 5Gi
-          storageClassName: standard
+          storageClassName: aws-ebs-gp3
     # Allow Prometheus to pick up PrometheusRules from all namespaces
     ruleNamespaceSelector: {}
     ruleSelector:
@@ -83,7 +83,7 @@ grafana:
     enabled: true
     type: pvc
     size: 5Gi
-    storageClassName: standard
+    storageClassName: aws-ebs-gp3
 
   dashboardProviders:
     dashboardproviders.yaml:
