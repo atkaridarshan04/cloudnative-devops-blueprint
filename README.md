@@ -465,3 +465,49 @@ kubectl argo rollouts promote dev-backend-rollout -n dev
 kubectl argo rollouts promote dev-frontend-rollout -n dev
 # same for staging-*/prod-* once verified
 ```
+
+### Troubleshooting
+
+**A rotated Vault secret isn't showing up yet** — every `ExternalSecret` here has
+`refreshInterval: 1h`; it'll pick up a changed Vault value on its own, just not
+immediately. Force it right away instead of waiting:
+
+```bash
+kubectl annotate externalsecret <name> -n <namespace> force-sync=$(date +%s) --overwrite
+kubectl get externalsecret <name> -n <namespace>   # STATUS should flip to SecretSynced within seconds
+```
+
+Most consumers (Kargo's git credential, Dex/oauth2-proxy sidecars) read the resulting
+Secret fresh per-operation — no pod restart needed. Ones that only read a Secret into an
+env var at container startup (e.g. a Rollout's `mongoDBURL`) do need a restart:
+`kubectl delete pod -n <ns> -l app=<name>` (the ReplicaSet/StatefulSet recreates it,
+picking up the current Secret content).
+
+**An Argo CD Application's `OutOfSync`/`Degraded` looks stuck after a push** — a plain
+`git push` doesn't itself trigger anything; Argo CD polls on its own interval. Force it:
+
+```bash
+kubectl patch application <name> -n argocd --type merge \
+  -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+```
+
+If the Application spec's own drift needs re-syncing (not just re-diffing), and the CLI
+isn't installed locally, it's already inside the `argocd-application-controller` pod —
+useful for scripting or when RBAC/UI access is the very thing being debugged:
+
+```bash
+kubectl exec -n argocd argocd-application-controller-0 -- argocd app diff <name> --core
+kubectl exec -n argocd argocd-application-controller-0 -- argocd app sync <name> --core
+```
+
+**A large Helm chart's CRDs fail with `metadata.annotations: Too long: may not be more
+than 262144 bytes`** — client-side apply's `last-applied-configuration` annotation hit
+Kubernetes' size limit (hit this three times here: kyverno, external-secrets,
+kube-prometheus-stack). Add `ServerSideApply=true` to that Application's `syncOptions`.
+
+**GitHub-SSO'd into Argo CD but every action 403s ("permission denied")** — `configs.rbac`
+only examines the `groups`/`sub` claims by default; a `g, <email>, role:admin` policy line
+silently never matches without also setting `scopes: "[groups, email]"` (see
+`argocd/values.yaml`'s `rbac.scopes`). After fixing it and re-running the `helm upgrade`,
+log out and back in — your existing session token was minted before the fix and won't
+carry `email` retroactively.

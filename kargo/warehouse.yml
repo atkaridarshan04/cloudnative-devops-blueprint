@@ -11,7 +11,7 @@ spec:
   subscriptions:
     - image:
         repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
-        constraint: ">=1.0.0"
+        constraint: "2.0.0" # DEMO: pinned to exercise the promotion pipeline — revert to >=1.0.0 after
     - image:
         repoURL: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
-        constraint: ">=1.0.0"
+        constraint: "2.0.0" # DEMO: pinned to exercise the promotion pipeline — revert to >=1.0.0 after
