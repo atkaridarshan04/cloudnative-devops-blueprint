@@ -6,9 +6,6 @@ metadata:
     environment: prod
     app: mern-stack
     istio-injection: enabled
-    # Disabled for now: baseline blocks istio-init's required NET_ADMIN/NET_RAW capabilities
-    # since istio-cni isn't installed. Re-enable once istio-cni is added (or PSA moves to
-    # only warn/audit) so sidecar-injected pods can actually start.
     # pod-security.kubernetes.io/enforce: baseline
     # pod-security.kubernetes.io/enforce-version: latest
     # pod-security.kubernetes.io/audit: restricted

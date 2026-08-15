@@ -22,8 +22,6 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      # containers[] is a list — same Kustomize CRD-merge caveat as subsets[]/http[] below,
-      # restated in full (env/ports/probes/resources/securityContext), not just name+image.
       containers:
         - name: backend
           image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend # Tag managed by Kustomize images

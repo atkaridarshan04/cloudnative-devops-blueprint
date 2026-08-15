@@ -1,7 +1,7 @@
-# oauth2-proxy in front of argo-rollouts-dashboard (which has no auth of its own — see
-# concepts/sso-concepts.md). client-id/client-secret/cookie-secret come from a Secret
-# created via kubectl (see sso-deploy.md), referenced here via config.existingSecret —
-# never committed in plaintext.
+# oauth2-proxy in front of argo-rollouts-dashboard, which has no auth of its own.
+# client-id/client-secret/cookie-secret come from Vault via the
+# argorollouts-oauth2-proxy-external-secret ExternalSecret (external-secrets/sso-secrets.yml),
+# referenced here via config.existingSecret — never committed in plaintext.
 config:
   existingSecret: argorollouts-oauth2-proxy
 
@@ -13,8 +13,6 @@ extraArgs:
   # Unlike ArgoCD/Grafana, oauth2-proxy has no readonly/viewer concept — anyone who
   # passes this gate gets full dashboard access, including promote/abort. Restrict to
   # specific GitHub username(s) rather than email-domain: "*" (which would allow anyone).
-  # REPLACE_WITH_YOUR_GITHUB_USERNAME — 'atkaridarshan04' below is the author's own
-  # username, kept as a working example; replace it with yours (see sso-deploy.md).
   github-user: atkaridarshan04
   upstream: http://argo-rollouts-dashboard.argo-rollouts.svc.cluster.local:3100
   redirect-url: https://argorollouts.cndb.atkaridarshan.online/oauth2/callback

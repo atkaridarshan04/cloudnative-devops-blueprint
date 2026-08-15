@@ -93,8 +93,6 @@ spec:
     spec:
       # nginx needs root to bind/serve — hostUsers: false maps that container root to an
       # unprivileged host UID (K8s 1.36+) instead of running non-root, unlike backend/mongodb.
-      # NOTE: not yet verified alongside Istio sidecar injection on a real cluster — istio-cni
-      # (or the sidecar's iptables redirect, if not using istio-cni) may need re-checking here.
       hostUsers: false
       serviceAccountName: frontend
       containers:

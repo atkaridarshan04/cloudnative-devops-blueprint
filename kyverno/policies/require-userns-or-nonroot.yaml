@@ -18,9 +18,6 @@ metadata:
 spec:
   validationFailureAction: Enforce
   background: true
-  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
-  # Kyverno's own defaults, added by its admission controller regardless — restated here
-  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
   admission: true
   emitWarning: false
   rules:

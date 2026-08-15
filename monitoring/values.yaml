@@ -15,7 +15,7 @@ prometheus:
       matchLabels:
         release: monitoring
   service:
-    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly — see monitoring-deploy.md
+    type: ClusterIP   # Reached via Gateway API HTTPRoute (monitoring/prometheus-httproute.yml), not exposed directly
 
 alertmanager:
   enabled: true
@@ -38,13 +38,14 @@ prometheusOperator:
 grafana:
   enabled: true
   adminUser: admin
-  adminPassword: password   # break-glass only once GitHub OAuth below is working — see sso-deploy.md
+  adminPassword: password   # break-glass only once GitHub OAuth below is working
   service:
-    type: ClusterIP   # Reached via Gateway API HTTPRoute, not exposed directly — see monitoring-deploy.md
+    type: ClusterIP   # Reached via Gateway API HTTPRoute (monitoring/grafana-httproute.yml), not exposed directly
 
-  # client-id/client-secret keys come from a Secret created via kubectl (see sso-deploy.md)
-  # — never committed here. envValueFrom injects them as env vars, and grafana.ini
-  # references them via $__env{} so the plaintext secret never touches values.yaml/git.
+  # client-id/client-secret keys come from Vault via the grafana-github-oauth-external-secret
+  # ExternalSecret (external-secrets/sso-secrets.yml), never committed here. envValueFrom
+  # injects them as env vars, and grafana.ini references them via $__env{} so the
+  # plaintext secret never touches values.yaml/git.
   envValueFrom:
     GF_AUTH_GITHUB_CLIENT_ID:
       secretKeyRef:
@@ -74,9 +75,7 @@ grafana:
       api_url: https://api.github.com/user
       # Without this, every GitHub login (including yours) gets the default
       # auto_assign_org_role (Viewer) — only the local admin/password account would have
-      # real admin rights. Maps your specific GitHub username to Admin, everyone else Viewer.
-      # REPLACE_WITH_YOUR_GITHUB_USERNAME — 'atkaridarshan04' below is the author's own
-      # username, kept as a working example; replace it with yours (see sso-deploy.md).
+      # real admin rights. Maps this specific GitHub username to Admin, everyone else Viewer.
       role_attribute_path: login=='atkaridarshan04' && 'Admin' || 'Viewer'
 
   persistence:

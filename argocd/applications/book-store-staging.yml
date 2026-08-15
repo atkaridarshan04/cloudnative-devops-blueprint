@@ -5,7 +5,6 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "3"
-    # Required for Kargo's argocd-update promotion step — see application-dev.yml's comment.
     kargo.akuity.io/authorized-stage: book-store:staging
 spec:
   project: book-store
@@ -27,9 +26,6 @@ spec:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
-      # Without this, ignoreDifferences below only affects drift *display* — an actual
-      # sync (triggered by any unrelated change) would still overwrite Rollouts' live
-      # canary weight/subset labels back to git's static values.
       - RespectIgnoreDifferences=true
     retry:
       limit: 5
@@ -38,9 +34,6 @@ spec:
         factor: 2
         maxDuration: 3m
 
-  # Argo Rollouts patches these fields directly on the live VirtualService/DestinationRule
-  # as a canary progresses — without ignoring them, selfHeal fights the rollout, reverting
-  # the weight/subset labels back to git's static values every reconcile.
   ignoreDifferences:
     - group: networking.istio.io
       kind: VirtualService

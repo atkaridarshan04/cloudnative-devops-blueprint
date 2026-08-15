@@ -1,8 +1,7 @@
-# NOTE: chart version pinned to the latest akuity/kargo GitHub release tag (1.11.1) — GHCR
-# OCI pulls weren't reachable to independently confirm the chart version matches the app
-# version 1:1 the way every other chart in this repo was verified. Check
-# `helm show chart oci://ghcr.io/akuity/kargo-charts/kargo --version 1.11.1` before relying
-# on this pin.
+# Chart version pinned to the latest akuity/kargo GitHub release tag (1.11.1) — not
+# independently verified against the chart's own version like the other charts in this repo.
+# Check `helm show chart oci://ghcr.io/akuity/kargo-charts/kargo --version 1.11.1` before
+# relying on 1:1 chart:app version parity.
 #
 # Admin credentials (api.adminAccount.passwordHash/tokenSigningKey) are NOT set here —
 # they're generated secrets, same category as the Cloudflare token / GitHub OAuth secrets /

@@ -43,4 +43,4 @@ spec:
             description: >-
               cert-manager hasn't renewed {{ $labels.name }} in namespace
               {{ $labels.exported_namespace }} yet — check ClusterIssuer status and the
-              DNS-01 challenge chain (see tls-setup-guide.md's troubleshooting section).
+              DNS-01 challenge chain (`kubectl describe certificate`, `kubectl get challenge`).

@@ -106,6 +106,14 @@ fields (the weight, the subset labels) — otherwise `selfHeal` would revert a c
 weight back to git's static value mid-rollout. A canary in progress showing those two
 resources as unrelated to sync status is expected, not a stuck sync.
 
+**Currently disabled on this environment**: the diagram's PSA `enforce=baseline` label and
+the `NetworkPolicy` node are the intended design, but both are commented out right now
+(`kustomize/overlays/*/namespace.yml`, `kustomize/base/kustomization.yml`) — Istio's sidecar
+`istio-init` container needs `NET_ADMIN`/`NET_RAW`, which baseline PSA blocks outright, and
+this cluster doesn't have istio-cni installed (the usual way around that). Re-enable both
+once istio-cni is added; until then, Kyverno + mesh mTLS below are the two layers actually
+enforcing anything on pods in `dev`/`staging`/`prod`.
+
 ### GitOps promotion pipeline
 
 ```mermaid
@@ -167,6 +175,11 @@ flowchart LR
 PSA alone can't block a pod running real root via `hostUsers` left at its default — it has
 no concept of Linux user namespaces at all. That's the specific gap
 `kyverno/policies/require-userns-or-nonroot.yaml` exists to close.
+
+PSA and `NetworkPolicy` (the 1st and 3rd layers above) are currently disabled on this
+environment — see the callout above the first diagram. `require-userns-or-nonroot` is doing
+double duty for now: it's Enforce regardless of PSA's own state, so it's currently the only
+thing blocking real-root pods.
 
 ## Layout
 

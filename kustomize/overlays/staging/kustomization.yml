@@ -19,8 +19,4 @@ configMapGenerator:
   literals:
   - PORT=8000
   options:
-    # Kustomize doesn't know the Rollout CRD's env[].valueFrom.configMapKeyRef.name path,
-    # so it can't auto-rewrite references to this generator's hashed output name — same
-    # blind spot as containers[] above. Disabling the hash keeps the name deterministic
-    # (staging-backend-config) so app-patches.yml can reference it by its literal prefixed name.
     disableNameSuffixHash: true
