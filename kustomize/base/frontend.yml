@@ -88,7 +88,6 @@ spec:
       app: frontend
   template:
     metadata:
-      name: frontend
       labels:
         app: frontend
     spec:
@@ -104,6 +103,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /

@@ -33,6 +33,7 @@ spec:
           ports:
             - containerPort: 8000
               name: http
+              protocol: TCP
           env:
             - name: PORT
               valueFrom:
@@ -97,6 +98,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /
