@@ -8,3 +8,7 @@ external_services:
     root_namespace: istio-system
   prometheus:
     url: http://monitoring-kube-prometheus-prometheus.monitoring:9090
+  grafana:
+    enabled: true
+    internal_url: http://monitoring-grafana.monitoring
+    external_url: https://grafana.cndb.atkaridarshan.online
