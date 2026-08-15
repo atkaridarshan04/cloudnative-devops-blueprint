@@ -30,6 +30,11 @@ configs:
 
   rbac:
     policy.default: role:readonly
+    # Defaults to "[groups]" — the g, <email>, role:admin binding below matches by email,
+    # which RBAC never examines without this, silently falling back to policy.default
+    # (readonly) even though login succeeds. Confirmed live: sync attempts failed with
+    # "permission denied" showing only the GitHub numeric sub claim, no email.
+    scopes: "[groups, email]"
     policy.csv: |
       p, role:admin, applications, *, */*, allow
       p, role:admin, clusters, *, *, allow
