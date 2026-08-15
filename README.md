@@ -56,7 +56,7 @@ flowchart TD
     end
 
     subgraph VNS["vault namespace"]
-        Vault[("Vault, dev-mode")]
+        Vault[("Vault, Raft storage<br/>(manual unseal)")]
     end
 
     CSS["ClusterSecretStore: vault-backend<br/>(shared across dev/staging/prod)"]
@@ -199,7 +199,7 @@ thing blocking real-root pods.
 │   ├── root-application.yml                # the one Application applied by hand
 │   └── applications/                       # everything else — platform tools + book-store, all app-of-apps children
 ├── argorollouts/       # dashboard route + SSO
-├── external-secrets/   # dev-mode Vault, ClusterSecretStore, SSO credential ExternalSecrets
+├── external-secrets/   # Vault (Raft storage), ClusterSecretStore, SSO credential ExternalSecrets
 ├── kyverno/policies/    # admission policies (pod security, supply chain, best practices)
 ├── monitoring/         # kube-prometheus-stack + blackbox-exporter, Istio/cert-manager metrics
 └── kind-config.yml     # local kind cluster config
@@ -216,7 +216,7 @@ installing** (the same Applications, continuously reconciled). See
 
 ### What stays manual, and why
 
-Four things, all genuinely irreducible — everything else self-assembles from one
+Five things, all genuinely irreducible — everything else self-assembles from one
 `kubectl apply`:
 
 1. **The cluster itself** — ArgoCD needs somewhere to run.
@@ -228,7 +228,11 @@ Four things, all genuinely irreducible — everything else self-assembles from o
    deliberately kept outside GitOps. An Application creating/modifying its own `AppProject`
    would let a compromised git repo grant itself broader RBAC; see
    `argocd/platform-project.yml`'s comment.
-4. **Real secret material** — the Cloudflare DNS token, Vault's per-env mongodb credentials,
+4. **Vault's own init/unseal** — `external-secrets/vault-statefulset.yml` deploys Vault
+   sealed and uninitialized (Raft storage, no auto-unseal). `vault operator init`/`unseal`
+   and mounting the kv-v2 secrets engine are one-time manual steps; every pod restart after
+   that needs another manual unseal. See "Vault initialization" below.
+5. **Real secret material** — the Cloudflare DNS token, Vault's per-env mongodb credentials,
    GitHub OAuth secrets, Kargo's admin credentials, and Kargo's git credential. None of this
    can live in git by definition; each corresponding Application will sit
    `Progressing`/`Degraded` until its secret exists — expected, not a sync failure to chase.
@@ -281,15 +285,47 @@ Prove the cert on staging before touching Let's Encrypt's production rate limit 
 `READY=True` (`kubectl describe certificate wildcard-tls -n mern-devops`), then switch to
 `letsencrypt-prod` and let selfHeal pick up the change.
 
+**Vault initialization** (one-time, before anything else in this section — Vault comes up
+sealed and uninitialized with Raft storage and no auto-unseal):
+
+```bash
+kubectl exec -n vault vault-0 -- vault operator init -key-shares=1 -key-threshold=1
+# save the unseal key and initial root token printed above — neither is recoverable
+
+kubectl exec -n vault vault-0 -- vault operator unseal <unseal-key>
+
+# production Vault doesn't auto-mount kv-v2 at secret/ the way dev mode does
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
+  vault secrets enable -path=secret -version=2 kv
+
+# scope ESO's own access instead of handing it the root token
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
+  vault policy write eso-read - <<'EOF'
+path "secret/data/*" { capabilities = ["read"] }
+path "secret/metadata/*" { capabilities = ["list"] }
+EOF
+
+eso_token=$(kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
+  vault token create -policy=eso-read -period=768h -field=token)
+
+kubectl create secret generic vault-token -n vault --from-literal=token="$eso_token"
+```
+
+Every pod restart after this needs `vault operator unseal <unseal-key>` again before the
+`vault-0` pod reports Ready — there's no auto-unseal configured (see the pending KMS work).
+
 **mongodb credentials** (unblocks the `ExternalSecret` in each `book-store-*` Application):
 
 ```bash
-kubectl port-forward -n vault deploy/vault 8200:8200 &
+kubectl port-forward -n vault vault-0 8200:8200 &
 sleep 2
 
 for env in dev staging prod; do
-  kubectl exec -n vault deploy/vault -- \
-    env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+  kubectl exec -n vault vault-0 -- \
+    env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
     vault kv put secret/${env}/mern-backend/mongodb username=admin password=<pick-a-real-password-per-env>
 done
 ```
@@ -297,8 +333,8 @@ done
 **Grafana admin credentials** (break-glass fallback, unblocks `monitoring/grafana-admin-secret.yml`'s `ExternalSecret` — Grafana otherwise stays `CreateContainerConfigError` until this exists):
 
 ```bash
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/monitoring/grafana-admin username=admin password=<pick-a-real-password>
 ```
 
@@ -312,8 +348,8 @@ hashed_pass=$(htpasswd -bnBC 10 "" "$pass" | tr -d ':\n')
 signing_key=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 echo "Kargo admin password: $pass"   # save this — hashed_pass can't be reversed back to it
 
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/kargo/admin \
     passwordHash="$hashed_pass" \
     tokenSigningKey="$signing_key"
@@ -335,8 +371,8 @@ PAT with repo write access works as both the git password and the GitHub API tok
 `git-open-pr`/`git-wait-for-pr` need:
 
 ```bash
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/kargo/git-creds \
     repoURL='https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git' \
     username='<your-github-username>' \
@@ -373,28 +409,28 @@ All four OAuth secrets are sourced from Vault (`external-secrets/sso-secrets.yml
 ArgoCD/Grafana/Rollouts, `kargo/external-secret.yml` for Kargo) — seed them once:
 
 ```bash
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/argocd/dex \
     clientId='<argocd-oauth-app-client-id>' \
     clientSecret='<argocd-oauth-app-client-secret>'
 
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/monitoring/grafana-oauth \
     clientId='<grafana-oauth-app-client-id>' \
     clientSecret='<grafana-oauth-app-client-secret>'
 
 COOKIE_SECRET=$(python3 -c 'import secrets,base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())')
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/argo-rollouts/oauth2-proxy \
     clientId='<rollouts-oauth-app-client-id>' \
     clientSecret='<rollouts-oauth-app-client-secret>' \
     cookieSecret="$COOKIE_SECRET"
 
-kubectl exec -n vault deploy/vault -- \
-  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
+kubectl exec -n vault vault-0 -- \
+  env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root-token> \
   vault kv put secret/kargo/github-oauth clientSecret='<kargo-oauth-app-client-secret>'
 ```
 
@@ -462,7 +498,7 @@ echo "127.0.0.1 app.cndb.atkaridarshan.online
 | `https://kargo.cndb.atkaridarshan.online/` | GitHub SSO (Kargo's own bundled Dex), or the admin password saved during bootstrap |
 | `https://grafana.cndb.atkaridarshan.online/` | GitHub SSO once `monitoring/grafana-oauth` is seeded |
 | `https://argorollouts.cndb.atkaridarshan.online/` | GitHub SSO (oauth2-proxy) once `argo-rollouts/oauth2-proxy` is seeded |
-| `https://vault.cndb.atkaridarshan.online/` | Token method, value `root` — dev-mode only; see the Vault UI section below |
+| `https://vault.cndb.atkaridarshan.online/` | Token method, the `eso-read`-policy token from Vault initialization above (or the root token) — see the Vault UI section below |
 
 See "GitHub OAuth (SSO, optional)" above for exact callback URLs — a mismatch there surfaces
 as GitHub's own "Invalid redirect URL" page, not an ArgoCD/Kargo error.
@@ -482,18 +518,18 @@ Open `http://127.0.0.1:9090` / `http://127.0.0.1:20001` — no login for either.
 curl -v https://app.cndb.atkaridarshan.online/
 ```
 
-**Vault UI** — this repo runs Vault in dev mode, which means a fixed root token. Reach it
-directly at `https://vault.cndb.atkaridarshan.online/ui` (Gateway-terminated TLS, same as
-every other UI here), method **Token**, value `root`. This is dev-mode-only and has no
-login gate beyond that token — fine while the only path in is `kubectl port-forward`, but
-worth knowing that token is now reachable at a public-looking hostname too, not just from
-inside the cluster.
+**Vault UI** — reach it directly at `https://vault.cndb.atkaridarshan.online/ui`
+(Gateway-terminated TLS, same as every other UI here), method **Token**, any real Vault
+token (the `eso-read` one from initialization, or the root token). Unlike dev mode's
+throwaway fixed token, this is now a real credential guarding real secrets with no login
+gate beyond it — worth revisiting whether `external-secrets/vault-httproute.yml` should stay
+publicly reachable at all, vs. `kubectl port-forward`-only like Prometheus/Kiali.
 
 For the `vault kv`/`vault exec` commands used throughout this doc, port-forward still works
 the same as before:
 
 ```bash
-kubectl port-forward -n vault deploy/vault 8200:8200
+kubectl port-forward -n vault vault-0 8200:8200
 ```
 
 **Promoting a paused canary** — each Rollout's `pause: {}` step (no duration) waits for a

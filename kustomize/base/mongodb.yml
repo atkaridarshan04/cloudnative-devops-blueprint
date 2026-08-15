@@ -26,6 +26,15 @@ spec:
       app: mongodb
   updateStrategy:
     type: RollingUpdate
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 5Gi
   template:
     metadata:
       name: mongodb
@@ -47,6 +56,9 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:

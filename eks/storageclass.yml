@@ -1,0 +1,16 @@
+# Paused for now, along with external-secrets/storageclass.yml and the ALB annotations on
+# gateway/gateway-api.yml — not synced by any ArgoCD Application either way. Uncomment when
+# this repo actually targets EKS: wire into root's app-of-apps, and every existing
+# storageClassName: standard reference (Prometheus, Grafana, MongoDB, Vault) resolves here.
+#
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: standard
+# provisioner: ebs.csi.aws.com
+# parameters:
+#   type: gp3
+#   encrypted: "true"
+# volumeBindingMode: WaitForFirstConsumer
+# allowVolumeExpansion: true
+# reclaimPolicy: Delete
