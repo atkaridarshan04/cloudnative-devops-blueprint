@@ -20,6 +20,12 @@ spec:
   # Background scanning - validates existing resources when policy changes
   background: true
 
+  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
+  # Kyverno's own defaults, added by its admission controller regardless — restated here
+  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
+  admission: true
+  emitWarning: false
+
   rules:
   - name: check-for-labels
     match:
@@ -27,11 +33,13 @@ spec:
       - resources:
           kinds:
           - Pod
+    skipBackgroundRequests: true
     validate:
       # anyPattern, not pattern: book-store's own Rollouts only carry the legacy `app`
       # label, while every third-party Helm chart here (external-secrets, kyverno, etc.)
       # only carries `app.kubernetes.io/name` — require whichever one identifies the app.
       message: "A label identifying the app (`app` or `app.kubernetes.io/name`) is required."
+      allowExistingViolations: true
       anyPattern:
         - metadata:
             labels:

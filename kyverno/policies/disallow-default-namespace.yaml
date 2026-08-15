@@ -14,6 +14,11 @@ metadata:
 spec:
   validationFailureAction: Enforce
   background: true
+  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
+  # Kyverno's own defaults, added by its admission controller regardless — restated here
+  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
+  admission: true
+  emitWarning: false
   rules:
   # Rule 1: Validate workload resources - prevents application deployments in default namespace
   - name: validate-pod-and-controllers-namespace
@@ -27,8 +32,10 @@ spec:
             - StatefulSet      # Stateful applications - require namespace isolation
             # - Job            # Batch workloads (commented - may be acceptable in default)
             - Ingress          # Traffic routing - should be namespace-specific
+    skipBackgroundRequests: true
     validate:
       message: "Using 'default' namespace is not allowed for workload resources."
+      allowExistingViolations: true
       pattern:
         metadata:
           # Negative pattern - reject 'default' namespace
@@ -46,8 +53,10 @@ spec:
             - Secret                  # Sensitive data - namespace isolation improves security
             - PersistentVolumeClaim   # Storage claims - should be grouped with applications
             - Service                 # Service discovery - namespace-specific networking
+    skipBackgroundRequests: true
     validate:
       message: "Using 'default' namespace is not allowed for base resources."
+      allowExistingViolations: true
       pattern:
         metadata:
           namespace: "!default"

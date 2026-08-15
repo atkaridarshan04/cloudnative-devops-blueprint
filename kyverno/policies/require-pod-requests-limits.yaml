@@ -18,6 +18,11 @@ metadata:
 spec:
   validationFailureAction: Audit
   background: true
+  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
+  # Kyverno's own defaults, added by its admission controller regardless — restated here
+  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
+  admission: true
+  emitWarning: false
   rules:
   - name: validate-resources
     match:
@@ -25,8 +30,10 @@ spec:
       - resources:
           kinds:
           - Pod
+    skipBackgroundRequests: true
     validate:
       message: "CPU and memory resource requests and memory limits are required for containers."
+      allowExistingViolations: true
       pattern:
         spec:
           containers:

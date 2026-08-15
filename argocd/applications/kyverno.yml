@@ -35,6 +35,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
+  # The chart's newer CEL-policy CRDs (deletingpolicies, generatingpolicies, etc.) render
+  # with a live metadata.labels: {} that isn't in the chart's own rendered manifest at all
+  # (confirmed via `argocd app diff --core`) — permanent cosmetic drift, not a real change.
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jqPathExpressions:
+        - .metadata.labels
   syncPolicy:
     automated:
       prune: true

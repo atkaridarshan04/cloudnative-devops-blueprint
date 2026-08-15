@@ -19,6 +19,11 @@ metadata:
 spec:
   validationFailureAction: Audit
   background: true
+  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
+  # Kyverno's own defaults, added by its admission controller regardless — restated here
+  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
+  admission: true
+  emitWarning: false
   rules:
   # Rule: Validate health check probes - ensures proper container lifecycle management
   - name: validate-probes
@@ -35,8 +40,10 @@ spec:
         value:
         - CREATE  # New pod creation
         - UPDATE  # Pod specification updates
+    skipBackgroundRequests: true
     validate:
       message: "Liveness, readiness, or startup probes are required for all containers."
+      allowExistingViolations: true
       # Iterate through all containers in the pod specification
       foreach:
       - list: request.object.spec.containers[]

@@ -18,6 +18,11 @@ metadata:
 spec:
   validationFailureAction: Enforce
   background: true
+  # admission/emitWarning/skipBackgroundRequests/allowExistingViolations below are
+  # Kyverno's own defaults, added by its admission controller regardless — restated here
+  # (not omitted) so Argo CD's diff against the live ClusterPolicy actually settles.
+  admission: true
+  emitWarning: false
   rules:
     - name: require-userns-or-nonroot
       match:
@@ -29,12 +34,14 @@ spec:
                 - dev
                 - staging
                 - prod
+      skipBackgroundRequests: true
       validate:
         message: >-
           Pod must either set spec.hostUsers: false (user namespace isolation)
           or run as non-root (securityContext.runAsNonRoot: true, at the pod
           or container level) — running as root with hostUsers left at its
           default is real root on the node, not just root in the container.
+        allowExistingViolations: true
         anyPattern:
           - spec:
               hostUsers: false
