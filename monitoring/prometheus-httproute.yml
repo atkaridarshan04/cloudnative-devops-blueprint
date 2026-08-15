@@ -6,6 +6,12 @@ kind: HTTPRoute
 metadata:
   name: prometheus-route
   namespace: monitoring
+  annotations:
+    # monitoring's other resources (Prometheus/Alertmanager CRDs) need Application-wide
+    # ServerSideApply=true, but SSA's dry-run diff against this resource never quite
+    # settles even when live matches git exactly — opt this one back out to client-side
+    # apply, same as book-store's HTTPRoutes (which don't use SSA and don't drift).
+    argocd.argoproj.io/sync-options: ServerSideApply=false
 spec:
   parentRefs:
     - name: istio-gateway

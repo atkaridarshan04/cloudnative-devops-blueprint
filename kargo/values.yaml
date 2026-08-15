@@ -37,7 +37,7 @@ api:
     admins:
       claims:
         email:
-          - REPLACE_WITH_YOUR_GITHUB_EMAIL # see argocd/values.yaml's same placeholder
+          - atkaridarshan04@gmail.com
   # Points the chart at kargo-admin (kargo/external-secret.yml, sourced from Vault)
   # instead of letting it create its own kargo-api Secret — the chart skips that
   # template entirely once api.secret.name is set, so passwordHash/tokenSigningKey
