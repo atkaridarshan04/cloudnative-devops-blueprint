@@ -23,6 +23,9 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # Kyverno 3.8's clusterpolicies/policies CRDs exceed the 262144-byte
+      # last-applied-configuration annotation limit under client-side apply.
+      - ServerSideApply=true
     retry:
       limit: 5
       backoff:

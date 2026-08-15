@@ -24,6 +24,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
+  # istiod patches its own webhook caBundle at runtime; git never has this value,
+  # so without this it's permanent OutOfSync drift rather than an actual problem.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[].clientConfig.caBundle
   syncPolicy:
     automated:
       prune: true
