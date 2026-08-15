@@ -29,11 +29,28 @@ spec:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
+      # Without this, ignoreDifferences below only affects drift *display* — an actual
+      # sync (triggered by any unrelated change) would still overwrite Rollouts' live
+      # canary weight/subset labels back to git's static values.
+      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
+  # Argo Rollouts patches these fields directly on the live VirtualService/DestinationRule
+  # as a canary progresses — without ignoring them, selfHeal fights the rollout, reverting
+  # the weight/subset labels back to git's static values every reconcile.
+  ignoreDifferences:
+    - group: networking.istio.io
+      kind: VirtualService
+      jqPathExpressions:
+        - .spec.http[].route[].weight
+    - group: networking.istio.io
+      kind: DestinationRule
+      jqPathExpressions:
+        - .spec.subsets[].labels
 
   revisionHistoryLimit: 10

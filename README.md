@@ -4,7 +4,7 @@ One coherent path from a git push to a running, promoted, secured deployment —
 collection of isolated demos. `git push` → **Kargo** watches the image registry and drives
 promotion **dev → staging → prod** via PR → **ArgoCD** syncs each environment's
 **Kustomize** overlay → **Argo Rollouts** runs the change through a canary, shifting traffic
-via **Istio**'s Gateway API implementation → mongodb credentials never touch git, synced
+via **Istio**'s native `VirtualService`/`DestinationRule` traffic management → mongodb credentials never touch git, synced
 live from **Vault** via **ExternalSecrets** → every admission is checked by **Pod Security
 Admission** and **Kyverno**, every namespace defaults to **zero-trust NetworkPolicies**, and
 every mesh connection is **mTLS** by default. TLS, domain routing, and SSO across the
@@ -100,6 +100,12 @@ integration: the `VirtualService`'s weighted `stable`/`canary` subsets, patched 
 Service — Istio's own guidance is against attaching `VirtualService` directly to a Gateway
 API `Gateway` (relies on internal implementation details, not a stable API contract).
 
+Since Rollouts patches the live `VirtualService`/`DestinationRule` directly rather than
+through git, each `book-store-*` Application's `ignoreDifferences` excludes those specific
+fields (the weight, the subset labels) — otherwise `selfHeal` would revert a canary's
+weight back to git's static value mid-rollout. A canary in progress showing those two
+resources as unrelated to sync status is expected, not a stuck sync.
+
 ### GitOps promotion pipeline
 
 ```mermaid
@@ -123,9 +129,9 @@ flowchart TD
     AppStaging -->|sync kustomize/overlays/staging| NsStaging[namespace: staging]
     AppProd -->|sync kustomize/overlays/prod| NsProd[namespace: prod]
 
-    NsDev -->|Rollout picks up new tag| CanaryDev[Argo Rollouts canary<br/>via Istio Gateway API]
-    NsStaging -->|Rollout picks up new tag| CanaryStaging[Argo Rollouts canary<br/>via Istio Gateway API]
-    NsProd -->|Rollout picks up new tag| CanaryProd[Argo Rollouts canary<br/>via Istio Gateway API]
+    NsDev -->|Rollout picks up new tag| CanaryDev[Argo Rollouts canary<br/>via Istio VirtualService/DestinationRule]
+    NsStaging -->|Rollout picks up new tag| CanaryStaging[Argo Rollouts canary<br/>via Istio VirtualService/DestinationRule]
+    NsProd -->|Rollout picks up new tag| CanaryProd[Argo Rollouts canary<br/>via Istio VirtualService/DestinationRule]
 
     classDef store fill:#2ea043,color:#fff,stroke:#2ea043
     classDef controller fill:#1f6feb,color:#fff,stroke:#1f6feb
@@ -169,15 +175,17 @@ no concept of Linux user namespaces at all. That's the specific gap
 ├── gateway/            # GatewayClass (implicit via Istio), Gateway, ClusterIssuers, Certificate
 ├── istio/              # mesh-wide policy — PeerAuthentication (STRICT mTLS)
 ├── kustomize/
-│   ├── base/           # frontend/backend Rollouts, mongodb, HTTPRoute, NetworkPolicies
+│   ├── base/           # frontend/backend Rollouts, VirtualService/DestinationRule subsets,
+│   │                   # mongodb, HTTPRoute, NetworkPolicies
 │   └── overlays/       # dev/staging/prod — namespace, image tags, per-env patches
-├── kargo/              # promotion pipeline: Project, Warehouse, Stages, PromotionTask
+├── kargo/              # promotion pipeline: Project, Warehouse, Stages, PromotionTask,
+│                       # git credential ExternalSecret, dashboard route + SSO
 ├── argocd/
 │   ├── project.yml, platform-project.yml   # AppProjects — manual bootstrap, not GitOps-synced
 │   ├── root-application.yml                # the one Application applied by hand
 │   └── applications/                       # everything else — platform tools + book-store, all app-of-apps children
-├── argorollouts/       # Gateway API traffic-router plugin config, dashboard route + SSO
-├── external-secrets/   # dev-mode Vault, ClusterSecretStore
+├── argorollouts/       # dashboard route + SSO
+├── external-secrets/   # dev-mode Vault, ClusterSecretStore, SSO credential ExternalSecrets
 ├── kyverno/policies/    # admission policies (pod security, supply chain, best practices)
 ├── monitoring/         # kube-prometheus-stack + blackbox-exporter, Istio/cert-manager metrics
 └── kind-config.yml     # local kind cluster config
