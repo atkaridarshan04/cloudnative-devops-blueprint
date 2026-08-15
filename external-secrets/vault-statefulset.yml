@@ -83,7 +83,7 @@ spec:
       containers:
         - name: vault
           image: hashicorp/vault:1.15
-          args: ["server", "-config=/vault/config/vault.hcl"]
+          args: ["server"]
           ports:
             - name: http
               containerPort: 8200
