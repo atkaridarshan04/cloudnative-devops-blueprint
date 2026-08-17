@@ -14,9 +14,11 @@ Concept explanations — the "why" behind each piece — live on `main` and the 
 branches this one draws from (`domain-and-tls`, `kargo-promotion`). This branch is the
 integration: only what's needed to stand the whole pipeline up.
 
-Terraform/EKS provisioning is intentionally out of scope here — this targets an
-already-existing cluster. Moving this onto real EKS, and layering Velero backup/DR on top,
-are deliberate later steps once this is proven out.
+This doc targets **EKS** — `terraform/` provisions the VPC, cluster, node group, ALB
+controller, EBS CSI driver, and ArgoCD's own bootstrap. Running the same stack locally on
+`kind` instead (no Terraform, no real cloud load balancer) is still supported — see
+[`KIND.md`](KIND.md) for everything that's different there. Layering Velero backup/DR on top
+is a deliberate later step once this is proven out.
 
 ## Architecture
 
@@ -185,6 +187,7 @@ thing blocking real-root pods.
 
 ```
 .
+├── terraform/          # EKS: VPC, cluster, node group, ALB controller, EBS CSI, ArgoCD bootstrap
 ├── gateway/            # GatewayClass (implicit via Istio), Gateway, ClusterIssuers, Certificate
 ├── istio/              # mesh-wide policy — PeerAuthentication (STRICT mTLS)
 ├── kiali/              # mesh observability dashboard, port-forward only, no public route
@@ -201,9 +204,11 @@ thing blocking real-root pods.
 ├── argorollouts/       # dashboard route + SSO
 ├── external-secrets/   # Vault (Raft storage), ClusterSecretStore, SSO credential ExternalSecrets
 ├── kyverno/policies/    # admission policies (pod security, supply chain, best practices)
-├── monitoring/         # kube-prometheus-stack + blackbox-exporter, Istio/cert-manager metrics
-└── kind-config.yml     # local kind cluster config
+└── monitoring/         # kube-prometheus-stack + blackbox-exporter, Istio/cert-manager metrics
 ```
+
+Running this locally on `kind` instead of EKS? See [`KIND.md`](KIND.md) — different
+bootstrap (no Terraform), different DNS/verify steps, everything else identical.
 
 ## Setup
 
@@ -239,15 +244,10 @@ that:
    can live in git by definition; each corresponding Application will sit
    `Progressing`/`Degraded` until its secret exists — expected, not a sync failure to chase.
 
-On `kind` (no Terraform, local only), all of the above is still manual — see
-`terraform/modules/argocd/main.tf` for the exact sequence to replicate by hand:
-`helm install argocd`, `kubectl apply --server-side` the gateway API CRDs, then
-`argocd/httproute.yml`, `argocd/project.yml`, `argocd/platform-project.yml`,
-`argocd/root-application.yml`, in that order.
+Running on `kind` instead? All of the above is manual there — see [`KIND.md`](KIND.md) for
+the exact sequence.
 
 ### Bootstrap
-
-**EKS:**
 
 ```bash
 cd terraform
@@ -261,34 +261,7 @@ terraform apply
 
 aws eks update-kubeconfig --name cndb-eks --region ap-south-1
 cd ..
-```
 
-**kind (local):**
-
-```bash
-kind create cluster --config kind-config.yml
-
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
-
-helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
-
-# HTTPRoute is a Gateway API CRD — must exist before ArgoCD's own route below can be
-# created. Normally installed as the gateway-api-crds Application (wave 0), but that only
-# starts existing once root-application.yml is applied further down — a fresh cluster has
-# no HTTPRoute kind yet, so install it once by hand here. --server-side because the bundle's
-# embedded OpenAPI schemas are too large for client-side apply's annotation limit.
-kubectl apply --server-side -f gateway/gateway-api-crds.yaml
-kubectl apply -f argocd/httproute.yml   # ArgoCD's own route — manual, since ArgoCD isn't self-managed
-
-kubectl apply -f argocd/project.yml
-kubectl apply -f argocd/platform-project.yml
-kubectl apply -f argocd/root-application.yml
-```
-
-**Either way:**
-
-```bash
 kubectl get application -n argocd
 # watch the waves land: gateway-api-crds (0) → cert-manager/istio/external-secrets/
 # kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring/
@@ -298,6 +271,21 @@ kubectl get application -n argocd
 Sync-waves here are Application-level, gating on each child Application's own `Healthy`
 status before the next wave starts — same app-of-apps + sync-wave pattern as any other
 dependency graph in ArgoCD, just applied to platform tools instead of app resources.
+
+**Node group capacity note**: `terraform-aws-modules/eks`'s managed node group submodule
+hardcodes `lifecycle { ignore_changes = [scaling_config[0].desired_size] }` — it assumes a
+cluster autoscaler manages capacity after initial creation. This repo doesn't run one, so
+changing `node_desired_size` in `locals.tf` only takes effect at node-group *creation* time;
+every later capacity change needs a direct AWS CLI call instead of `terraform apply`:
+
+```bash
+aws eks list-nodegroups --cluster-name cndb-eks --region ap-south-1
+aws eks update-nodegroup-config \
+  --cluster-name cndb-eks --nodegroup-name <name-from-above> --region ap-south-1 \
+  --scaling-config desiredSize=<n>
+```
+
+`min_size`/`max_size` aren't affected by this — those do update normally via `terraform apply`.
 
 ### Secrets: still-manual steps, once the corresponding wave is up
 
@@ -474,17 +462,14 @@ Also fill in `kargo/values.yaml`'s `clientID` and `admins.claims.email` placehol
 secret, so it's a plain committed value, not something Vault needs to hold.
 
 ArgoCD isn't self-managed (see "What stays manual, and why") — re-apply the Dex connector
-config with, on EKS:
+config with:
 
 ```bash
 cd terraform && terraform apply
 ```
 
-or on `kind`:
-
-```bash
-helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml
-```
+(On `kind`: `helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml` — see
+[`KIND.md`](KIND.md).)
 
 Grafana and `sso-oauth2-proxy` pick up their secrets on their own next reconcile, no
 re-apply needed.
@@ -497,32 +482,15 @@ kubectl argo rollouts get rollout dev-backend-rollout -n dev --watch
 kubectl get stage -n book-store
 ```
 
-On a cloud cluster, `kubectl get gateway istio-gateway -n mern-devops -o wide` populates an
-`ADDRESS` once Istio's provisioned load balancer is up — point a wildcard `A`/`CNAME` record
-at it (`CNAME` on EKS, since ALB/NLB DNS names can rotate the underlying IP; usually `A` on
-AKS/GKE). On `kind`, there's no LB controller to hand out a real address, and the Gateway's
-backing Service lands on random `NodePort`s — pin them to the exact ports `kind-config.yml`'s
-`extraPortMappings` forwards from `localhost:80`/`443`:
+`kubectl get gateway istio-gateway -n mern-devops -o wide` populates an `ADDRESS` once the
+ALB controller has provisioned the NLB — point a wildcard `CNAME` record at it (`CNAME`, not
+`A`, since the NLB's underlying IPs can rotate). This repo's DNS zone lives on Cloudflare —
+see `terraform/README.md`'s "DNS" section for the exact record and why it can't be automated
+here (the NLB doesn't exist until this Gateway is applied, well after `terraform apply`
+finishes).
 
-```bash
-kubectl patch svc istio-gateway-istio -n mern-devops --type=json -p '[
-  {"op":"replace","path":"/spec/ports/1/nodePort","value":30080},
-  {"op":"replace","path":"/spec/ports/2/nodePort","value":30443}
-]'
-```
-
-Then point every hostname at your own machine (real DNS/Cloudflare only matters for the
-Let's Encrypt DNS-01 challenge itself, not for reaching the Gateway locally):
-
-```bash
-echo "127.0.0.1 app.cndb.atkaridarshan.online
-127.0.0.1 dev.cndb.atkaridarshan.online
-127.0.0.1 staging.cndb.atkaridarshan.online
-127.0.0.1 argocd.cndb.atkaridarshan.online
-127.0.0.1 kargo.cndb.atkaridarshan.online
-127.0.0.1 grafana.cndb.atkaridarshan.online
-127.0.0.1 argorollouts.cndb.atkaridarshan.online" | sudo tee -a /etc/hosts
-```
+Running on `kind` instead? See [`KIND.md`](KIND.md) — no real load balancer there, so this
+step is replaced by a `NodePort` patch + `/etc/hosts` entries.
 
 **Browser access** — all on the same wildcard cert and Gateway, no separate NodePorts:
 
@@ -619,3 +587,34 @@ silently never matches without also setting `scopes: "[groups, email]"` (see
 `argocd/values.yaml`'s `rbac.scopes`). After fixing it and re-running the `helm upgrade`,
 log out and back in — your existing session token was minted before the fix and won't
 carry `email` retroactively.
+
+### Tear down
+
+Order matters: the ALB controller's NLB was created from a Kubernetes `Gateway`/`Service`
+that Terraform never tracked — destroying the VPC/EKS cluster while it's still attached
+fails with a dependency-violation error on the subnets/security groups. Delete the
+k8s-level resources that own it first:
+
+```bash
+kubectl delete -n mern-devops gateway istio-gateway
+```
+
+Then, in `terraform/main.tf`, comment out the `module "argocd"` block. `terraform destroy`
+still evaluates every module defined in the `.tf` files (not just what's in state) to build
+its plan — and this module's `data.kubectl_file_documents` (used for the Gateway API CRDs)
+can't be resolved during a destroy plan due to a limitation in the `alekc/kubectl` provider,
+which crashes the whole destroy before it reaches anything else. ArgoCD's own resources
+never created anything outside the cluster (unlike the ALB controller's NLB above), so
+there's nothing lost by skipping a clean in-Terraform teardown of it — the entire cluster is
+about to disappear anyway:
+
+```bash
+cd terraform
+terraform destroy
+```
+
+**Uncomment `module "argocd"` again afterward** — before your next `terraform apply`, or
+ArgoCD won't get installed on the next cluster.
+
+The bootstrap S3 bucket is separate state, untouched by this — remove it yourself from
+`terraform/bootstrap/` only if you're done with the account for good.
