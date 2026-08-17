@@ -82,11 +82,7 @@ spec:
       labels:
         app: vault
     spec:
-      # hashicorp/vault's image runs as a non-root "vault" user (UID 100/GID 1000, same
-      # convention as the official vault-helm chart)
       securityContext:
-        runAsUser: 100
-        runAsGroup: 1000
         fsGroup: 1000
       containers:
         - name: vault
