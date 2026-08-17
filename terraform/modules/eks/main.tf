@@ -40,6 +40,19 @@ module "eks" {
       type                          = "ingress"
       source_cluster_security_group = true
     }
+
+    # The module's own recommended node-to-node rules only cover DNS (53) and the
+    # "ephemeral" range (1025-65535) - real app ports below 1024 (e.g. a frontend
+    # listening on 80) have no matching rule and get silently dropped cross-node,
+    # which reads as a ~10s connect timeout, not a clean rejection.
+    ingress_self_all = {
+      description = "Node to node, all ports (pod-to-pod application traffic across nodes)"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
   }
 
   eks_managed_node_groups = {
