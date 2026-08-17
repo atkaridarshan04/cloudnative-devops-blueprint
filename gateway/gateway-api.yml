@@ -9,15 +9,16 @@ metadata:
   namespace: mern-devops
 spec:
   gatewayClassName: istio
-  # Only takes effect on EKS: AWS Load Balancer Controller reads these on
-  # the Service istiod provisions for this Gateway and provisions a real ALB instead of a
-  # generic cloud LB. NLB target-type "ip" since Envoy (not the LB) terminates TLS and does
-  # the HTTP routing. Uncomment when this repo actually targets EKS.
-  # infrastructure:
-  #   annotations:
-  #     service.beta.kubernetes.io/aws-load-balancer-type: external
-  #     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-  #     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  # No-op on kind (nothing reads aws-load-balancer-* annotations here) — only takes effect
+  # once AWS Load Balancer Controller is running, where it reads these off the Service
+  # istiod provisions for this Gateway and provisions a real NLB instead of a generic cloud
+  # LB. NLB (not ALB) target-type "ip" since Envoy, not the LB, terminates TLS and does the
+  # HTTP routing — AWS LB Controller's Service integration only ever creates NLBs.
+  infrastructure:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
   listeners:
     - name: http
       protocol: HTTP

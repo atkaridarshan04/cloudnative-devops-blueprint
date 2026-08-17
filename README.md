@@ -195,8 +195,8 @@ thing blocking real-root pods.
 ├── kargo/              # promotion pipeline: Project, Warehouse, Stages, PromotionTask,
 │                       # git credential ExternalSecret, dashboard route + SSO
 ├── argocd/
-│   ├── project.yml, platform-project.yml   # AppProjects — manual bootstrap, not GitOps-synced
-│   ├── root-application.yml                # the one Application applied by hand
+│   ├── project.yml, platform-project.yml   # AppProjects — not GitOps-synced (see below)
+│   ├── root-application.yml                # the one Application that isn't self-managed
 │   └── applications/                       # everything else — platform tools + book-store, all app-of-apps children
 ├── argorollouts/       # dashboard route + SSO
 ├── external-secrets/   # Vault (Raft storage), ClusterSecretStore, SSO credential ExternalSecrets
@@ -216,33 +216,57 @@ installing** (the same Applications, continuously reconciled). See
 
 ### What stays manual, and why
 
-Five things, all genuinely irreducible — everything else self-assembles from one
-`kubectl apply`:
+On EKS, `terraform/` (see `terraform/modules/argocd/`) now handles the cluster, ArgoCD's own
+install, the Gateway API CRDs, ArgoCD's own HTTPRoute, both `AppProject`s, and the root
+Application — `terraform apply` is the bootstrap. What's still genuinely irreducible after
+that:
 
-1. **The cluster itself** — ArgoCD needs somewhere to run.
-2. **ArgoCD itself** — install and every future upgrade (`argocd/values.yaml` changes, e.g.
-   enabling SSO) via `helm upgrade` by hand. Deliberately kept as a manual exception rather
-   than a self-referential Application — everything else here is GitOps-managed, ArgoCD's
-   own lifecycle isn't, for now.
-3. **The two `AppProject`s** (`argocd/project.yml`, `argocd/platform-project.yml`) —
-   deliberately kept outside GitOps. An Application creating/modifying its own `AppProject`
-   would let a compromised git repo grant itself broader RBAC; see
-   `argocd/platform-project.yml`'s comment.
-4. **Vault's own init/unseal** — `external-secrets/vault-statefulset.yml` deploys Vault
+1. **ArgoCD's own upgrades** — `argocd/values.yaml` changes (e.g. enabling SSO) go through
+   `terraform apply` again, not `kubectl`, but it's still not a self-referential
+   Application — everything else here is GitOps-managed, ArgoCD's own lifecycle isn't, for
+   now.
+2. **The two `AppProject`s stay outside GitOps** even though Terraform (not a human) applies
+   them now — the point was never "not automated", it's that an Application
+   creating/modifying its own `AppProject` would let a compromised git repo grant itself
+   broader RBAC; see `argocd/platform-project.yml`'s comment. Terraform applying them from
+   outside ArgoCD preserves that boundary.
+3. **Vault's own init/unseal** — `external-secrets/vault-statefulset.yml` deploys Vault
    sealed and uninitialized (Raft storage, no auto-unseal). `vault operator init`/`unseal`
    and mounting the kv-v2 secrets engine are one-time manual steps; every pod restart after
    that needs another manual unseal. See "Vault initialization" below.
-5. **Real secret material** — the Cloudflare DNS token, Vault's per-env mongodb credentials,
+4. **Real secret material** — the Cloudflare DNS token, Vault's per-env mongodb credentials,
    GitHub OAuth secrets, Kargo's admin credentials, and Kargo's git credential. None of this
    can live in git by definition; each corresponding Application will sit
    `Progressing`/`Degraded` until its secret exists — expected, not a sync failure to chase.
 
+On `kind` (no Terraform, local only), all of the above is still manual — see
+`terraform/modules/argocd/main.tf` for the exact sequence to replicate by hand:
+`helm install argocd`, `kubectl apply --server-side` the gateway API CRDs, then
+`argocd/httproute.yml`, `argocd/project.yml`, `argocd/platform-project.yml`,
+`argocd/root-application.yml`, in that order.
+
 ### Bootstrap
 
+**EKS:**
+
 ```bash
-# Cluster — pick one:
-kind create cluster --config kind-config.yml     # local
-# or: point kubeconfig at an existing cluster
+cd terraform
+terraform init
+
+# First apply only, on a cluster that doesn't exist yet: the helm/kubectl providers
+# (used by the ingress-controller/ebs-csi/argocd modules) need the cluster's endpoint/CA/
+# token to already be known values, not "known after apply" — so create the cluster first.
+terraform apply -target=module.vpc -target=module.eks
+terraform apply
+
+aws eks update-kubeconfig --name cndb-eks --region ap-south-1
+cd ..
+```
+
+**kind (local):**
+
+```bash
+kind create cluster --config kind-config.yml
 
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
@@ -260,7 +284,11 @@ kubectl apply -f argocd/httproute.yml   # ArgoCD's own route — manual, since A
 kubectl apply -f argocd/project.yml
 kubectl apply -f argocd/platform-project.yml
 kubectl apply -f argocd/root-application.yml
+```
 
+**Either way:**
+
+```bash
 kubectl get application -n argocd
 # watch the waves land: gateway-api-crds (0) → cert-manager/istio/external-secrets/
 # kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring/
@@ -445,8 +473,14 @@ Also fill in `kargo/values.yaml`'s `clientID` and `admins.claims.email` placehol
 `REPLACE_WITH_...` pattern as `argocd/values.yaml`'s RBAC line) — the Client ID isn't
 secret, so it's a plain committed value, not something Vault needs to hold.
 
-ArgoCD's own upgrade is manual (ArgoCD isn't self-managed — see "What stays manual, and
-why") — re-apply the Dex connector config with:
+ArgoCD isn't self-managed (see "What stays manual, and why") — re-apply the Dex connector
+config with, on EKS:
+
+```bash
+cd terraform && terraform apply
+```
+
+or on `kind`:
 
 ```bash
 helm upgrade argocd argo/argo-cd -n argocd -f argocd/values.yaml

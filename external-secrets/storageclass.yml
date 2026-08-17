@@ -1,12 +1,12 @@
-# Paused for now — local manifests reference storageClassName: standard again, which kind
-# already provides via its own built-in "standard" class (rancher.io/local-path), so no
-# custom StorageClass is needed here. Uncomment (and rename every storageClassName: standard
-# reference to match) if this repo's naming moves off "standard" again.
-#
-# apiVersion: storage.k8s.io/v1
-# kind: StorageClass
-# metadata:
-#   name: standard
-# provisioner: rancher.io/local-path
-# volumeBindingMode: WaitForFirstConsumer
-# reclaimPolicy: Delete
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: aws-ebs-gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  # No explicit kmsKeyId — encrypts with the AWS-managed default EBS key (alias/aws/ebs).
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete

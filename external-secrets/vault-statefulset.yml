@@ -117,7 +117,7 @@ spec:
         name: vault-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: standard
+        storageClassName: aws-ebs-gp3
         resources:
           requests:
             storage: 1Gi
