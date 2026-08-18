@@ -79,14 +79,7 @@ flowchart LR
 
 <div align="left">
 
-The starting point, before `main`'s more advanced pieces (service mesh, policy engines, secrets management, log aggregation).
-
-- Docker + Docker Compose
-- Kubernetes on `kind` with Ingress
-- Jenkins CI/CD
-- Helm + ArgoCD GitOps
-- Kustomize (dev/prod overlays)
-- Prometheus/Grafana observability
+The starting point, before `main`'s more advanced pieces (service mesh, policy engines, secrets management, log aggregation). Full breakdown in the table below.
 
 </div>
 
@@ -106,12 +99,7 @@ The starting point, before `main`'s more advanced pieces (service mesh, policy e
 
 <div align="left">
 
-A custom domain and TLS setup on Kubernetes, and everything that requires end-to-end.
-
-- Gateway API + wildcard Let's Encrypt cert via DNS-01
-- GitOps deployment (ArgoCD + Argo Rollouts canary)
-- Prometheus/Grafana + blackbox-exporter TLS monitoring
-- GitHub OAuth SSO (Dex, native Grafana OAuth, oauth2-proxy)
+A custom domain and TLS setup on Kubernetes, and everything that requires end-to-end. Full breakdown in the table below.
 
 </div>
 
@@ -125,18 +113,14 @@ A custom domain and TLS setup on Kubernetes, and everything that requires end-to
 
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white&style=flat-square)
 ![AWS EKS](https://img.shields.io/badge/AWS%20EKS-FF9900?logo=amazon-eks&logoColor=white&style=flat-square)
-![Jenkins](https://img.shields.io/badge/Jenkins-D24939?logo=jenkins&logoColor=white&style=flat-square)
-![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![Istio](https://img.shields.io/badge/Istio-466BB0?logo=istio&logoColor=white&style=flat-square)
+![Kargo](https://img.shields.io/badge/Kargo-EF7B4D?style=flat-square)
 ![Argo Rollouts](https://img.shields.io/badge/Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white&style=flat-square)
+![HashiCorp Vault](https://img.shields.io/badge/HashiCorp%20Vault-FFEC13?logo=vault&logoColor=black&style=flat-square)
 
 <div align="left">
 
-Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD pipeline.
-
-- Terraform-provisioned AWS EKS, VPC, ECR
-- Envoy Gateway (Gateway API) + cert-manager
-- Jenkins + Trivy + SonarQube CI/CD pipeline
-- ArgoCD + Argo Rollouts canary, triggered by CI
+One coherent GitOps pipeline on real AWS infra — Terraform-provisioned end-to-end. Full breakdown in the table below.
 
 </div>
 
@@ -148,24 +132,26 @@ Actual cloud infrastructure, provisioned with Terraform, driven by a real CI/CD 
 
 **At a glance — what each branch actually includes:**
 
-| Capability | 🌱 begineer | 🚀 main (this branch) | 🔐 domain-and-tls | ☁️ prod |
-|---|---|---|---|---|
+| Capability | 🌱 begineer | 🚀 main | 🔐 domain-and-tls | ☁️ prod |
+|---|:---:|:---:|:---:|:---:|
 | Containerization | ✅ Docker Compose | ✅ Docker | ✅ Docker | ✅ Docker |
-| Kubernetes cluster | `kind` + Ingress | `kind` + Ingress/Gateway API | `kind` + Gateway API | Real AWS EKS |
-| Infra as Code | — | ✅ Terraform (optional path) | — | ✅ Terraform (EKS, VPC, ECR) |
-| CI/CD | ✅ Jenkins | ✅ Jenkins + Trivy + SonarQube + GitHub Actions (GHCR, cosign, Kyverno signature enforcement) | — | ✅ Jenkins + Trivy + SonarQube |
-| GitOps | ✅ ArgoCD | ✅ ArgoCD + Kargo (promotion) | ✅ ArgoCD | ✅ ArgoCD |
-| Progressive Delivery | — | ✅ Argo Rollouts (canary + blue-green) | ✅ Argo Rollouts (canary) | ✅ Argo Rollouts (canary) |
-| Config management | Helm + Kustomize | Helm + Kustomize | Helm | Helm |
-| Service Mesh | — | ✅ Istio | — | — |
-| Policy Engine | — | ✅ Kyverno | — | — |
-| Secrets Management | — | ✅ Vault + External Secrets Operator | — | — |
-| Custom Domain + TLS | — | — | ✅ cert-manager, DNS-01 wildcard | ✅ cert-manager |
-| SSO | — | — | ✅ GitHub OAuth (Dex, Grafana, oauth2-proxy) | — |
-| Monitoring | ✅ Prometheus/Grafana | ✅ Prometheus/Grafana | ✅ + TLS cert-expiry alerts | ✅ Prometheus/Grafana |
+| Kubernetes cluster | `kind` + Ingress | `kind` + Gateway API | `kind` + Gateway API | AWS EKS |
+| Infra as Code | — | ✅ Terraform *(optional)* | — | ✅ Terraform |
+| CI/CD | ✅ Jenkins | ✅ Jenkins + GitHub Actions | — | *(external registry)* |
+| GitOps | ✅ ArgoCD | ✅ ArgoCD + Kargo | ✅ ArgoCD | ✅ ArgoCD + Kargo |
+| Progressive Delivery | — | ✅ Argo Rollouts | ✅ Argo Rollouts | ✅ Argo Rollouts |
+| Config management | Helm + Kustomize | Helm + Kustomize | Helm | Kustomize |
+| Service Mesh | — | ✅ Istio | — | ✅ Istio |
+| Policy Engine | — | ✅ Kyverno | — | ✅ PSA + Kyverno + NetworkPolicies |
+| Secrets Management | — | ✅ Vault + ESO | — | ✅ Vault + ESO |
+| Custom Domain + TLS | — | — | ✅ cert-manager | ✅ cert-manager |
+| SSO | — | — | ✅ GitHub OAuth | ✅ GitHub OAuth |
+| Monitoring | ✅ Prometheus/Grafana | ✅ Prometheus/Grafana | ✅ + TLS alerts | ✅ + Kiali |
 | Log Aggregation | — | ✅ Fluent Bit + Loki | — | — |
 
-## 📦 Application Versions
+*Details on each are one section down, or in that branch's own README.*
+
+## 🏷️ Application Versions
 
 Three versions of the application are available, each with distinct visual and functional differences:
 
@@ -352,7 +338,7 @@ flowchart TD
 </tr>
 </table>
 
-### 📦 **Package, Configuration & Policy Management**
+### 🧱 **Package, Configuration & Policy Management**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #23ce26ff;">
 <tr>
@@ -379,16 +365,18 @@ flowchart TD
 
 <td width="33%" style="border: 2px solid #23ce26ff; padding: 20px; vertical-align: top;">
 
-#### 🛡️**Kyverno**
+#### 🛡️ **Kyverno**
 **[Kyverno.md](./docs/Kyverno.md)**
 *Policy management and governance*
 - Security policy enforcement
 - Resource validation rules
 - Compliance automation
+
+</td>
 </tr>
 </table>
 
-### 🔐 **Secrets Management**
+### 🔑 **Secrets Management**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #6f42c1;">
 <tr>
@@ -455,7 +443,7 @@ flowchart TD
 </tr>
 </table>
 
-### 🚀 **GitOps Deployment**
+### 🔁 **GitOps Deployment**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #c9772bff;">
 <tr>
@@ -501,7 +489,7 @@ flowchart TD
 </table>
 
 
-### 🎯 **Progressive Delivery**
+### 🐤 **Progressive Delivery**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #c9772bff;">
 <tr>
@@ -544,7 +532,7 @@ flowchart TD
 </tr>
 </table>
 
-### ☁︎ **Production Deployment**
+### ☁️ **Production Deployment**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #7B42BC;">
 <tr>
