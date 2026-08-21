@@ -1,0 +1,40 @@
+# Dedicated identity ESO presents to Vault's kubernetes auth method — deliberately not
+# ESO's own controller ServiceAccount, so Vault's role (auth/kubernetes/role/eso-mongodb-role,
+# see docs/ExternalSecrets.md) can be bound to exactly this one narrow identity.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-vault-auth
+  namespace: mern-devops
+
+---
+# ESO's controller (running in the external-secrets namespace) impersonates the SA above by
+# minting a token for it via the TokenRequest API — this is what grants it permission to do
+# that, scoped to just this one ServiceAccount by name.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-vault-auth-token-creator
+  namespace: mern-devops
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["eso-vault-auth"]
+    verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-vault-auth-token-creator-binding
+  namespace: mern-devops
+subjects:
+  # Confirm this matches the actual SA name after `helm install external-secrets ...`:
+  #   kubectl get sa -n external-secrets
+  - kind: ServiceAccount
+    name: external-secrets
+    namespace: external-secrets
+roleRef:
+  kind: Role
+  name: eso-vault-auth-token-creator
+  apiGroup: rbac.authorization.k8s.io

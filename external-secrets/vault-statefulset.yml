@@ -9,6 +9,30 @@ metadata:
   name: vault
 
 ---
+# Lets Vault call the Kubernetes TokenReview API to verify ServiceAccount tokens presented
+# to its "kubernetes" auth method (see docs/ExternalSecrets.md) — system:auth-delegator is
+# the built-in ClusterRole that grants exactly that.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: vault
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: vault
+    namespace: vault
+roleRef:
+  kind: ClusterRole
+  name: system:auth-delegator
+  apiGroup: rbac.authorization.k8s.io
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -83,6 +107,7 @@ spec:
       labels:
         app: vault
     spec:
+      serviceAccountName: vault
       securityContext:
         fsGroup: 1000
       containers:

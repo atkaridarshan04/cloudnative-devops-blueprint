@@ -19,7 +19,7 @@ Instead:
 
 ```mermaid
 flowchart LR
-    Vault[(HashiCorp Vault<br/>secret/dev/mern-backend/mongodb)] -->|SecretStore: vault-token| ESO[External Secrets<br/>Operator]
+    Vault[(HashiCorp Vault<br/>secret/dev/mern-backend/mongodb)] -->|kubernetes auth:<br/>eso-vault-auth SA| ESO[External Secrets<br/>Operator]
     ESO -->|ExternalSecret| Secret[Kubernetes Secret<br/>mongodb-credentials-external]
     Secret -->|secretKeyRef| Pod[MongoDB Pod]
 
@@ -195,18 +195,51 @@ vault kv put secret/dev/mern-backend/mongodb \
 
 
 
-## 🔑 Allow ESO to Access Vault
+## 🔑 Configure Kubernetes Auth Method in Vault
 
-ESO needs a Vault token to read secrets.
-
-Create a Kubernetes Secret with the **root token from init above**:
+ESO never sees or holds the root token. Instead, it authenticates as a Kubernetes
+ServiceAccount, and Vault verifies that ServiceAccount's identity directly against the
+Kubernetes API.
 
 ```bash
-kubectl create secret generic vault-token \
-  --from-literal=token=<INITIAL_ROOT_TOKEN> \
-  -n mern-devops
+vault auth enable kubernetes
+
+vault write auth/kubernetes/config \
+  kubernetes_host="https://kubernetes.default.svc:443"
 ```
-> Note: This allows ESO to authenticate with Vault using the provided token.
+
+A read-only policy, scoped to exactly the path this app's secret lives at — nothing else in
+Vault is reachable through it:
+
+```bash
+vault policy write mern-mongodb-read - <<EOF
+path "secret/data/dev/mern-backend/*" {
+  capabilities = ["read"]
+}
+EOF
+```
+
+A role binding that policy to one specific ServiceAccount + namespace (`eso-vault-auth` in
+`mern-devops` — created by the RBAC manifest below, not ESO's own controller SA):
+
+```bash
+vault write auth/kubernetes/role/eso-mongodb-role \
+  bound_service_account_names=eso-vault-auth \
+  bound_service_account_namespaces=mern-devops \
+  policies=mern-mongodb-read \
+  ttl=1h
+```
+
+Apply the ServiceAccount ESO impersonates, plus the RBAC letting ESO's controller mint a
+token for it:
+
+```bash
+kubectl apply -f external-secrets/vault-auth-rbac.yml
+```
+
+> Confirm the RoleBinding's subject matches your installed ESO controller's ServiceAccount
+> name — `kubectl get sa -n external-secrets` — before applying, in case it differs from the
+> `external-secrets` default.
 
 
 ## 🔌 Create SecretStore (Vault Connection)
@@ -216,7 +249,8 @@ Apply the SecretStore configuration:
 ```bash
 kubectl apply -f external-secrets/secretStore.yml
 ```
-It tells ESO *how* to connect to Vault
+It tells ESO *how* to connect to Vault — via the `eso-vault-auth` ServiceAccount and
+`eso-mongodb-role` configured above, not a static token.
 
 
 
