@@ -126,46 +126,62 @@ kubectl get pods -n external-secrets
 
 
 
+> 💡 Everything below (`kubectl apply -f external-secrets/...`) can instead be handed to
+> ArgoCD once, via `external-secrets/argocd-application.yml` — it GitOps-manages this whole
+> folder. Manual `kubectl apply` is shown here so each step is visible while you're learning
+> the flow; switch to the Application once you're comfortable with it.
+
 ## 🔐 Install HashiCorp Vault
 
-Create a namespace:
+Apply the raft-based Vault StatefulSet (creates the `vault` namespace itself). Its PVC uses
+`standard` — kind's built-in StorageClass, backed by `local-path-provisioner` — no separate
+StorageClass to apply:
 
 ```bash
-kubectl create namespace vault
+kubectl apply -f external-secrets/vault-statefulset.yml
 kubectl create namespace mern-devops
 ```
 
-Deploy Vault (dev mode for learning):
-
-```bash
-kubectl apply -f external-secrets/vault-deployment.yml
-```
+This is production-mode Vault (Integrated Storage / raft, PVC-backed) — it needs a one-time
+init + unseal below, and Vault's data survives pod restarts, which is what you'll later back
+up with Velero (see [Velero.md](./Velero.md)).
 
 Expose Vault locally:
 
 ```bash
-kubectl port-forward -n vault deploy/vault 8200:8200
+kubectl port-forward -n vault vault-0 8200:8200
 ```
-Access the Vault UI at: [http://localhost:8200](http://localhost:8200)  
-Token: `root`, after applying the below step.
+Access the Vault UI at: [http://localhost:8200](http://localhost:8200)
 
+The pod comes up **sealed and uninitialized** — the UI/API will 501/503 until you
+initialize and unseal it below.
 
-## 🗄️ Store Secrets in Vault
+## 🔓 Initialize and Unseal Vault
 
-Open a shell inside the Vault pod:
-
-```bash
-kubectl exec -it -n vault deploy/vault -- sh
-```
-
-Set Vault environment variables:
+One-time setup, from your shell (not inside the pod):
 
 ```bash
 export VAULT_ADDR=http://127.0.0.1:8200
-export VAULT_TOKEN=root
+
+# -key-shares=1 -key-threshold=1: single unseal key, fine for local learning.
+# Production Vault normally splits this into multiple shares (Shamir's secret sharing).
+vault operator init -key-shares=1 -key-threshold=1
 ```
 
-Store MongoDB credentials:
+This prints one **Unseal Key** and one **Initial Root Token** — save both somewhere local
+(e.g. a gitignored file), never in git. You need the unseal key again every time the Vault
+pod restarts (no auto-unseal is configured), and you need it again to unlock Vault after a
+Velero restore onto a new cluster.
+
+```bash
+vault operator unseal <UNSEAL_KEY>
+export VAULT_TOKEN=<INITIAL_ROOT_TOKEN>
+
+# enable the kv-v2 secrets engine at "secret/" — not mounted by default:
+vault secrets enable -path=secret kv-v2
+```
+
+## 🗄️ Store Secrets in Vault
 
 ```bash
 vault kv put secret/dev/mern-backend/mongodb \
@@ -183,11 +199,11 @@ vault kv put secret/dev/mern-backend/mongodb \
 
 ESO needs a Vault token to read secrets.
 
-Create a Kubernetes Secret with the Vault token:
+Create a Kubernetes Secret with the **root token from init above**:
 
 ```bash
 kubectl create secret generic vault-token \
-  --from-literal=token=root \
+  --from-literal=token=<INITIAL_ROOT_TOKEN> \
   -n mern-devops
 ```
 > Note: This allows ESO to authenticate with Vault using the provided token.
@@ -293,5 +309,11 @@ kubectl apply -f external-secrets/mongodb.yml
 - ✔ Vault as a central source of truth
 - ✔ Zero secret values in Git
 - ✔ Kubernetes-native consumption
+- ✔ Vault + MongoDB data now persisted to a PVC, not just credentials
+
+Note what's still missing: none of this is backed up anywhere. If the `vault` or
+`mern-devops` PVCs are lost, the raft data and Mongo's data directory are gone for good —
+ArgoCD can redeploy every manifest in this folder from git, but it can't recreate data that
+was never in git to begin with. That's what [Velero.md](./Velero.md) covers next.
 
 ---

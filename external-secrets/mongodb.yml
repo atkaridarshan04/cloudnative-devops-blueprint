@@ -40,6 +40,18 @@ spec:
                   key: MONGODB_PASSWORD
             - name: MONGO_INITDB_DATABASE
               value: "db"
+          volumeMounts:
+            - name: mongodb-vol
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-vol
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 1Gi
 
 ---
 apiVersion: v1
