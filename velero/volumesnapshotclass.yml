@@ -1,0 +1,11 @@
+# The label, not the class name, is what Velero's CSI support actually looks for when
+# choosing a VolumeSnapshotClass to snapshot a PVC through - it picks whichever class
+# carries velero.io/csi-volumesnapshot-class: "true" for the PVC's driver.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: velero-ebs-vsc
+  labels:
+    velero.io/csi-volumesnapshot-class: "true"
+driver: ebs.csi.aws.com
+deletionPolicy: Delete

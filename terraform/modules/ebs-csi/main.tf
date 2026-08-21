@@ -21,3 +21,17 @@ resource "aws_eks_addon" "ebs_csi" {
   service_account_role_arn = module.irsa.role_arn
   tags                     = var.tags
 }
+
+# CRDs (VolumeSnapshotClass/VolumeSnapshotContent/VolumeSnapshot) + the cluster-level
+# controller that watches them - the driver addon above only ships its own csi-snapshotter
+# sidecar, not this. Without it a VolumeSnapshot just sits with no VolumeSnapshotContent
+# ever created. No IRSA: it only orchestrates in-cluster objects, the actual AWS API calls
+# are made by the CSI driver above using its own role. Velero (../velero) is what actually
+# creates VolumeSnapshots; this addon is what turns them into real EBS snapshots.
+resource "aws_eks_addon" "snapshot_controller" {
+  cluster_name = var.cluster_name
+  addon_name   = "snapshot-controller"
+  tags         = var.tags
+
+  depends_on = [aws_eks_addon.ebs_csi]
+}

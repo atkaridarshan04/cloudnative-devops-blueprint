@@ -1,0 +1,17 @@
+# Recurring backup of the namespaces that actually hold state - Vault's raft data and
+# each env's mongodb PVC. Everything else (cert-manager, Istio, Kyverno, ArgoCD's own
+# Applications, etc.) is reconstructed from git by ArgoCD, not backed up here.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: platform-daily
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - vault
+      - dev
+      - staging
+      - prod
+    ttl: 240h0m0s

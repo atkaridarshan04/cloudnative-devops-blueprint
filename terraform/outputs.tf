@@ -26,3 +26,7 @@ output "cluster_certificate_authority_data" {
   value     = module.eks.cluster_certificate_authority_data
   sensitive = true
 }
+
+output "velero_backup_bucket" {
+  value = module.velero.bucket_name
+}

@@ -47,6 +47,18 @@ module "ebs_csi" {
   depends_on = [module.eks]
 }
 
+module "velero" {
+  source            = "./modules/velero"
+  cluster_name      = local.name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider     = module.eks.oidc_provider
+  region            = local.region
+  values_file       = "${path.module}/../velero/values.yaml"
+  tags              = local.tags
+
+  depends_on = [module.eks]
+}
+
 module "argocd" {
   source        = "./modules/argocd"
   chart_version = local.argocd_chart_version

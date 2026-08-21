@@ -15,10 +15,11 @@ branches this one draws from (`domain-and-tls`, `kargo-promotion`). This branch 
 integration: only what's needed to stand the whole pipeline up.
 
 This doc targets **EKS** — `terraform/` provisions the VPC, cluster, node group, ALB
-controller, EBS CSI driver, and ArgoCD's own bootstrap. Running the same stack locally on
-`kind` instead (no Terraform, no real cloud load balancer) is still supported — see
-[`KIND.md`](KIND.md) for everything that's different there. Layering Velero backup/DR on top
-is a deliberate later step once this is proven out.
+controller, EBS CSI driver, snapshot-controller addon, Velero, and ArgoCD's own bootstrap.
+Running the same stack locally on `kind` instead (no Terraform, no real cloud load
+balancer) is still supported — see [`KIND.md`](KIND.md) for everything that's different
+there. Backup and disaster recovery via Velero is covered separately in
+[`VELERO.md`](VELERO.md).
 
 ## Architecture
 
@@ -204,6 +205,7 @@ thing blocking real-root pods.
 ├── argorollouts/       # dashboard route + SSO
 ├── external-secrets/   # Vault (Raft storage), ClusterSecretStore, SSO credential ExternalSecrets
 ├── kyverno/policies/    # admission policies (pod security, supply chain, best practices)
+├── velero/             # CSI VolumeSnapshotClass, backup Schedule - see VELERO.md
 └── monitoring/         # kube-prometheus-stack + blackbox-exporter, Istio/cert-manager metrics
 ```
 
@@ -222,9 +224,9 @@ installing** (the same Applications, continuously reconciled). See
 ### What stays manual, and why
 
 On EKS, `terraform/` (see `terraform/modules/argocd/`) now handles the cluster, ArgoCD's own
-install, the Gateway API CRDs, ArgoCD's own HTTPRoute, both `AppProject`s, and the root
-Application — `terraform apply` is the bootstrap. What's still genuinely irreducible after
-that:
+install, the Gateway API CRDs, ArgoCD's own HTTPRoute, both `AppProject`s, Velero (see
+`terraform/modules/velero/`), and the root Application — `terraform apply` is the bootstrap.
+What's still genuinely irreducible after that:
 
 1. **ArgoCD's own upgrades** — `argocd/values.yaml` changes (e.g. enabling SSO) go through
    `terraform apply` again, not `kubectl`, but it's still not a self-referential
@@ -243,6 +245,13 @@ that:
    GitHub OAuth secrets, Kargo's admin credentials, and Kargo's git credential. None of this
    can live in git by definition; each corresponding Application will sit
    `Progressing`/`Degraded` until its secret exists — expected, not a sync failure to chase.
+5. **Velero's `VolumeSnapshotClass` and backup `Schedule`** — just two small manifests, not
+   worth an ArgoCD Application for. Apply them once Velero's own CRDs exist (they're
+   installed by `terraform apply` above, as part of the Velero helm release):
+   ```bash
+   kubectl apply -f velero/volumesnapshotclass.yml -f velero/schedule.yml
+   ```
+   Full explanation of what these do and how backup/restore actually works: [`VELERO.md`](VELERO.md).
 
 Running on `kind` instead? All of the above is manual there — see [`KIND.md`](KIND.md) for
 the exact sequence.
@@ -262,10 +271,14 @@ terraform apply
 aws eks update-kubeconfig --name cndb-eks --region ap-south-1
 cd ..
 
+# Velero's own CRDs exist by now (installed by its helm release above) - apply its two
+# extra manifests. See "What stays manual, and why" item 5 / VELERO.md.
+kubectl apply -f velero/volumesnapshotclass.yml -f velero/schedule.yml
+
 kubectl get application -n argocd
 # watch the waves land: gateway-api-crds (0) → cert-manager/istio/external-secrets/
-# kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/monitoring/
-# kiali (3) → kargo (4) → sso-oauth2-proxy (5, optional)
+# kyverno/argo-rollouts (1) → gateway-platform (2) → book-store-{dev,staging,prod}/
+# monitoring/kiali (3) → kargo (4) → sso-oauth2-proxy (5, optional)
 ```
 
 Sync-waves here are Application-level, gating on each child Application's own `Healthy`
@@ -618,3 +631,7 @@ ArgoCD won't get installed on the next cluster.
 
 The bootstrap S3 bucket is separate state, untouched by this — remove it yourself from
 `terraform/bootstrap/` only if you're done with the account for good.
+
+The Velero backup bucket (`terraform/modules/velero`) has no `force_destroy`, so
+`terraform destroy` fails on it once it holds any backups — empty it yourself
+(`aws s3 rm s3://<bucket> --recursive`) first if you actually want it gone too.
