@@ -22,6 +22,8 @@ The MERN DevOps project includes:
 
 - **Observability**: Implementing monitoring mechanisms using tools like Prometheus and Grafana to monitor the health and performance of the application.
 
+- **Secrets Management**: Managing secrets securely with HashiCorp Vault and the External Secrets Operator, keeping secret values out of Git.
+
 ---
 
 ## Project Deployment Flow
@@ -54,6 +56,9 @@ To understand the various components of this project, refer to the following doc
 
 - **[Observability.md](./docs/Observability.md)**:  
   Instructions on setting up Prometheus for monitoring application metrics and visualizing data with Grafana dashboards.
+
+- **[ExternalSecrets.md](./docs/ExternalSecrets.md)**:  
+  A guide to Git-safe secret management using HashiCorp Vault as the secret store and the External Secrets Operator to sync secrets into Kubernetes.
 
 ---
 
