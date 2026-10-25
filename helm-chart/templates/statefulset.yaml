@@ -8,6 +8,7 @@ metadata:
   namespace: {{ $.Values.namespace }}
   labels:
     app: {{ $name }}
+    app.kubernetes.io/component: {{ $name }}
     {{- include "mern-chart.labels" $ | nindent 4 }}
 spec:
   serviceName: {{ $.Release.Name }}-{{ $name }}-service
@@ -24,11 +25,24 @@ spec:
       name: {{ $name }}
       labels:
         app: {{ $name }}
+        app.kubernetes.io/component: {{ $name }}
         {{- include "mern-chart.selectorLabels" $ | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "mern-chart.serviceAccountName" $ }}
+      {{- if hasKey $svc "hostUsers" }}
+      hostUsers: {{ $svc.hostUsers }}
+      {{- end }}
+      {{- with $svc.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ $name }}
           image: {{ $svc.image }}
+          {{- with $svc.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ $svc.containerPort }}
           {{- with $svc.env }}
@@ -41,6 +55,10 @@ spec:
           {{- end }}
           {{- with $svc.readinessProbe }}
           readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.resources }}
+          resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:

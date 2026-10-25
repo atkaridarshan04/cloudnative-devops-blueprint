@@ -1,9 +1,5 @@
 ---
-# Backend-specific, not part of the services: map - frontend has no config to
-# inject, and this is the only ConfigMap in the chart today. A generic
-# configMaps: {} map isn't worth building for a single instance - and
-# mongoDBURL has to be computed in a template regardless, since values.yaml
-# is never template-processed by Helm.
+# mongoDBURL is computed here - values.yaml isn't template-processed.
 apiVersion: v1
 kind: ConfigMap
 metadata:

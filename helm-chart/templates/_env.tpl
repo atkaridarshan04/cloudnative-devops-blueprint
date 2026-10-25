@@ -1,12 +1,7 @@
 {{/*
-Render a services.<name>.env map as a list of container env entries.
-Call as: include "mern-chart.envVars" (dict "env" $svc.env "root" $)
-Each entry is either a literal `value`, or a `valueFrom.configMapKeyRef`/
-`valueFrom.secretKeyRef` where `name` is given as a suffix - this chart
-prefixes it with the release name, the same convention every other
-resource name in this chart already follows, since these configmaps/
-secrets are generated per-release rather than referencing something
-with a fixed external name.
+Renders services.<name>.env as container env entries.
+Call: include "mern-chart.envVars" (dict "env" $svc.env "root" $)
+valueFrom.*.name is a suffix - release name is prefixed.
 */}}
 {{- define "mern-chart.envVars" -}}
 {{- range $key, $entry := .env }}
@@ -30,11 +25,7 @@ with a fixed external name.
 {{- end }}
 
 {{/*
-MongoDB connection string for the backend's ConfigMap. Host follows the
-naming convention service.yaml/statefulset.yaml already use for the
-`mongodb` entry in .Values.services (<release>-mongodb-statefulset-0 /
-<release>-mongodb-service) - not a separately configurable name, so if
-that services key is ever renamed, this must change with it.
+Mongo connection string for backend's ConfigMap. Assumes the `mongodb` services key name.
 */}}
 {{- define "mern-chart.mongoURL" -}}
 mongodb://{{ .Values.mongodb.username }}:{{ .Values.mongodb.password }}@{{ .Release.Name }}-mongodb-statefulset-0.{{ .Release.Name }}-mongodb-service.{{ .Values.namespace }}.svc.cluster.local:27017/{{ .Values.mongodb.dbName }}?authSource={{ .Values.mongodb.authSource }}

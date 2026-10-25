@@ -7,6 +7,7 @@ metadata:
   namespace: {{ $.Values.namespace }}
   labels:
     app: {{ $name }}
+    app.kubernetes.io/component: {{ $name }}
     {{- include "mern-chart.labels" $ | nindent 4 }}
 spec:
   type: {{ $svc.service.type | default "ClusterIP" }}

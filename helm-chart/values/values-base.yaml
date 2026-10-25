@@ -1,3 +1,7 @@
+serviceAccount:
+  create: true
+  name: ""
+
 services:
   frontend:
     replicas: 1
@@ -10,6 +14,22 @@ services:
     route:
       path: /
     env: {}
+
+    # nginx needs root to bind port 80 - isolate it instead of running non-root.
+    hostUsers: false
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+
+    # Unmeasured first-guess sizing.
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
 
     livenessProbe:
       httpGet:
@@ -42,8 +62,7 @@ services:
     route:
       path: /books
 
-    # configMapKeyRef.name is a suffix - the chart prefixes it with the
-    # release name, same convention every resource name in this chart uses.
+    # name is a suffix - prefixed with the release name.
     env:
       PORT:
         valueFrom:
@@ -55,6 +74,23 @@ services:
           configMapKeyRef:
             name: backend-config
             key: mongoDBURL
+
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
 
     livenessProbe:
       httpGet:
@@ -85,7 +121,7 @@ services:
     service:
       port: 27017
 
-    # secretKeyRef.name is a suffix too - same prefixing convention as above.
+    # name is a suffix - prefixed with the release name.
     env:
       MONGO_INITDB_ROOT_USERNAME:
         valueFrom:
@@ -99,6 +135,27 @@ services:
             key: password
       MONGO_INITDB_DATABASE:
         value: db
+
+    # mongo:4.4 ships a "mongodb" system user at this UID/GID.
+    podSecurityContext:
+      runAsUser: 999
+      runAsGroup: 999
+      fsGroup: 999
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
 
     livenessProbe:
       tcpSocket:
@@ -116,8 +173,7 @@ services:
       failureThreshold: 3
 
 
-# Domain-specific mongodb config - distinct from services.mongodb above,
-# which only holds the generic workload-shape fields every service has.
+# Domain config, distinct from services.mongodb's workload-shape fields.
 mongodb:
   username: admin
   password: password123

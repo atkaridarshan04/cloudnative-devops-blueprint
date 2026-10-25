@@ -25,11 +25,7 @@ nodes:
   kind create cluster --config kind-config.yaml
   ```
 
-- Create **mern-devops** namespace:
-
-  ```bash
-  kubectl create namespace mern-devops
-  ```
+Namespace creation is handled by `--create-namespace` in Step 4 - no manual step needed.
 
 ## Step 2: Install Envoy Gateway Controller with Gateway API CRDs
 
@@ -44,25 +40,71 @@ kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for
 ```
 
 
-## Step 3: Install the Helm Chart
+## Step 3: Create the Shared Gateway
 
-```bash
-helm install mern-devops ./helm-chart
+The chart's `HTTPRoute` attaches to one shared `Gateway` rather than creating
+its own per release - apply this once, before installing the chart for any
+environment:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gatewayclass
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy-gatewayclass
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
 ```
 
-## Step 4: Verify
+Save as `gateway.yaml` and apply:
+
+```bash
+kubectl apply -f gateway.yaml
+```
+
+`allowedRoutes.namespaces.from: All` is what lets each environment's
+`HTTPRoute` (living in `dev`/`staging`/`prod`, not `envoy-gateway-system`)
+attach to this one Gateway.
+
+## Step 4: Install the Helm Chart
+
+One release per environment, each with its own namespace and value files.
+Shown here for `dev` - `staging`/`prod` follow the same pattern with their
+own `values-<env>.yaml`:
+
+```bash
+helm install dev ./helm-chart -n dev --create-namespace \
+  -f values/values-base.yaml -f values/values-dev.yaml
+```
+
+## Step 5: Verify
 
 ### List Helm releases:
 
 ```bash
-helm ls
+helm ls -n dev
 ```
 ![helm-install](./assets/helm/helm-ls.png)
 
 Check the status of all resources:
 
 ```bash
-kubectl get all -n mern-devops
+kubectl get all -n dev
 ```
 ![helm-get-all](./assets/helm/helm-get-all.png)
 
@@ -71,8 +113,8 @@ kubectl get all -n mern-devops
 
 ```bash
 kubectl get gatewayclass
-kubectl get gateway -n mern-devops
-kubectl get httproute -n mern-devops
+kubectl get gateway -n envoy-gateway-system
+kubectl get httproute -n dev
 ```
 ![gateway-api-resources](./assets/kubernetes/gateway-api-resources.png)
 
@@ -89,11 +131,10 @@ kubectl get svc -n envoy-gateway-system
 
 > **🔧 Local Testing Only:** Patch the envoy gateway service to NodePort for local access. Not needed in production (use LoadBalancer or proper DNS).
 
-Get the envoy gateway service name:
+Find the envoy data-plane service (named after the `envoy-gateway` Gateway from Step 3, in `envoy-gateway-system`):
 
 ```bash
 kubectl get svc -n envoy-gateway-system
-# Look for the service named: mern-devops-envoy-gateway-<hash>
 ```
 
 Patch it to NodePort:
@@ -110,17 +151,17 @@ http://localhost:30080
 ```
 ![gateway-api-webapp](./assets/kubernetes/gateway-api-webapp.png)
 
-## Step 5: Cleanup
+## Step 6: Cleanup
 
 ```bash
-helm uninstall mern-devops
+helm uninstall dev -n dev
 ```
 
-Confirm removal:
+This doesn't remove the namespace or the shared Gateway from Step 3. Full teardown:
 
 ```bash
-helm ls
-kubectl get ns
+kubectl delete namespace dev
+kubectl delete -f gateway.yaml
 ```
 
 ---
@@ -189,7 +230,8 @@ helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 -
 ### 5) Install the Chart from GHCR
 
 ```bash
-helm install mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm install dev oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 \
+  -n dev --create-namespace -f values/values-base.yaml -f values/values-dev.yaml
 ```
 
 ---
@@ -197,7 +239,8 @@ helm install mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --
 ### 6) Upgrade an Existing Release
 
 ```bash
-helm upgrade mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm upgrade dev oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 \
+  -n dev -f values/values-base.yaml -f values/values-dev.yaml
 ```
 
 ---
