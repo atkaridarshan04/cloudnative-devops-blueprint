@@ -1,4 +1,5 @@
 namespace: mern-devops
+hostname: "mern.local" # placeholder - becomes a real per-env value in step 3
 
 frontend:
   replicas: 1

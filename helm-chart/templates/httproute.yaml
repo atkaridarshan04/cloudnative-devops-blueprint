@@ -1,0 +1,31 @@
+---
+# Attaches to the one shared cluster Gateway (applied once, standalone, via
+# kustomize/gateway.yml) - this chart does not create a GatewayClass/Gateway
+# of its own. `hostnames` disambiguates this release's traffic from any other
+# release (dev/staging/prod) sharing the same Gateway.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-mern-route
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-gateway-system
+  hostnames:
+    - {{ .Values.hostname | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: {{ .Release.Name }}-frontend-service
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/books"
+      backendRefs:
+        - name: {{ .Release.Name }}-backend-service
+          port: 8000

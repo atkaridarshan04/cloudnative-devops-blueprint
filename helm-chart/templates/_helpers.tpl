@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "mern-charts.name" -}}
+{{- define "mern-chart.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "mern-charts.fullname" -}}
+{{- define "mern-chart.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "mern-charts.chart" -}}
+{{- define "mern-chart.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "mern-charts.labels" -}}
-helm.sh/chart: {{ include "mern-charts.chart" . }}
-{{ include "mern-charts.selectorLabels" . }}
+{{- define "mern-chart.labels" -}}
+helm.sh/chart: {{ include "mern-chart.chart" . }}
+{{ include "mern-chart.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "mern-charts.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "mern-charts.name" . }}
+{{- define "mern-chart.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "mern-chart.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "mern-charts.serviceAccountName" -}}
+{{- define "mern-chart.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "mern-charts.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "mern-chart.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
