@@ -1,0 +1,8 @@
+namespace: prod
+hostname: prod.local
+
+frontend:
+  replicas: 2
+
+backend:
+  replicas: 2
