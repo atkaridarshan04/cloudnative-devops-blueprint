@@ -24,20 +24,9 @@ spec:
         {{- include "mern-chart.selectorLabels" $ | nindent 8 }}
     spec:
       serviceAccountName: {{ include "mern-chart.serviceAccountName" $ }}
-      {{- if hasKey $svc "hostUsers" }}
-      hostUsers: {{ $svc.hostUsers }}
-      {{- end }}
-      {{- with $svc.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
         - name: {{ $name }}
           image: {{ $svc.imageRepo }}:{{ $svc.tag }}
-          {{- with $svc.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
           ports:
             - containerPort: {{ $svc.containerPort }}
           {{- with $svc.env }}

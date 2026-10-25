@@ -2,5 +2,5 @@ apiVersion: v2
 name: mern-chart
 description: A Helm chart for Kubernetes
 type: application
-version: 2.0.0
+version: 1.0.0
 appVersion: "1.0.0"

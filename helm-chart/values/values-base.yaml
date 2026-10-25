@@ -15,13 +15,6 @@ services:
       path: /
     env: {}
 
-    # nginx needs root to bind port 80 - isolate it instead of running non-root.
-    hostUsers: false
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
-
     # Unmeasured first-guess sizing.
     resources:
       requests:
@@ -74,15 +67,8 @@ services:
           configMapKeyRef:
             name: backend-config
             key: mongoDBURL
-
-    podSecurityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
+      LOG_LEVEL:
+        value: info
 
     resources:
       requests:
@@ -136,19 +122,6 @@ services:
       MONGO_INITDB_DATABASE:
         value: db
 
-    # mongo:4.4 ships a "mongodb" system user at this UID/GID.
-    podSecurityContext:
-      runAsUser: 999
-      runAsGroup: 999
-      fsGroup: 999
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
-
     resources:
       requests:
         cpu: 100m
@@ -183,4 +156,4 @@ mongodb:
 persistentVolumeClaim:
   accessMode: ReadWriteOnce
   storage: 1Gi
-  storageClassName: manual
+  storageClassName: standard

@@ -1,26 +1,15 @@
-🚀 MERN Stack Application Successfully Deployed!
-================================================================================
+Release "{{ .Release.Name }}" deployed to namespace "{{ .Values.namespace }}".
 
-📋 DEPLOYMENT SUMMARY:
-  Release Name:    {{ .Release.Name }}
-  Namespace:       {{ .Values.namespace }}
-  Chart Version:   {{ .Chart.Version }}
-  App Version:     {{ .Chart.AppVersion }}
+Services:
+{{- range $name, $svc := .Values.services }}
+  - {{ $name }}
+{{- end }}
 
-🌐 APPLICATION ACCESS:
-If using "Ingress":
-  Your application is available at:
-  🔗 http://<<instance-ip>>
-If using "NodePort Service"
-  Your application is available at:
-  🔗 http://<<instance-ip>>:31000
+Check status:
+  kubectl get all -n {{ .Values.namespace }}
 
-IMPORTANT NOTES:
-  - MongoDB data is persisted using PVC
-  - Default credentials are stored in secrets
-  - Health checks are configured for all services
-  - Rolling updates are enabled for zero-downtime deployments
+Access (requires the shared Gateway + NodePort patch - see docs/Helm.md Steps 3 & 5):
+  echo "127.0.0.1 {{ .Values.hostname }}" >> /etc/hosts
+  curl http://{{ .Values.hostname }}:30080
 
-📖 For more information, visit: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint/
-
-Happy Helming! 🎉
+Mongo credentials are a plaintext Secret - known gap, not fixed yet.
