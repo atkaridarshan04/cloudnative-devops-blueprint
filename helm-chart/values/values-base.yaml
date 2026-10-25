@@ -1,72 +1,130 @@
-frontend:
-  replicas: 1
-  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
-  tag: 3.0.0
-  containerPort: 80
+services:
+  frontend:
+    replicas: 1
+    imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-frontend
+    tag: 3.0.0
+    containerPort: 80
+    service:
+      type: ClusterIP
+      port: 80
+    route:
+      path: /
+    env: {}
 
-  livenessProbe:
-    initialDelaySeconds: 30
-    periodSeconds: 15
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 30
+      periodSeconds: 15
 
-  readinessProbe:
-    initialDelaySeconds: 30
-    periodSeconds: 15
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 30
+      periodSeconds: 15
 
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
 
-  service:
-    type: ClusterIP
-    port: 80
+  backend:
+    replicas: 1
+    imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
+    tag: 3.0.0
+    containerPort: 8000
+    service:
+      type: ClusterIP
+      port: 8000
+    route:
+      path: /books
 
-backend:
-  replicas: 1
-  imageRepo: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend
-  tag: 3.0.0
-  containerPort: 8000
+    # configMapKeyRef.name is a suffix - the chart prefixes it with the
+    # release name, same convention every resource name in this chart uses.
+    env:
+      PORT:
+        valueFrom:
+          configMapKeyRef:
+            name: backend-config
+            key: PORT
+      mongoDBURL:
+        valueFrom:
+          configMapKeyRef:
+            name: backend-config
+            key: mongoDBURL
 
-  livenessProbe:
-    initialDelaySeconds: 30
-    periodSeconds: 15
+    livenessProbe:
+      httpGet:
+        path: /books
+        port: 8000
+      initialDelaySeconds: 30
+      periodSeconds: 15
 
-  readinessProbe:
-    initialDelaySeconds: 30
-    periodSeconds: 15
+    readinessProbe:
+      httpGet:
+        path: /books
+        port: 8000
+      initialDelaySeconds: 30
+      periodSeconds: 15
 
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
 
-  service:
-    type: ClusterIP
-    port: 8000
+  mongodb:
+    statefulset: true
+    replicas: 1
+    image: mongo:4.4
+    containerPort: 27017
+    volumeMountPath: /data/db
+    service:
+      port: 27017
+
+    # secretKeyRef.name is a suffix too - same prefixing convention as above.
+    env:
+      MONGO_INITDB_ROOT_USERNAME:
+        valueFrom:
+          secretKeyRef:
+            name: mongodb-secret
+            key: username
+      MONGO_INITDB_ROOT_PASSWORD:
+        valueFrom:
+          secretKeyRef:
+            name: mongodb-secret
+            key: password
+      MONGO_INITDB_DATABASE:
+        value: db
+
+    livenessProbe:
+      tcpSocket:
+        port: 27017
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      failureThreshold: 3
+
+    readinessProbe:
+      exec:
+        command: ["mongo", "--eval", "db.adminCommand('ping')"]
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
 
-persistentVolume:
-  capacity: 1Gi
-  accessMode: ReadWriteOnce
-  reclaimPolicy: Retain
-  storageClassName: manual
-  hostPath: "/mnt/data"
+# Domain-specific mongodb config - distinct from services.mongodb above,
+# which only holds the generic workload-shape fields every service has.
+mongodb:
+  username: admin
+  password: password123
+  dbName: db
+  authSource: admin
 
 persistentVolumeClaim:
   accessMode: ReadWriteOnce
   storage: 1Gi
   storageClassName: manual
-
-
-mongodb:
-  replicas: 1
-  image: mongo:4.4
-  serviceName: mongodb-service
-
-  username: admin
-  password: password123
-  dbName: db
-
-  authSource: admin

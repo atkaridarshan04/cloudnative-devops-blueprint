@@ -1,0 +1,22 @@
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}-service
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "mern-chart.labels" $ | nindent 4 }}
+spec:
+  type: {{ $svc.service.type | default "ClusterIP" }}
+  {{- if $svc.statefulset }}
+  clusterIP: None
+  {{- end }}
+  selector:
+    app: {{ $name }}
+  ports:
+    - port: {{ $svc.service.port }}
+      targetPort: {{ $svc.containerPort }}
+      protocol: TCP
+{{- end }}

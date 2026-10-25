@@ -2,7 +2,10 @@
 # Attaches to the one shared cluster Gateway (applied once, standalone, via
 # kustomize/gateway.yml) - this chart does not create a GatewayClass/Gateway
 # of its own. `hostnames` disambiguates this release's traffic from any other
-# release (dev/staging/prod) sharing the same Gateway.
+# release (dev/staging/prod) sharing the same Gateway. Each rule below comes
+# from whichever services.<name> entries declare their own `route` - adding
+# a new web-facing service never requires editing this file; a service with
+# no `route` (mongodb) is simply skipped.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -15,17 +18,14 @@ spec:
   hostnames:
     - {{ .Values.hostname | quote }}
   rules:
+    {{- range $name, $svc := .Values.services }}
+    {{- with $svc.route }}
     - matches:
         - path:
-            type: PathPrefix
-            value: "/"
+            type: {{ .pathType | default "PathPrefix" }}
+            value: {{ .path | quote }}
       backendRefs:
-        - name: {{ .Release.Name }}-frontend-service
-          port: 80
-    - matches:
-        - path:
-            type: PathPrefix
-            value: "/books"
-      backendRefs:
-        - name: {{ .Release.Name }}-backend-service
-          port: 8000
+        - name: {{ $.Release.Name }}-{{ $name }}-service
+          port: {{ $svc.service.port }}
+    {{- end }}
+    {{- end }}
