@@ -11,12 +11,10 @@ spec:
     - 'https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git'
 
 # Allowed destination clusters and namespaces for applications in this project.
-# Both deployment paths below share this one AppProject.
+# Both deployment paths below share this one AppProject and the same
+# dev/staging/prod namespaces - run one path at a time, not both together.
   destinations:
-    # --- Path A: Helm chart (argocd/application.yml) ---
-    - namespace: mern-devops
-      server: https://kubernetes.default.svc
-
+    # --- Path A: Helm chart (argocd/applicationset-helm-chart.yml) ---
     # --- Path B: Kustomize overlays (argocd/application-{dev,staging,prod}.yml) ---
     - namespace: dev
       server: https://kubernetes.default.svc

@@ -16,8 +16,8 @@ ArgoCD provides declarative GitOps continuous delivery for Kubernetes applicatio
 ```mermaid
 flowchart LR
     CD[Jenkins CD<br/>gitops/Jenkinsfile<br/>updates image tag] -->|git commit + push| Git[(Git repo)]
-    Git -.->|watched by| App[ArgoCD Application<br/>book-store]
-    App -->|sync| Cluster[mern-devops namespace]
+    Git -.->|watched by| App[ArgoCD Application / ApplicationSet]
+    App -->|sync| Cluster[target namespace]
     App -.->|on-health-degraded / on-deployed| Notify[Email notifications]
     Cluster -.->|metrics| Prom[Prometheus<br/>via ServiceMonitor]
 
@@ -32,25 +32,29 @@ flowchart LR
     class Notify,Prom observability
 ```
 
-> Note: `gitops/Jenkinsfile` updates image tags in `kubernetes/*.yml`, while this
-> `Application`'s `source.path` below is `helm-chart` — same GitOps mechanism (CD commits,
-> ArgoCD watches Git), but pointed at different paths in this repo today. Point both at the
-> same path if you want the CD job's commits to be exactly what this Application syncs.
+> Note: `gitops/Jenkinsfile` updates image tags in `kubernetes/*.yml`, while these
+> Applications' `source.path` is `helm-chart` — same GitOps mechanism (CD commits,
+> ArgoCD watches Git), but pointed at a different path in this repo today. Point both at the
+> same path if you want the CD job's commits to be exactly what these Applications sync.
 
 ## 🔀 Two Deployment Paths in This Repo
 
 This guide covers two separate, self-contained ways to deploy the app via ArgoCD — pick one,
 each is complete on its own:
 
-- **Path A — Helm chart, single environment** (§3 *Deploy the Application* below): one
-  `Application` (`argocd/application.yml`) deploying `helm-chart/` into one `mern-devops`
-  namespace.
+- **Path A — Helm chart, multi-environment** (§3 *Deploy the Application* below): one
+  `ApplicationSet` (`argocd/applicationset-helm-chart.yml`), a list generator over
+  `[dev, staging, prod]` that templates one Application per environment (`mern-chart-dev`,
+  `mern-chart-staging`, `mern-chart-prod`), each deploying `helm-chart/` with that
+  environment's value files into its own namespace.
 - **Path B — Kustomize overlays, multi-environment** (§5 *Multi-Environment Deployment*
   below): three `Application`s (`argocd/application-{dev,staging,prod}.yml`), each deploying
   its own `kustomize/overlays/{dev,staging,prod}` into its own namespace.
 
-Both share the same `argocd/project.yml` `AppProject` — see that file's comments for which
-`destinations`/whitelist entries belong to which path.
+Both target the same `dev`/`staging`/`prod` namespaces with the same resource-naming
+convention — run one path at a time, not both together, or the two will fight over the same
+underlying objects. Both share the same `argocd/project.yml` `AppProject` — see that file's
+comments for which `destinations`/whitelist entries belong to which path.
 
 ## Cluster Configuration
 
@@ -82,11 +86,18 @@ kubectl create namespace argocd
 ### Install ArgoCD
 
 ```bash
-kubectl apply -n argocd \
+kubectl apply -n argocd --server-side \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
 > Note: Installing using manifest because the metrics services of ArgoCD will be created by only official manifests, not with Helm. This is required for monitoring ArgoCD.
+
+> **⚠️ Use `--server-side`, not plain `apply`:** a plain `kubectl apply` embeds the whole
+> manifest into a `kubectl.kubernetes.io/last-applied-configuration` annotation for 3-way
+> merges. ArgoCD's CRDs - especially `applicationsets.argoproj.io` - are now large enough that
+> this annotation exceeds Kubernetes' 256 KiB per-annotation limit, failing with
+> `metadata.annotations: Too long`. `--server-side` tracks field ownership server-side instead,
+> so the limit doesn't apply.
 
 ### Verify Installation
 
@@ -190,28 +201,43 @@ Please refer to **[`docs/Helm.md`](./Helm.md)** to set up the Gateway API and ex
 
 ```bash
 kubectl apply -f argocd/project.yml
-kubectl apply -f argocd/application.yml
+kubectl apply -f argocd/applicationset-helm-chart.yml
 ```
-![argo-ui-latest](./assets/argocd/argo-ui-latest.png)
+
+This generates three Applications — `mern-chart-dev`, `mern-chart-staging`, `mern-chart-prod` —
+one per environment, each syncing automatically.
+![argocd-helm-deploy](./assets/argocd/argocd-helm-deploy.png)
 ![argo-success-mail](./assets/argocd/argo-success-mail.png)
 
 ### Access the Application
 
-✅ Make sure you have completed the application exposure steps from [docs/Helm.md](./Helm.md)
+✅ Make sure you have completed the Gateway + NodePort steps from [docs/Helm.md](./Helm.md)
 
+Same `Host`-header routing as the manual install - add the hostnames, then access each environment:
 
-Then access Application at `http://localhost:30080`
+```bash
+echo "127.0.0.1 dev.local staging.local prod.local" | sudo tee -a /etc/hosts
+```
+
+```
+http://dev.local:30080
+http://staging.local:30080
+http://prod.local:30080
+```
 ![argocd-app-ui](./assets/argocd/argocd-app-ui.png)
 
 <details>
-<summary><strong>Method 2: Using ArgoCD UI</strong></summary>
+<summary><strong>Method 2: Using ArgoCD UI (single environment, manually)</strong></summary>
+
+The UI creates one `Application` at a time, so this recreates just the `dev` environment by
+hand - the ApplicationSet above is what actually generates all three.
 
 #### Connect to Repository
 
 1. Click **New App** in ArgoCD dashboard
 2. Configure application:
-   - **Application Name:** `mern-devops`
-   - **Project:** `default`
+   - **Application Name:** `mern-chart-dev`
+   - **Project:** `book-store`
    - **Sync Policy:** `Manual` or `Automatic`
    - Select `Auto-Create Namespace`
 
@@ -221,14 +247,16 @@ Then access Application at `http://localhost:30080`
 
 - **Repository URL:** `https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git`
 - **Revision:** `main`
-- **Path:** `kubernetes`
+- **Path:** `helm-chart`
+- **Helm Release Name:** `dev`
+- **Values Files:** `values/values-base.yaml`, `values/values-dev.yaml`
 
 ![argocd-2](./assets/argocd/argocd-2.png)
 
 #### Set Destination
 
 - **Cluster:** Default cluster
-- **Namespace:** `mern-devops`
+- **Namespace:** `dev`
 
 ![argocd-3](./assets/argocd/argocd-3.png)
 
@@ -263,7 +291,7 @@ Then access Application at `http://localhost:30080`
 `Application`s — `argocd/application-dev.yml`, `argocd/application-staging.yml`,
 `argocd/application-prod.yml` — each watching its own `kustomize/overlays/{dev,staging,prod}`
 path and syncing into its own namespace. They share the same `book-store` `AppProject` as §3,
-which whitelists `dev`/`staging`/`prod` as destinations alongside `mern-devops`.
+which whitelists `dev`/`staging`/`prod` as destinations for both paths.
 
 ```mermaid
 flowchart LR
