@@ -1,0 +1,66 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.statefulset }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}-statefulset
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    app.kubernetes.io/component: {{ $name }}
+    {{- include "mern-chart.labels" $ | nindent 4 }}
+spec:
+  serviceName: {{ $.Release.Name }}-{{ $name }}-service
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  {{- with $svc.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      name: {{ $name }}
+      labels:
+        app: {{ $name }}
+        app.kubernetes.io/component: {{ $name }}
+        {{- include "mern-chart.selectorLabels" $ | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "mern-chart.serviceAccountName" $ }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $svc.image }}
+          ports:
+            - containerPort: {{ $svc.containerPort }}
+          {{- with $svc.env }}
+          env:
+            {{- include "mern-chart.envVars" (dict "env" $svc.env "root" $) | nindent 12 }}
+          {{- end }}
+          {{- with $svc.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ $name }}-data
+              mountPath: {{ $svc.volumeMountPath }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ $name }}-data
+      spec:
+        accessModes: ["{{ $.Values.persistentVolumeClaim.accessMode }}"]
+        storageClassName: {{ $.Values.persistentVolumeClaim.storageClassName }}
+        resources:
+          requests:
+            storage: {{ $.Values.persistentVolumeClaim.storage }}
+{{- end }}
+{{- end }}

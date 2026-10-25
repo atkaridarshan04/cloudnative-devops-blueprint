@@ -25,11 +25,7 @@ nodes:
   kind create cluster --config kind-config.yaml
   ```
 
-- Create **mern-devops** namespace:
-
-  ```bash
-  kubectl create namespace mern-devops
-  ```
+Namespace creation is handled by `--create-namespace` in Step 4 - no manual step needed.
 
 ## Step 2: Install Envoy Gateway Controller with Gateway API CRDs
 
@@ -44,37 +40,80 @@ kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for
 ```
 
 
-## Step 3: Install the Helm Chart
+## Step 3: Create the Shared Gateway
 
-```bash
-helm install mern-devops ./helm-chart
+The chart's `HTTPRoute` attaches to one shared `Gateway` rather than creating
+its own per release - apply this once, before installing the chart for any
+environment:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gatewayclass
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy-gatewayclass
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
 ```
 
-## Step 4: Verify
+Save as `gateway.yml` and apply:
+
+```bash
+kubectl apply -f gateway.yml
+```
+
+`allowedRoutes.namespaces.from: All` is what lets each environment's
+`HTTPRoute` (living in `dev`/`staging`/`prod`, not `envoy-gateway-system`)
+attach to this one Gateway.
+
+## Step 4: Install the Helm Chart
+
+One release per environment, each with its own namespace and value files.
+Starting with `dev` - `staging`/`prod` follow in Step 6, once this one works:
+
+```bash
+helm install dev ./helm-chart -n dev --create-namespace \
+  -f ./helm-chart/values/values-base.yaml -f ./helm-chart/values/values-dev.yaml
+```
+
+## Step 5: Verify
 
 ### List Helm releases:
 
 ```bash
-helm ls
+helm ls -n dev
 ```
-![helm-install](./assets/helm/helm-ls.png)
+![helm-dev-deploy](./assets/helm/helm-dev-deploy.png)
 
 Check the status of all resources:
 
 ```bash
-kubectl get all -n mern-devops
+kubectl get all -n dev
 ```
-![helm-get-all](./assets/helm/helm-get-all.png)
-
 
 ### Verify Gateway API Resources
 
 ```bash
 kubectl get gatewayclass
-kubectl get gateway -n mern-devops
-kubectl get httproute -n mern-devops
+kubectl get gateway -n envoy-gateway-system
+kubectl get httproute -n dev
 ```
-![gateway-api-resources](./assets/kubernetes/gateway-api-resources.png)
+![gateway-programmed-false](./assets/helm/gateway-programmed-false.png)
 
 > **⚠️ Important:** If running locally, the gateway status will show `Programmed: False` since kind has no LoadBalancer support. The NodePort patch in the next step resolves this for local access.
 
@@ -89,11 +128,10 @@ kubectl get svc -n envoy-gateway-system
 
 > **🔧 Local Testing Only:** Patch the envoy gateway service to NodePort for local access. Not needed in production (use LoadBalancer or proper DNS).
 
-Get the envoy gateway service name:
+Find the envoy data-plane service (named after the `envoy-gateway` Gateway from Step 3, in `envoy-gateway-system`):
 
 ```bash
 kubectl get svc -n envoy-gateway-system
-# Look for the service named: mern-devops-envoy-gateway-<hash>
 ```
 
 Patch it to NodePort:
@@ -102,25 +140,57 @@ Patch it to NodePort:
 kubectl patch svc <service-name> -n envoy-gateway-system \
   -p '{"spec":{"type":"NodePort","ports":[{"port":80,"nodePort":30080,"protocol":"TCP"}]}}'
 ```
-![envoy-mern-devops-gateway-patch](./assets/kubernetes/envoy-mern-devops-gateway-patch.png)
+![gateway-programmed-true](./assets/helm/gateway-programmed-true.png)
 
-Access the application at:
-```
-http://localhost:30080
-```
-![gateway-api-webapp](./assets/kubernetes/gateway-api-webapp.png)
-
-## Step 5: Cleanup
+The `Host` header is what routes you to the right environment - point `dev.local` at localhost:
 
 ```bash
-helm uninstall mern-devops
+echo "127.0.0.1 dev.local" | sudo tee -a /etc/hosts
 ```
 
-Confirm removal:
+```bash
+curl http://dev.local:30080/books
+```
+
+Or open `http://dev.local:30080` directly in a browser.
+
+## Step 6: Other Environments
+
+Once `dev` works, `staging`/`prod` are the same chart, same shared Gateway and
+NodePort - just a different release, namespace, and values file:
 
 ```bash
-helm ls
-kubectl get ns
+helm install staging ./helm-chart -n staging --create-namespace \
+  -f ./helm-chart/values/values-base.yaml -f ./helm-chart/values/values-staging.yaml
+
+helm install prod ./helm-chart -n prod --create-namespace \
+  -f ./helm-chart/values/values-base.yaml -f ./helm-chart/values/values-prod.yaml
+```
+
+Add their hostnames too, then access the same way as dev:
+
+```bash
+echo "127.0.0.1 staging.local prod.local" | sudo tee -a /etc/hosts
+
+curl http://staging.local:30080/books
+curl http://prod.local:30080/books
+```
+
+Or open `http://staging.local:30080` / `http://prod.local:30080` in a browser.
+
+## Step 7: Cleanup
+
+```bash
+helm uninstall dev -n dev
+helm uninstall staging -n staging
+helm uninstall prod -n prod
+```
+
+This doesn't remove the namespaces or the shared Gateway from Step 3. Full teardown:
+
+```bash
+kubectl delete namespace dev staging prod
+kubectl delete -f gateway.yml
 ```
 
 ---
@@ -153,7 +223,7 @@ helm package .
 This generates a versioned chart archive like:
 
 ```
-mern-chart-2.0.0.tgz
+mern-chart-1.0.0.tgz
 ```
 
 ---
@@ -161,13 +231,13 @@ mern-chart-2.0.0.tgz
 ### 3) Push the Chart to GHCR
 
 ```bash
-helm push mern-chart-2.0.0.tgz oci://ghcr.io/atkaridarshan04/helm-charts
+helm push mern-chart-1.0.0.tgz oci://ghcr.io/atkaridarshan04/helm-charts
 ```
 
 This will publish the chart as:
 
 ```
-ghcr.io/atkaridarshan04/helm-charts/mern-charts:2.0.0
+ghcr.io/atkaridarshan04/helm-charts/mern-chart:1.0.0
 ```
 
 ---
@@ -175,13 +245,13 @@ ghcr.io/atkaridarshan04/helm-charts/mern-charts:2.0.0
 ### 4) Pull the Chart from GHCR
 
 ```bash
-helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 1.0.0
 ```
 
 (Optional) Extract it:
 
 ```bash
-helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 --untar
+helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 1.0.0 --untar
 ```
 
 ---
@@ -189,7 +259,8 @@ helm pull oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0 -
 ### 5) Install the Chart from GHCR
 
 ```bash
-helm install mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm install dev oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 1.0.0 \
+  -n dev --create-namespace -f values/values-base.yaml -f values/values-dev.yaml
 ```
 
 ---
@@ -197,7 +268,8 @@ helm install mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --
 ### 6) Upgrade an Existing Release
 
 ```bash
-helm upgrade mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm upgrade dev oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 1.0.0 \
+  -n dev -f values/values-base.yaml -f values/values-dev.yaml
 ```
 
 ---
@@ -205,7 +277,7 @@ helm upgrade mern-devops oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --
 ### 7) Show Chart Metadata (Verify Version)
 
 ```bash
-helm show chart oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 2.0.0
+helm show chart oci://ghcr.io/atkaridarshan04/helm-charts/mern-chart --version 1.0.0
 ```
 
 

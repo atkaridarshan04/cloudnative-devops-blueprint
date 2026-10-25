@@ -1,0 +1,8 @@
+namespace: dev
+hostname: dev.local
+
+services:
+  backend:
+    env:
+      LOG_LEVEL:
+        value: debug

@@ -1,0 +1,10 @@
+---
+# mongoDBURL is computed here - values.yaml isn't template-processed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-backend-config
+  namespace: {{ .Values.namespace }}
+data:
+  PORT: "{{ .Values.services.backend.containerPort }}"
+  mongoDBURL: {{ include "mern-chart.mongoURL" . | quote }}

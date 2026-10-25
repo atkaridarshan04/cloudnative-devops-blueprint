@@ -1,0 +1,11 @@
+namespace: staging
+hostname: staging.local
+
+services:
+  frontend:
+    tag: 2.0.0
+  backend:
+    tag: 2.0.0
+    env:
+      LOG_LEVEL:
+        value: debug

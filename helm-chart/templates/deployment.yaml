@@ -1,0 +1,53 @@
+{{- range $name, $svc := .Values.services }}
+{{- if not $svc.statefulset }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}-deployment
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    app.kubernetes.io/component: {{ $name }}
+    {{- include "mern-chart.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      name: {{ $name }}
+      labels:
+        app: {{ $name }}
+        app.kubernetes.io/component: {{ $name }}
+        {{- include "mern-chart.selectorLabels" $ | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "mern-chart.serviceAccountName" $ }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $svc.imageRepo }}:{{ $svc.tag }}
+          ports:
+            - containerPort: {{ $svc.containerPort }}
+          {{- with $svc.env }}
+          env:
+            {{- include "mern-chart.envVars" (dict "env" $svc.env "root" $) | nindent 12 }}
+          {{- end }}
+          {{- with $svc.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  {{- with $svc.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
