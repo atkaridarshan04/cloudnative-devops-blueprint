@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: mern-chart
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+          - env: staging
+          - env: prod
+  template:
+    metadata:
+      name: 'mern-chart-{{env}}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: book-store
+
+      source:
+        repoURL: https://github.com/atkaridarshan04/CloudNative-DevOps-Blueprint.git
+        targetRevision: main
+        path: helm-chart
+        helm:
+          releaseName: '{{env}}'
+          valueFiles:
+            - values/values-base.yaml
+            - 'values/values-{{env}}.yaml'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{env}}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+      revisionHistoryLimit: 10
