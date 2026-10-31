@@ -1,0 +1,78 @@
+# Metrics from ArgoCD's own ServiceMonitors (argocd/monitoring/service-monitor.yml).
+# Aggregated: the raw metric's pod/container/instance labels describe the
+# ArgoCD controller, not the broken app.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: custom-argocd-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring   # required by ruleSelector
+spec:
+  groups:
+    - name: custom.argocd
+      interval: 60s
+      rules:
+        - alert: ArgoCDAppDegraded
+          expr: max by (name, project, dest_namespace, health_status, sync_status) (argocd_app_info{health_status="Degraded"}) == 1
+          for: 5m
+          keep_firing_for: 5m
+          labels:
+            severity: critical
+            category: platform
+            component: argocd
+          annotations:
+            summary: "ArgoCD app {{ $labels.name }} is DEGRADED"
+            description: "App {{ $labels.name }} (project {{ $labels.project }}) Degraded for >5m. Check pods in the target namespace."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#argocdappdegraded"
+        # more specific than the above, so it inhibits it
+        - alert: ArgoCDAppSyncFailed
+          expr: max by (name, project, dest_namespace, health_status, sync_status) (argocd_app_info{health_status="Degraded", sync_status="OutOfSync"}) == 1
+          for: 5m
+          keep_firing_for: 5m
+          labels:
+            severity: critical
+            category: platform
+            component: argocd
+          annotations:
+            summary: "ArgoCD app {{ $labels.name }} sync failed"
+            description: "App {{ $labels.name }} (project {{ $labels.project }}) Degraded and OutOfSync for >5m -- the sync broke the app."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#argocdappsyncfailed"
+        - alert: ArgoCDAppSyncStuck
+          expr: max by (name, project, dest_namespace, health_status, sync_status) (argocd_app_info{health_status="Progressing", sync_status!="Synced"}) == 1
+          for: 20m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: platform
+            component: argocd
+          annotations:
+            summary: "ArgoCD app {{ $labels.name }} is taking too long to sync"
+            description: "App {{ $labels.name }} (project {{ $labels.project }}) Progressing for >20m, blocking further deploys."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#argocdappsyncstuck"
+        - alert: ArgoCDAppUnhealthy
+          expr: max by (name, project, dest_namespace, health_status, sync_status) (argocd_app_info{health_status=~"Missing|Unknown"}) == 1
+          for: 20m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: platform
+            component: argocd
+          annotations:
+            summary: "ArgoCD app {{ $labels.name }} is {{ $labels.health_status }}"
+            description: "App {{ $labels.name }} (project {{ $labels.project }}) health is {{ $labels.health_status }} for >20m."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#argocdappunhealthy"
+        # absent(), not up == 0: a missing ServiceMonitor produces no series,
+        # and up == 0 cannot fire on a series that does not exist
+        - alert: ArgoCDControllerDown
+          expr: absent(argocd_app_info)
+          for: 5m
+          keep_firing_for: 5m
+          labels:
+            severity: critical
+            category: platform
+            component: argocd
+          annotations:
+            summary: "ArgoCD application controller is down"
+            description: "No argocd_app_info series for >5m. Check the controller, then its job label with `count by (job) (up)`."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#argocdcontrollerdown"

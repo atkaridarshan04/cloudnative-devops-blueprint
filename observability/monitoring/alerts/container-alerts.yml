@@ -1,0 +1,59 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: custom-container-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring   # required by ruleSelector
+spec:
+  groups:
+    - name: custom.containers
+      interval: 30s
+      rules:
+        # no chart equivalent: KubePodCrashLooping catches the restart loop,
+        # nothing reports the kill itself. for: 0m -- it's an event.
+        - alert: ContainerOOMKilled
+          expr: increase(container_oom_events_total{container!=""}[10m]) > 0
+          for: 0m
+          keep_firing_for: 2m
+          labels:
+            severity: critical
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Container {{ $labels.container }} OOM killed in {{ $labels.namespace }}"
+            description: "Killed by the OOM killer. Raise the memory limit or fix a leak in pod {{ $labels.pod }}."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#containeroomkilled"
+        - alert: ContainerMemoryNearLimit
+          expr: |
+            container_memory_working_set_bytes{container!=""}
+            / on(namespace, pod, container)
+            kube_pod_container_resource_limits{resource="memory"}
+            > 0.9
+          for: 15m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Container {{ $labels.container }} memory > 90% of limit"
+            description: "{{ $labels.container }} in {{ $labels.namespace }} at {{ $value | humanizePercentage }} of its memory limit."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#containermemorynearlimit"
+        # replaces CPUThrottlingHigh (severity info, far lower threshold)
+        - alert: ContainerHighCPUThrottling
+          expr: |
+            rate(container_cpu_cfs_throttled_periods_total{container!=""}[10m])
+            /
+            rate(container_cpu_cfs_periods_total{container!=""}[10m])
+            > 0.5
+          for: 20m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Container {{ $labels.container }} CPU throttled > 50%"
+            description: "{{ $labels.container }} in {{ $labels.namespace }} throttled {{ $value | humanizePercentage }} of the time."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#containerhighcputhrottling"
