@@ -1,0 +1,108 @@
+# Alertmanager routing and alert curation, layered over monitoring-values.yml.
+# Overlays that set route.routes or receivers must restate them (Helm replaces lists).
+
+alertmanager:
+  config:
+    route:
+      group_by: ["alertname", "namespace"]
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 12h
+      # no real receiver by default: alerts stay visible in the UI only
+      receiver: 'null'
+      routes:
+        - receiver: 'null'
+          matchers:
+            - severity =~ "none|info"
+    inhibit_rules:
+      # first three restate the chart defaults, which `config` drops
+      - source_matchers: [severity = "critical"]
+        target_matchers: [severity =~ "warning|info"]
+        equal: [namespace, alertname]
+      - source_matchers: [severity = "warning"]
+        target_matchers: [severity = "info"]
+        equal: [namespace, alertname]
+      - source_matchers: [alertname = "InfoInhibitor"]
+        target_matchers: [severity = "info"]
+        equal: [namespace]
+      - source_matchers: [alertname = "DeploymentFullyDown"]
+        target_matchers: [alertname = "DeploymentDegraded"]
+        equal: [namespace, deployment]
+      - source_matchers: [alertname = "StatefulSetFullyUnavailable"]
+        target_matchers: [alertname = "StatefulSetReplicasNotReady"]
+        equal: [namespace, statefulset]
+      - source_matchers: [alertname = "ArgoCDAppSyncFailed"]
+        target_matchers: [alertname = "ArgoCDAppDegraded"]
+        equal: [name, project]
+    receivers:
+      - name: 'null'
+
+# `rules` gates whole groups; `disabled` only filters inside enabled groups.
+# Remaining groups also hold recording rules that dashboards use.
+defaultRules:
+  create: true
+  rules:
+    prometheusOperator: false
+    configReloaders: false
+    # EKS owns the control plane
+    kubeApiserverSlos: false
+    kubeApiserverBurnrate: false
+    kubeApiserverHistogram: false
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+    network: false
+    windows: false
+  disabled:
+    # replaced by observability/monitoring/alerts/
+    KubeDeploymentReplicasMismatch: true
+    KubeDeploymentRolloutStuck: true
+    KubeStatefulSetReplicasMismatch: true
+    CPUThrottlingHigh: true
+    # always firing at this cluster size
+    KubeCPUOvercommit: true
+    KubeMemoryOvercommit: true
+    KubeCPUQuotaOvercommit: true
+    KubeMemoryQuotaOvercommit: true
+    # managed by EKS
+    KubeClientCertificateExpiration: true
+    KubeletClientCertificateExpiration: true
+    KubeletServerCertificateExpiration: true
+    KubeletClientCertificateRenewalErrors: true
+    KubeletServerCertificateRenewalErrors: true
+    KubeVersionMismatch: true
+    # not applicable on EBS-backed EC2
+    NodeRAIDDegraded: true
+    NodeRAIDDiskFailure: true
+    NodeBondingDegraded: true
+    NodeTextFileCollectorScrapeError: true
+    NodeNetworkReceiveErrs: true
+    NodeNetworkTransmitErrs: true
+    NodeClockSkewDetected: true
+    NodeClockNotSynchronising: true
+    # no remote_write
+    PrometheusRemoteStorageFailures: true
+    PrometheusRemoteWriteBehind: true
+    PrometheusRemoteWriteDesiredShards: true
+    # tuning telemetry, not conditions
+    PrometheusDuplicateTimestamps: true
+    PrometheusOutOfOrderTimestamps: true
+    PrometheusLabelLimitHit: true
+    PrometheusTargetLimitHit: true
+    PrometheusScrapeBodySizeLimitHit: true
+    PrometheusScrapeSampleLimitHit: true
+    PrometheusHighQueryLoad: true
+    PrometheusTargetSyncFailure: true
+    PrometheusSDRefreshFailure: true
+    PrometheusKubernetesListWatchFailures: true
+    PrometheusNotificationQueueRunningFull: true
+    PrometheusErrorSendingAlertsToSomeAlertmanagers: true
+    # single replica / shard
+    AlertmanagerClusterFailedPeers: true
+    AlertmanagerMembersInconsistent: true
+    AlertmanagerClusterCrashlooping: true
+    AlertmanagerClusterFailedToSendAlerts: true
+    KubeStateMetricsShardingMismatch: true
+    KubeStateMetricsShardsMissing: true
