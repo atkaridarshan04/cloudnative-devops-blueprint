@@ -1,0 +1,59 @@
+# EKS overlay for observability/monitoring/values-alerting.yml, rendered by terraform/alerting.tf.
+# Lists replace rather than merge, so route.routes and receivers are restated.
+
+alertmanager:
+  # IRSA applies at pod creation; restart the pod if this is added later
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: ${alertmanager_role_arn}
+  config:
+    route:
+      receiver: 'sns-alerts'
+      routes:
+        # dead man's switch; must precede the severity route (Watchdog is severity "none")
+        - receiver: 'sns-heartbeat'
+          matchers:
+            - alertname = "Watchdog"
+          group_wait: 0s
+          group_interval: 5m
+          repeat_interval: 5m
+        - receiver: 'null'
+          matchers:
+            - severity =~ "none|info"
+        - receiver: 'sns-alerts'
+          matchers:
+            - severity = "critical"
+          repeat_interval: 3h
+    receivers:
+      - name: 'null'
+      - name: 'sns-heartbeat'
+        sns_configs:
+          - topic_arn: ${heartbeat_topic_arn}
+            sigv4:
+              region: ${region}
+            subject: 'alertmanager heartbeat'
+            message: 'Watchdog alive'
+            send_resolved: false
+      - name: 'sns-alerts'
+        sns_configs:
+          - topic_arn: ${alerts_topic_arn}
+            sigv4:
+              region: ${region}
+            # SNS caps subjects at 100 chars
+            subject: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}][{{ .CommonLabels.cluster }}] {{ .GroupLabels.alertname }}'
+            # exporter labels are excluded, they say nothing about what broke
+            message: |
+              {{ range .Alerts }}{{ .Annotations.summary }}
+              {{ with .Annotations.description }}{{ . }}
+              {{ end }}
+              {{ range .Labels.SortedPairs }}{{ if not (match "^(alertname|prometheus|endpoint|instance|job|service|exported_namespace|dest_server|repo|autosync_enabled)$" .Name) }} - {{ .Name }} = {{ .Value }}
+              {{ end }}{{ end }}
+              firing since {{ date "2006-01-02 15:04 MST" .StartsAt }}
+              {{ with .Annotations.runbook_url }}runbook {{ . }}
+              {{ end }}{{ end }}
+
+prometheus:
+  prometheusSpec:
+    # lets the SNS subject name the cluster
+    externalLabels:
+      cluster: ${cluster_name}
