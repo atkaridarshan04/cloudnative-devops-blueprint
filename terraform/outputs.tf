@@ -119,3 +119,27 @@ output "useful_commands" {
     describe_cluster    = "kubectl cluster-info"
   }
 }
+
+# =============================================================================
+# ALERTING (only when enable_monitoring = true)
+# =============================================================================
+
+output "alerts_topic_arn" {
+  description = "SNS topic Alertmanager publishes alert notifications to"
+  value       = one(aws_sns_topic.alerts[*].arn)
+}
+
+output "heartbeat_topic_arn" {
+  description = "SNS topic receiving the Watchdog heartbeat"
+  value       = one(aws_sns_topic.heartbeat[*].arn)
+}
+
+output "ops_topic_arn" {
+  description = "SNS topic the dead man's switch alarm notifies"
+  value       = one(aws_sns_topic.ops[*].arn)
+}
+
+output "alertmanager_role_arn" {
+  description = "IRSA role annotated onto the Alertmanager service account"
+  value       = one(aws_iam_role.alertmanager[*].arn)
+}

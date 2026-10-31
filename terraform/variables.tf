@@ -55,3 +55,15 @@ variable "enable_monitoring" {
   type        = bool
   default     = false
 }
+
+variable "monitoring_chart_version" {
+  description = "kube-prometheus-stack chart version; the disabled-alert list in observability/monitoring/values-alerting.yml was written against 88.5.4"
+  type        = string
+  default     = "88.5.4"
+}
+
+variable "alert_email_addresses" {
+  description = "Addresses subscribed to the alerts and monitoring-ops SNS topics; each must confirm the AWS email. Set in a gitignored *.tfvars"
+  type        = list(string)
+  default     = []
+}

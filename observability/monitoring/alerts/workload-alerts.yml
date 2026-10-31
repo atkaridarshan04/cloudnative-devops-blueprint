@@ -1,0 +1,94 @@
+# Two-tier: the severe alert inhibits the lesser one (see values-alerting.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: custom-workload-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring   # required by ruleSelector
+spec:
+  groups:
+    - name: custom.deployments
+      interval: 30s
+      rules:
+        - alert: DeploymentFullyDown
+          # a deliberately paused deployment is not an outage
+          expr: |
+            kube_deployment_spec_replicas > 0
+            and kube_deployment_spec_paused == 0
+            and kube_deployment_status_replicas_unavailable == kube_deployment_spec_replicas
+          for: 5m
+          keep_firing_for: 5m
+          labels:
+            severity: critical
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} fully down in {{ $labels.namespace }}"
+            description: "ALL {{ $labels.deployment }} replicas unavailable for 5m. Service is completely unreachable."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#deploymentfullydown"
+        - alert: DeploymentDegraded
+          # ratio, so it scales with replica count
+          expr: |
+            kube_deployment_spec_replicas > 0
+            and kube_deployment_spec_paused == 0
+            and (
+              kube_deployment_status_replicas_unavailable
+              / kube_deployment_spec_replicas
+            ) > 0.25
+          for: 15m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} > 25% replicas unavailable"
+            description: "{{ $labels.deployment }} in {{ $labels.namespace }} has {{ $value | humanizePercentage }} replicas unavailable."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#deploymentdegraded"
+        - alert: DeploymentRolloutStuck
+          expr: |
+            kube_deployment_metadata_generation
+            > kube_deployment_status_observed_generation
+          for: 20m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: application
+            component: kubernetes
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} rollout stuck"
+            description: "{{ $labels.deployment }} in {{ $labels.namespace }} has a pending generation not yet observed."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#deploymentrolloutstuck"
+
+    - name: custom.statefulsets
+      interval: 30s
+      rules:
+        - alert: StatefulSetFullyUnavailable
+          expr: |
+            kube_statefulset_status_replicas_ready == 0
+            and kube_statefulset_replicas > 0
+          for: 5m
+          keep_firing_for: 5m
+          labels:
+            severity: critical
+            category: platform
+            component: kubernetes
+          annotations:
+            summary: "StatefulSet {{ $labels.statefulset }} is completely down"
+            description: "ALL replicas of {{ $labels.statefulset }} in {{ $labels.namespace }} are down."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#statefulsetfullyunavailable"
+        - alert: StatefulSetReplicasNotReady
+          expr: |
+            kube_statefulset_status_replicas_ready
+            < kube_statefulset_replicas
+          for: 10m
+          keep_firing_for: 10m
+          labels:
+            severity: warning
+            category: platform
+            component: kubernetes
+          annotations:
+            summary: "StatefulSet {{ $labels.statefulset }} has unready replicas"
+            description: "{{ $labels.statefulset }} in {{ $labels.namespace }} has fewer ready replicas than desired."
+            runbook_url: "https://github.com/atkaridarshan04/cloudnative-devops-blueprint/blob/main/docs/AlertRunbooks.md#statefulsetreplicasnotready"
