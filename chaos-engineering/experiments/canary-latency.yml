@@ -1,0 +1,20 @@
+# Experiment 4 - poison only the canary pods.
+# Adds 5s of latency to every pod labelled role=canary. The mesh VirtualService times out at 2s, so canary requests turn into 504s, the success-rate query drops below 95% and Argo Rollouts must abort and shift traffic back to stable.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: canary-latency
+  namespace: mern-devops
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: backend
+      role: canary
+  delay:
+    latency: 5s
+  direction: to
+  duration: 5m

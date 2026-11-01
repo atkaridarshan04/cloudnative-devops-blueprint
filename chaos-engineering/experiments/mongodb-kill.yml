@@ -1,0 +1,16 @@
+# Experiment 6 - kill the MongoDB pod while traffic is flowing.
+# MongoDB is a single replica backed by a PVC, so this is a real outage for /books until the StatefulSet recreates the pod.
+# Hypothesis: requests fail while the DB is gone (nothing in the mesh can hide that), the pod returns with its data intact, and the backend recovers.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: mongodb-pod-kill
+  namespace: mern-devops
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: mongodb

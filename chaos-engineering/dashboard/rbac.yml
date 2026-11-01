@@ -1,0 +1,44 @@
+# Login identity for the Chaos Mesh dashboard (securityMode stays on).
+# Namespace-scoped Manager for mern-devops, shaped like the output of the dashboard's own Token Generator.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-dashboard-manager
+  namespace: mern-devops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-dashboard-manager
+  namespace: mern-devops
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: ["chaos-mesh.org"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-dashboard-manager
+  namespace: mern-devops
+subjects:
+  - kind: ServiceAccount
+    name: chaos-dashboard-manager
+    namespace: mern-devops
+roleRef:
+  kind: Role
+  name: chaos-dashboard-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Kubernetes 1.24+ no longer auto-creates token Secrets, so request one explicitly.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chaos-dashboard-manager-token
+  namespace: mern-devops
+  annotations:
+    kubernetes.io/service-account.name: chaos-dashboard-manager
+type: kubernetes.io/service-account-token

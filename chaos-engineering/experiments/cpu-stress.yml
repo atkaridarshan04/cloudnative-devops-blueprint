@@ -1,0 +1,22 @@
+# Experiment 5 - burn CPU inside every backend pod.
+# Hypothesis: with every backend pod burning CPU, average utilisation passes the HPA 50% target (plus its 10% tolerance), the HPA adds replicas, and user-facing success stays high.
+# With mode: one (a single pod of three) the average stays inside the HPA tolerance and it does not scale.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: backend-cpu-stress
+  namespace: mern-devops
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: backend
+  containerNames:
+    - backend
+  stressors:
+    cpu:
+      workers: 2
+      load: 100
+  duration: 150s

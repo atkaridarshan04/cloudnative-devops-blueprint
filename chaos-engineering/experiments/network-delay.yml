@@ -1,0 +1,21 @@
+# Experiment 2 - add 4s of latency to one backend pod.
+# 4s is longer than the VirtualService perTryTimeout (3s), so every request that lands on the slow pod times out and must be retried on a healthy one.
+# Hypothesis: client-visible success stays ~100% (retries absorb it), at the cost of higher tail latency.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: backend-network-delay
+  namespace: mern-devops
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: backend
+  delay:
+    latency: 4s
+    jitter: 0ms
+  direction: to             # delay traffic leaving the pod, i.e. its responses
+  duration: 90s
