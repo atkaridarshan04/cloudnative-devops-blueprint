@@ -1,0 +1,103 @@
+# Backend Rollout used by the chaos test: Istio traffic routing + background Prometheus analysis.
+# canaryMetadata labels the canary pods so a chaos experiment can target only them.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+  namespace: mern-devops
+  labels:
+    app: backend
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    canary:
+      stableService: backend-service-stable
+      canaryService: backend-service-canary
+      canaryMetadata:
+        labels:
+          role: canary
+      stableMetadata:
+        labels:
+          role: stable
+      trafficRouting:
+        istio:
+          virtualService:
+            name: backend-rollout-vs
+            routes:
+              - primary
+      analysis:
+        templates:
+          - templateName: backend-success-rate
+        startingStep: 1         # begin analysing once the first weight step is live
+      steps:
+        - setWeight: 30
+        - pause: { duration: 150s }   # long enough for the analysis (8 x 15s) to finish
+        - setWeight: 60
+        - pause: { duration: 30s }
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v2
+    spec:
+      serviceAccountName: backend
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: ghcr.io/atkaridarshan04/cloudnative-devops-blueprint/bookstore-backend:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: PORT
+            - name: mongoDBURL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mongoDBURL
+            - name: RELEASE        # bump this to trigger a new revision without changing the image
+              value: "r1"
+          readinessProbe:
+            httpGet:
+              path: /books
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /books
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,21 @@
+# Experiment 3 - break one backend pod's HTTP responses while the pod still looks Ready.
+# Chaos Mesh's HTTPChaos proxy sits in front of :8000 and rewrites responses to 500. Under the Istio sidecar the clients observe failed responses/connection resets rather than a clean 500, which Envoy still counts toward consecutive5xxErrors.
+# Hypothesis: after 5 consecutive errors Envoy ejects the pod (health flag /failed_outlier_check) and clients see no failures because the VirtualService retries onto healthy pods.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: backend-http-fault
+  namespace: mern-devops
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: backend
+  target: Response
+  port: 8000
+  path: "*"
+  replace:
+    code: 500
+  duration: 60s

@@ -1,0 +1,15 @@
+# Experiment 1 - kill one backend pod while traffic is flowing.
+# Hypothesis: with 3 replicas, Istio retries + the Service's readiness gating keep the client-visible success rate at ~100%, and the Deployment replaces the pod.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: backend-pod-kill
+  namespace: mern-devops
+spec:
+  action: pod-kill
+  mode: one                 # kill exactly one randomly chosen matching pod
+  selector:
+    namespaces:
+      - mern-devops
+    labelSelectors:
+      app: backend

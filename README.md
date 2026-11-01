@@ -532,6 +532,22 @@ flowchart TD
 </tr>
 </table>
 
+### 💥 **Chaos Engineering**
+
+<table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #d9534f;">
+<tr>
+<td width="100%" style="border: 2px solid #d9534f; padding: 20px ; vertical-align: top;">
+
+**[ChaosEngineering.md](./docs/ChaosEngineering.md)**
+*Prove Istio and Argo Rollouts resilience by injecting real failures with Chaos Mesh*
+- Pod kill, network latency and HTTP faults under load
+- Istio retries and outlier-detection ejection observed
+- Canary auto-abort via a Prometheus AnalysisTemplate
+
+</td>
+</tr>
+</table>
+
 ### ☁️ **Production Deployment**
 
 <table border="1" cellpadding="15" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 2px solid #7B42BC;">
