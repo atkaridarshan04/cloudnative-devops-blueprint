@@ -1,0 +1,21 @@
+# Success-rate gate for the backend canary.
+# Reads Istio's source-side request counter for traffic sent to the canary Service and fails the run if fewer than 95% of requests in the last minute returned 2xx.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: backend-success-rate
+  namespace: mern-devops
+spec:
+  metrics:
+    - name: canary-success-rate
+      interval: 15s
+      count: 8                  # 8 checks x 15s = 2 minutes of analysis
+      failureLimit: 1           # abort on the 2nd failed check
+      successCondition: result[0] >= 0.95
+      provider:
+        prometheus:
+          address: http://prometheus.istio-system.svc.cluster.local:9090
+          query: |
+            sum(rate(istio_requests_total{reporter="source",destination_service_name="backend-service-canary",destination_service_namespace="mern-devops",response_code=~"2.."}[1m]))
+            /
+            sum(rate(istio_requests_total{reporter="source",destination_service_name="backend-service-canary",destination_service_namespace="mern-devops"}[1m]))

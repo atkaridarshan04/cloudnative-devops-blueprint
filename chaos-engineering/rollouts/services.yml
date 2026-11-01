@@ -1,0 +1,31 @@
+# Stable and canary Services for the chaos-driven canary test.
+# Argo Rollouts adds a rollouts-pod-template-hash selector to each at runtime, so the Deployment's pods (which lack that label) never receive traffic through these.
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-stable
+  namespace: mern-devops
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-canary
+  namespace: mern-devops
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

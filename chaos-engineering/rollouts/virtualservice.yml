@@ -1,0 +1,25 @@
+# In-mesh VirtualService that Argo Rollouts rewrites the weights of during a canary.
+# Clients call backend-service-stable; the route named "primary" splits that traffic between the stable and canary Services.
+# No retries here on purpose: a retry would hide a failing canary from the source-side metrics the AnalysisTemplate reads.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-rollout-vs
+  namespace: mern-devops
+spec:
+  hosts:
+    - backend-service-stable
+  http:
+    - name: primary
+      timeout: 2s
+      route:
+        - destination:
+            host: backend-service-stable
+            port:
+              number: 8000
+          weight: 100
+        - destination:
+            host: backend-service-canary
+            port:
+              number: 8000
+          weight: 0
