@@ -15,6 +15,7 @@ This folder is the **why** layer. Each note explains the underlying model or com
 | [IngressVsGatewayAPI.md](./IngressVsGatewayAPI.md) | Why Gateway API is replacing Ingress | [Kubernetes.md](../Kubernetes.md) (Section 5) |
 | [SupplyChainSecurity.md](./SupplyChainSecurity.md) | SBOM, Sigstore keyless signing, Kyverno `verifyImages` | [Kyverno.md](../Kyverno.md), [GitHubActions.md](../GitHubActions.md) |
 | [PodSecurityHardening.md](./PodSecurityHardening.md) | `securityContext` vs. user namespaces — app-layer vs. kernel-layer pod hardening | [Kubernetes.md](../Kubernetes.md) (Section 4) |
+| [ChaosEngineering.md](./ChaosEngineering.md) | What injected failure proves that config review can't, hypothesis-driven experiments, why Chaos Mesh | [ChaosEngineering.md](../ChaosEngineering.md) |
 | [NetworkPolicies.md](./NetworkPolicies.md) | Zero-trust pod-to-pod traffic, default-deny + explicit allow | Self-contained (steps in the doc) |
 | [PodSecurityAdmission.md](./PodSecurityAdmission.md) | Namespace-level PSA enforcement, why baseline not restricted, and the `hostUsers` blind spot Kyverno closes | [Kubernetes.md](../Kubernetes.md) (Section 2) |
 
